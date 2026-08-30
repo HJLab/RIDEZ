@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1')};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),lastDriverMessages:[],replyingMessageId:null,viewerToken:localStorage.getItem('ridez_viewer_token')||null};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -25,6 +25,7 @@ function ensureDemoChannelToken(){if(!state.demoChannelToken){state.demoChannelT
 async function publishDemoChannel(){if(!state.demo||!state.publicToken)return;await rpc('ridez_set_demo_channel_v50',{p_owner_token:ensureOwnerToken(),p_channel_token:ensureDemoChannelToken(),p_public_token:state.publicToken})}
 const escapeHtml=s=>(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function token(){const a=new Uint8Array(24);crypto.getRandomValues(a);return[...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function ensureViewerToken(){if(!state.viewerToken){state.viewerToken=token();localStorage.setItem('ridez_viewer_token',state.viewerToken)}return state.viewerToken}
 function hav(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
 function showViewerTopSpeed(ride){
   const value=$('viewerTopSpeed'),card=$('viewerTopSpeedCard');if(!value||!card)return;
@@ -151,7 +152,7 @@ async function handleRidePhoto(file,source){
     setPhotoBusy(false,'✓ Billedet er gemt på turen.');
   }catch(e){console.error(e);setPhotoBusy(false,'Kunne ikke gemme billedet.');const fb=$('photoFeedback');if(fb)fb.classList.add('error');alert('Billedet kunne ikke gemmes: '+(e.message||'Ukendt fejl'))}
 }
-function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?(state.demo?'Demo kører':'På farten'):(state.demo?'Demo holder stille':'Holder stille');$('statusDetail').textContent=moving?'Beskeder holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder.'}
+function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?(state.demo?'Demo kører':'På farten'):(state.demo?'Demo holder stille':'Holder stille');$('statusDetail').textContent=moving?'Beskeder holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder.';updateReplyAvailability()}
 
 function formatAccelerationResult(sec){return Number.isFinite(sec)?`${sec.toFixed(1).replace('.',',')} sek.`:'–'}
 function formatAccelerationRange(metric){
@@ -441,10 +442,10 @@ function demoLean(type,t,total,speedMs){
 }
 function updateRideStats(now,speed){state.maxSpeedMs=Math.max(state.maxSpeedMs,Math.max(0,speed||0));if(state.statsLastT!==null){const dt=Math.max(0,Math.min(now-state.statsLastT,15000));if(speed>C.STOPPED_THRESHOLD_MS)state.movingMs+=dt;else state.stoppedMs+=dt}state.statsLastT=now;const top=$('topSpeedValue'),moving=$('movingTimeValue'),stopped=$('stoppedTimeValue');if(top)top.textContent=fmtSpeed(state.maxSpeedMs);if(moving)moving.textContent=fmtDuration(state.movingMs/1000);if(stopped)stopped.textContent=fmtDuration(state.stoppedMs/1000)}
 async function rpc(name,args){const{data,error}=await db.rpc(name,args);if(error)throw error;return data}
-function resetDriverTripDisplay({clearMarker=true}={}){resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();clearActivePhotoMarkers();if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
+function resetDriverTripDisplay({clearMarker=true}={}){resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.replyingMessageId=null;closeReplyDialog();clearActivePhotoMarkers();if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
 function setRideButtons(active){$('startBtn').classList.toggle('hidden',active);$('stopBtn').classList.toggle('hidden',!active);$('shareBtn').classList.toggle('hidden',!active);const photos=$('photoActions');if(photos)photos.classList.toggle('hidden',!active);$('demoBtn').disabled=active&&!state.demo;$('demoType').disabled=active;if(!active){const fb=$('photoFeedback');if(fb)fb.textContent=''}}
 async function createRide(title){state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();try{state.rideId=await rpc('ridez_create_ride_v16',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title})}catch(e){console.error(e);throw new Error('Historik v17 er ikke aktiveret i Supabase endnu. Kør først v16-migrationen og derefter supabase-historik-v17.sql én gang.')}setRideButtons(true);pollMessages()}
-async function startRide(){if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
+async function startRide(){requestMessageNotificationPermission();if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
 function onGeoError(e){$('statusDetail').textContent=`GPS-fejl: ${e.message}`}
 async function processPosition(cur,speed,accuracy=5){const now=cur.t||Date.now();if(state.lastPos){const dist=hav(state.lastPos,cur);if(dist<1000&&accuracy<80)state.distanceM+=dist}speed=Math.max(0,speed||0);state.currentSpeedMs=speed;const newTop=speed>state.maxSpeedMs+0.05;updateRideStats(now,speed);updateAccelerationStats(now,speed);if(newTop)schedulePublicTopSpeed();if(speed>=C.MOVING_THRESHOLD_MS){state.stoppedSince=null;setMotion(true)}else if(speed<=C.STOPPED_THRESHOLD_MS){if(!state.stoppedSince)state.stoppedSince=now;if(now-state.stoppedSince>=C.STATIONARY_SECONDS*1000)setMotion(false)}state.lastPos=cur;$('speedValue').textContent=fmtSpeed(speed);applySpeedColor($('speedValue'),speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;updateMap(cur.lat,cur.lng,true);if(now-state.lastUpload>=C.LOCATION_UPLOAD_MS){state.lastUpload=now;try{await rpc('ridez_update_location',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:accuracy});await publishLiveStats()}catch(e){console.error(e)}}}
 async function onPosition(pos){const now=Date.now(),cur={lat:pos.coords.latitude,lng:pos.coords.longitude,t:now,accuracy:pos.coords.accuracy};let speed=Number.isFinite(pos.coords.speed)?Math.max(0,pos.coords.speed):null;if(state.lastPos&&speed===null){const dt=(now-state.lastPos.t)/1000;if(dt>0)speed=hav(state.lastPos,cur)/dt}await processPosition(cur,speed||0,cur.accuracy)}
@@ -639,10 +640,11 @@ function demoPointAt(route,meters){
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
 async function startDemo(){
+  requestMessageNotificationPermission();
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v72';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v73';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v66 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -736,8 +738,84 @@ async function stopRide(){
   resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';await loadHistory()
 }
 async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':'Følg min motorcykeltur live på RIDEZ';if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Følgelink kopieret.')}
-async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
-function renderMessages(rows){const el=$('messagesList');if(!rows.length){el.className='empty';el.textContent='Ingen beskeder endnu.';return}el.className='';el.innerHTML=rows.map(r=>`<div class="message"><div class="meta"><strong>${escapeHtml(r.sender_name)}</strong> · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div>${escapeHtml(r.body)}</div></div>`).join('')}
+function requestMessageNotificationPermission(){
+  try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{})}catch(e){}
+}
+function playMessageChime(){
+  if(!state.soundsEnabled)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    const ctx=new AC(),now=ctx.currentTime;
+    [[0,740,.12],[.14,980,.15]].forEach(([delay,freq,dur])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(freq,now+delay);g.gain.setValueAtTime(.0001,now+delay);g.gain.exponentialRampToValueAtTime(.11,now+delay+.018);g.gain.exponentialRampToValueAtTime(.0001,now+delay+dur);o.connect(g).connect(ctx.destination);o.start(now+delay);o.stop(now+delay+dur+.03)});
+    setTimeout(()=>ctx.close().catch(()=>{}),700);
+  }catch(e){}
+}
+function showMessageToast(message){
+  const toast=$('messageNotification');if(!toast)return;
+  const who=message&&message.sender_name?message.sender_name:'Ny besked';
+  const body=message&&message.body?message.body:'';
+  const title=$('messageNotificationTitle'),text=$('messageNotificationBody');
+  if(title)title.textContent=`Ny besked fra ${who}`;
+  if(text)text.textContent=body;
+  toast.classList.remove('hidden');clearTimeout(showMessageToast.timer);
+  showMessageToast.timer=setTimeout(()=>toast.classList.add('hidden'),7500);
+}
+async function notifyNewDriverMessages(unseen){
+  if(!unseen||!unseen.length)return;
+  const latest=unseen[0];showMessageToast(latest);
+  if(navigator.vibrate)navigator.vibrate([140,80,140]);
+  playMessageChime();
+  try{
+    if('Notification'in window&&Notification.permission==='granted'&&'serviceWorker'in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      await reg.showNotification(`RIDEZ · ${latest.sender_name||'Ny besked'}`,{body:latest.body||'',tag:'ridez-driver-message',renotify:true,silent:!state.soundsEnabled,data:{kind:'ridez-message'}});
+    }
+  }catch(e){console.warn('Systemnotifikation kunne ikke vises',e)}
+}
+function updateReplyAvailability(){
+  document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?'Svar er låst, mens motorcyklen kører.':'Svar på beskeden')});
+  const send=$('replySendBtn');if(send)send.disabled=!!state.moving;
+  const hint=$('replySafetyHint');if(hint)hint.textContent=state.moving?'Svar er låst, mens motorcyklen kører. Hold stille i mindst 3 sekunder.':'Motorcyklen holder stille – du kan sende svaret.';
+  if(state.moving&&$('replyDialog')&&$('replyDialog').open)closeReplyDialog();
+}
+function openReplyDialog(messageId){
+  if(state.moving){alert('Du kan først svare, når motorcyklen har holdt stille i mindst 3 sekunder.');return}
+  const msg=state.lastDriverMessages.find(r=>String(r.id)===String(messageId));if(!msg)return;
+  state.replyingMessageId=msg.id;
+  const to=$('replyToName'),quoted=$('replyQuotedMessage'),body=$('replyBody'),fb=$('replyFeedback'),dlg=$('replyDialog');
+  if(to)to.textContent=msg.sender_name||'følgeren';if(quoted)quoted.textContent=msg.body||'';if(body){body.value='';setTimeout(()=>body.focus(),30)}if(fb)fb.textContent='';
+  updateReplyAvailability();if(dlg&&typeof dlg.showModal==='function')dlg.showModal();else if(dlg)dlg.setAttribute('open','');
+}
+function closeReplyDialog(){const dlg=$('replyDialog');if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open');state.replyingMessageId=null}
+async function sendDriverReply(){
+  if(state.moving){updateReplyAvailability();return}
+  const body=$('replyBody'),fb=$('replyFeedback'),btn=$('replySendBtn');const text=body?body.value.trim():'';if(!text||!state.replyingMessageId)return;
+  if(btn){btn.disabled=true;btn.textContent='Sender…'}if(fb)fb.textContent='';
+  try{
+    await rpc('ridez_driver_reply_v73',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_body:text});
+    if(fb)fb.textContent='✓ Svar sendt til følgeren.';if(body)body.value='';setTimeout(closeReplyDialog,650);
+  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v73 SQL-opdateringen er kørt.'}
+  finally{if(btn){btn.textContent='Send svar';btn.disabled=!!state.moving}}
+}
+async function pollMessages(){
+  if(!state.driverToken||!state.rideId)return;
+  try{
+    let rows;
+    try{rows=await rpc('ridez_driver_messages_v73',{p_driver_token:state.driverToken})}
+    catch(e){rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken})}
+    rows=Array.isArray(rows)?rows:[];state.lastDriverMessages=rows;
+    $('messageCount').textContent=rows.length;
+    const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));
+    if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);notifyNewDriverMessages(unseen)}
+    else if(!state.moving)renderMessages(rows);
+  }catch(e){console.error(e)}
+  if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)
+}
+function renderMessages(rows){
+  const el=$('messagesList');if(!rows.length){el.className='empty';el.textContent='Ingen beskeder endnu.';return}
+  el.className='';el.innerHTML=rows.map(r=>{const canReply=!!r.viewer_token;return `<div class="message"><div class="meta"><strong>${escapeHtml(r.sender_name)}</strong> · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div class="message-body">${escapeHtml(r.body)}</div><div class="message-actions"><button class="secondary small-button message-reply-btn" type="button" data-message-id="${r.id}" data-can-reply="${canReply?'1':'0'}" ${(state.moving||!canReply)?'disabled':''}>Svar</button></div></div>`}).join('');
+  el.querySelectorAll('.message-reply-btn').forEach(btn=>btn.addEventListener('click',()=>openReplyDialog(btn.dataset.messageId)));updateReplyAvailability();
+}
 function updateHistorySelectionUi(){
   const toggle=$('historySelectBtn'),bulk=$('historyBulkDeleteBtn'),list=$('historyList');
   if(toggle)toggle.textContent=state.historySelectMode?'Annuller':'Vælg';
@@ -1114,10 +1192,17 @@ async function deleteHistoryRide(){
 }
 function closeHistoryRide(){resetHistoryReplay({restorePhotos:false,fitRoute:false});clearHistoryPhotoMarkers();state.historyTrack=[];state.historyPhotosData=[];$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId=''}
 
+function renderViewerConversation(rows){
+  const el=$('viewerConversation');if(!el)return;
+  if(!rows.length){el.className='viewer-conversation empty';el.textContent='Ingen beskeder i samtalen endnu.';return}
+  el.className='viewer-conversation';
+  el.innerHTML=rows.map(r=>{const driver=r.direction==='driver_to_viewer';return `<div class="viewer-chat-bubble ${driver?'from-driver':'from-viewer'}"><div class="viewer-chat-meta">${driver?'Føreren':'Dig'} · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div>${escapeHtml(r.body)}</div></div>`}).join('');
+}
+
 async function initViewer(){
   $('viewerView').classList.remove('hidden');
   state.map=initMap('viewerMap');
-  let lastTrackCount=0,viewerRideToken=publicRideToken||null;
+  let lastTrackCount=0,viewerRideToken=publicRideToken||null;const viewerToken=ensureViewerToken();
   async function resolveViewerRideToken(){
     if(!demoChannelToken)return publicRideToken;
     const result=await rpc('ridez_resolve_demo_channel_v50',{p_channel_token:demoChannelToken});
@@ -1133,7 +1218,7 @@ async function initViewer(){
     try{
       const resolvedToken=await resolveViewerRideToken();
       if(!resolvedToken){$('viewerStatus').textContent=demoChannelToken?'Venter på at en demo bliver startet.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
-      if(viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide()}
+      if(viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide();const chat=$('viewerConversation');if(chat){chat.className='viewer-conversation empty';chat.textContent='Ingen svar fra føreren endnu.'}}
       const rideResult=await rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken})
         .catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken}))
@@ -1150,6 +1235,7 @@ async function initViewer(){
       if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);
       const pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});
       if(pts.length!==lastTrackCount){lastTrackCount=pts.length;state.points=pts.map(x=>[x.lat,x.lng]);if(state.line)state.line.setLatLngs(state.points);else if(state.points.length)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map)}
+      try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(chatErr){console.debug('v73 chat endnu ikke aktiv',chatErr)}
     }catch(e){console.error(e);$('viewerStatus').textContent='Kunne ikke hente live-data.'}
     setTimeout(refresh,3000)
   }
@@ -1161,11 +1247,11 @@ async function initViewer(){
       const tokenNow=await resolveViewerRideToken();
       if(!tokenNow){$('sendFeedback').textContent='Der er ingen aktiv demo at sende beskeden til endnu.';return}
       viewerRideToken=tokenNow;
-      const result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.'
+      let result;try{result=await rpc('ridez_send_message_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body})}catch(e){result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body})}$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
+async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
 document.addEventListener('click',e=>{
   const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
   if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
@@ -1173,6 +1259,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=72').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=73').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

@@ -1,5 +1,5 @@
-const CACHE='ridez-indstillinger-v72';
-const CORE=['./','./index.html','./styles.css?v=72','./app.js?v=72','./RIDEZ_Sportsbike_4-8sek.wav?v=72','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE='ridez-beskeder-v73';
+const CORE=['./','./index.html','./styles.css?v=73','./app.js?v=73','./RIDEZ_Sportsbike_4-8sek.wav?v=73','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(url=>c.add(url)))));
@@ -16,3 +16,5 @@ self.addEventListener('fetch',e=>{
     return r;
   }).catch(()=>caches.match(e.request)));
 });
+
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus'in client)return client.focus()}return self.clients.openWindow('./')}))});
