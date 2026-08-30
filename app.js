@@ -15,8 +15,16 @@ function initMap(id){const m=L.map(id,{zoomControl:true}).setView([55.6761,12.56
 function updateMap(lat,lng,follow=true){if(!state.map)return;const p=[lat,lng];if(!state.marker)state.marker=L.circleMarker(p,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(p);state.points.push(p);if(!state.line)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map);else state.line.setLatLngs(state.points);if(follow)state.map.setView(p,16)}
 function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?'På farten':'Holder stille';$('statusDetail').textContent=moving?'Beskeder holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder.'}
 async function rpc(name,args){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
+function resetDriverTripDisplay({clearMarker=true}={}){
+ state.lastPos=null;state.lastUpload=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.points=[];state.messagesSeen=new Set();
+ if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}
+ if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}
+ $('speedValue').textContent='0 km/t';$('distanceValue').textContent='0,0 km';$('messageCount').textContent='0';
+ const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}
+}
 async function startRide(){
  if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}
+ resetDriverTripDisplay({clearMarker:true});
  state.driverToken=token();state.publicToken=token();localStorage.setItem('ridez_driver_token',state.driverToken);
  const data=await rpc('ridez_create_ride',{p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:'RIDEZ live-tur'});state.rideId=data;
  $('startBtn').classList.add('hidden');$('stopBtn').classList.remove('hidden');$('shareBtn').classList.remove('hidden');$('rideStatus').textContent='Starter GPS…';
@@ -33,7 +41,15 @@ async function onPosition(pos){
  state.lastPos=cur;$('speedValue').textContent=fmtSpeed(speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;updateMap(cur.lat,cur.lng,true);
  if(now-state.lastUpload>=C.LOCATION_UPLOAD_MS){state.lastUpload=now;try{await rpc('ridez_update_location',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:cur.accuracy})}catch(e){console.error(e)}}
 }
-async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;try{await rpc('ridez_end_ride',{p_driver_token:state.driverToken})}catch(e){};$('stopBtn').classList.add('hidden');$('shareBtn').classList.add('hidden');$('startBtn').classList.remove('hidden');$('rideStatus').textContent='Tur afsluttet';$('statusDetail').textContent='Din live-deling er stoppet.'}
+async function stopRide(){
+ if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;
+ try{await rpc('ridez_end_ride',{p_driver_token:state.driverToken})}catch(e){console.error(e)}
+ resetDriverTripDisplay({clearMarker:true});
+ state.rideId=null;state.publicToken=null;state.driverToken=null;localStorage.removeItem('ridez_driver_token');
+ $('stopBtn').classList.add('hidden');$('shareBtn').classList.add('hidden');$('startBtn').classList.remove('hidden');
+ $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';
+ setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';
+}
 async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.watchId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120]);}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
 function renderMessages(rows){const el=$('messagesList');if(!rows.length){el.className='empty';el.textContent='Ingen beskeder endnu.';return}el.className='';el.innerHTML=rows.map(r=>`<div class="message"><div class="meta"><strong>${escapeHtml(r.sender_name)}</strong> · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div>${escapeHtml(r.body)}</div></div>`).join('')}
