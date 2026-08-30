@@ -371,6 +371,14 @@ function demoLean(type,t,total,speedMs){
     const p=(x-0.45)/2.30,sign=idx%2===0?-1:1;
     return sign*32*Math.sin(Math.PI*Math.max(0,Math.min(1,p)));
   }
+  if(type==='rightturntest'){
+    // Fem tydelige højresving på 20 sekunder. Hvert sving har en klar neutralzone,
+    // så højresvingstælleren skal ende på præcis 5 og venstresving på 0.
+    const cycle=4.0,idx=Math.floor(t/cycle),x=t-idx*cycle;
+    if(idx>=5||x<0.45||x>2.00)return 0;
+    const p=(x-0.45)/1.55;
+    return 38*Math.sin(Math.PI*Math.max(0,Math.min(1,p)));
+  }
   if(type==='speed')return 4*Math.sin(t*1.4);
   if(type==='twisty'){
     // Hold motorcyklen omtrent lige under de to accelerationstests; derefter simuleres sving normalt.
@@ -505,7 +513,7 @@ function demoSpeed(type,i,total){
     if(x<5.1)return Math.max(0,target*(1-(x-4.1)/1.0));
     return 0;
   }
-  if(type==='turntest'){if(i<1||i>total-1)return 0;return 50/3.6;}
+  if(type==='turntest'||type==='rightturntest'){if(i<0.5||i>total-0.5)return 0;return 50/3.6;}
   if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}
   if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}
   if(type==='twisty'){
@@ -575,7 +583,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v53';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v54';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v47 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -591,31 +599,34 @@ async function startDemo(){
     $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';
     throw e;
   }
-  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':'landevej';
+  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':'landevej';
   await createRide(`RIDEZ demo · ${demoName}`);
   await publishDemoChannel();
   $('rideStatus').textContent='Demo starter…';
   const isSpeed=state.demoProfile==='speed';
   const isSpeedColors=state.demoProfile==='speedcolors';
   const isTurnTest=state.demoProfile==='turntest';
+  const isRightTurnTest=state.demoProfile==='rightturntest';
   $('statusDetail').textContent=isSpeed
     ?'Speed-demo: 3 accelerationer gennemføres på ca. 18 sekunder.'
     :isSpeedColors
       ?'Hastighedsfarver: 20 sek. grøn, 20 sek. gul, 20 sek. rød og 20 sek. kraftigt blinkende rød.'
       :isTurnTest
         ?'Svingtest: 6 tydelige sving (3 venstre + 3 højre) på ca. 22 sekunder. Små udsving skal ignoreres.'
-        :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
-  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
-  const tickMs=isSpeed?200:isTurnTest?250:1000;
+        :isRightTurnTest
+          ?'Højresvingtest: 5 tydelige højresving på ca. 20 sekunder. Venstresving skal blive på 0.'
+          :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
+  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
+  const tickMs=isSpeed?200:(isTurnTest||isRightTurnTest)?250:1000;
   const stepS=tickMs/1000;
   if(isSpeed)resetSpeedDemoResults(true);else resetSpeedDemoResults(false);
   async function tick(){
     if(!state.demo||!state.rideId)return;
     const step=state.demoIndex++;
-    const t=(isSpeed||isTurnTest)?step*stepS:step;
+    const t=(isSpeed||isTurnTest||isRightTurnTest)?step*stepS:step;
     const speed=demoSpeed(state.demoProfile,t,total);
     if(isSpeed)updateSpeedDemoAttempt(t,speed);
-    state.demoTravelM+=speed*((isSpeed||isTurnTest)?stepS:1);
+    state.demoTravelM+=speed*((isSpeed||isTurnTest||isRightTurnTest)?stepS:1);
     const cur=demoPointAt(state.demoRoute,state.demoTravelM);
     if(!cur){await stopRide();return}
     updateLeanStats(demoLean(state.demoProfile,t,total,speed),cur.t,speed,{demo:true});
@@ -864,6 +875,6 @@ async function initViewer(){
   })
 }
 async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=53').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=54').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
