@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=55">
+  <link rel="stylesheet" href="styles.css?v=56">
 </head>
 <body>
 <header class="topbar">
@@ -218,6 +218,14 @@
     </form>
   </section>
 
+  <dialog id="photoViewerDialog" class="photo-viewer-dialog" aria-label="Billede i fuld størrelse">
+    <button id="photoViewerClose" class="photo-viewer-close" type="button" aria-label="Luk billede">×</button>
+    <div class="photo-viewer-stage">
+      <img id="photoViewerImage" alt="Billede fra turen">
+    </div>
+    <div id="photoViewerCaption" class="photo-viewer-caption hidden"></div>
+  </dialog>
+
   <section id="setupView" class="panel hidden setup">
     <h1>RIDEZ mangler forbindelse</h1>
     <p>Indsæt din Supabase URL og anon key i <code>config.js</code>, og kør SQL-filen <code>supabase.sql</code> én gang i Supabase.</p>
@@ -227,6 +235,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>

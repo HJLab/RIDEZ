@@ -105,7 +105,10 @@ function photoMarkerIcon(){return L.divIcon({className:'ridez-photo-marker-wrap'
 function clearActivePhotoMarkers(){if(!state.map)return;state.activePhotoMarkers.forEach(m=>{try{state.map.removeLayer(m)}catch(e){}});state.activePhotoMarkers=[]}
 function clearHistoryPhotoMarkers(){if(!state.historyMap)return;state.historyPhotoMarkers.forEach(m=>{try{state.historyMap.removeLayer(m)}catch(e){}});state.historyPhotoMarkers=[]}
 function photoPublicUrl(path){if(!path)return'';const {data}=db.storage.from('ridez-photos').getPublicUrl(path);return data&&data.publicUrl?data.publicUrl:''}
-function addActivePhotoMarker(lat,lng,url,capturedAt){if(!state.map||!Number.isFinite(lat)||!Number.isFinite(lng))return;const safeUrl=escapeHtml(url);const when=capturedAt?fmtDate(capturedAt):'';const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.map);if(url)marker.bindPopup(`<div class="photo-popup"><img src="${safeUrl}" alt="Billede fra turen"><span>${escapeHtml(when)}</span></div>`,{maxWidth:280});state.activePhotoMarkers.push(marker)}
+function photoPopupHtml(url,when=''){return `<div class="photo-popup"><button class="photo-popup-open" type="button" aria-label="Vis billede i fuld størrelse"><img src="${escapeHtml(url)}" alt="Billede fra turen"></button><span>${escapeHtml(when)}</span><small>Tryk på billedet for fuld størrelse</small></div>`}
+function openPhotoViewer(url,caption=''){if(!url)return;const dlg=$('photoViewerDialog'),img=$('photoViewerImage'),cap=$('photoViewerCaption');if(!dlg||!img)return;img.src=url;img.alt=caption||'Billede fra turen';if(cap){cap.textContent=caption||'';cap.classList.toggle('hidden',!caption)}if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
+function closePhotoViewer(){const dlg=$('photoViewerDialog'),img=$('photoViewerImage');if(!dlg)return;if(typeof dlg.close==='function'&&dlg.open)dlg.close();else dlg.removeAttribute('open');if(img)img.src=''}
+function addActivePhotoMarker(lat,lng,url,capturedAt){if(!state.map||!Number.isFinite(lat)||!Number.isFinite(lng))return;const when=capturedAt?fmtDate(capturedAt):'';const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.map);if(url)marker.bindPopup(photoPopupHtml(url,when),{maxWidth:300});state.activePhotoMarkers.push(marker)}
 async function getPhotoPosition(){if(state.lastPos&&Number.isFinite(state.lastPos.lat)&&Number.isFinite(state.lastPos.lng))return {lat:state.lastPos.lat,lng:state.lastPos.lng};if(!navigator.geolocation)throw new Error('GPS-position er ikke tilgængelig.');return await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>reject(new Error('Kunne ikke hente GPS-position til billedet.')),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}))}
 async function imageToJpeg(file){
   let img=null,url=null,close=null;
@@ -617,7 +620,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v55';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v56';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v47 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -824,8 +827,8 @@ function renderHistoryPhotos(photos){
   grid.innerHTML=items.map(p=>`<button class="photo-card" type="button" data-photo-index="${p.index}"><img src="${escapeHtml(p.url)}" alt="Billede fra turen" loading="lazy"><span>${p.captured_at?fmtDate(p.captured_at):'Billede fra turen'}</span></button>`).join('');
   items.forEach(p=>{
     if(!state.historyMap||!Number.isFinite(Number(p.lat))||!Number.isFinite(Number(p.lng)))return;
-    const lat=Number(p.lat),lng=Number(p.lng),safeUrl=escapeHtml(p.url),when=p.captured_at?fmtDate(p.captured_at):'';
-    const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.historyMap).bindPopup(`<div class="photo-popup"><img src="${safeUrl}" alt="Billede fra turen"><span>${escapeHtml(when)}</span></div>`,{maxWidth:300});
+    const lat=Number(p.lat),lng=Number(p.lng),when=p.captured_at?fmtDate(p.captured_at):'';
+    const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.historyMap).bindPopup(photoPopupHtml(p.url,when),{maxWidth:320});
     state.historyPhotoMarkers[p.index]=marker;
   });
   grid.querySelectorAll('.photo-card').forEach(btn=>btn.addEventListener('click',()=>{const p=items[Number(btn.dataset.photoIndex)];if(!p)return;const marker=state.historyPhotoMarkers[p.index];if(marker&&state.historyMap){state.historyMap.setView(marker.getLatLng(),17);marker.openPopup();$('historyMap').scrollIntoView({behavior:'smooth',block:'center'})}else if(p.url)window.open(p.url,'_blank','noopener')}));
@@ -925,6 +928,13 @@ async function initViewer(){
   })
 }
 async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=55').catch(()=>{}));
+document.addEventListener('click',e=>{
+  const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
+  if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
+  if(e.target&&e.target.id==='photoViewerDialog')closePhotoViewer();
+},true);
+if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
+if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=56').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
