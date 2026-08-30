@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1')};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1')};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -373,12 +373,12 @@ function updateCalibrationLive(raw=state.lastRawRoll){
 }
 function updateCalibrationStatus(text){
   const el=$('calibrationStatus'),panel=$('settingsPanel');
-  const calibrated=state.leanCalibration!==null;
+  const working=!!state.calibrating,failed=!!state.calibrationFailed,calibrated=state.leanCalibration!==null&&!failed&&!working,missing=!working&&(state.leanCalibration===null||failed);
   if(el)el.textContent=text||(calibrated?'Kalibreret ✓':'Ikke kalibreret');
   if(panel){
     panel.classList.toggle('calibration-ok',calibrated);
-    panel.classList.toggle('calibration-missing',!calibrated);
-    panel.classList.toggle('calibration-working',!!text&&text.includes('oprejst'));
+    panel.classList.toggle('calibration-missing',missing);
+    panel.classList.toggle('calibration-working',working);
   }
 }
 function onDeviceOrientation(e){
@@ -398,13 +398,13 @@ async function calibratePhone(){
   if(state.moving){alert('Kalibrering kan kun udføres, når motorcyklen holder stille.');return}
   const btn=$('calibrateBtn');if(btn){btn.disabled=true;btn.textContent='Kalibrerer…'}
   try{
-    await ensureOrientationPermission();state.calibrationSamples=[];state.calibrating=true;updateCalibrationStatus('Hold motorcyklen helt oprejst…');
+    await ensureOrientationPermission();state.calibrationSamples=[];state.calibrating=true;state.calibrationFailed=false;updateCalibrationStatus('Hold motorcyklen helt oprejst…');
     await new Promise(r=>setTimeout(r,2200));state.calibrating=false;
     const a=state.calibrationSamples.filter(Number.isFinite);if(a.length<4)throw new Error('Der kom ikke nok sensordata. Sørg for, at telefonens bevægelsessensor er tilladt, og prøv igen.');
     // Trim de yderste målinger, så et enkelt ryk ikke flytter nulpunktet.
     a.sort((x,y)=>x-y);const trim=Math.floor(a.length*.15),use=a.slice(trim,a.length-trim||a.length);const avg=use.reduce((s,x)=>s+x,0)/use.length;
-    state.leanCalibration=avg;localStorage.setItem('ridez_lean_calibration',String(avg));state.leanFilteredDeg=0;state.leanLiveDeg=0;updateCalibrationStatus('Kalibreret ✓');updateCalibrationLive(state.lastRawRoll);renderLeanSummary();
-  }catch(e){state.calibrating=false;updateCalibrationStatus('Kalibrering mislykkedes');alert(e.message||'Kalibrering mislykkedes.');}
+    state.calibrationFailed=false;state.leanCalibration=avg;localStorage.setItem('ridez_lean_calibration',String(avg));state.leanFilteredDeg=0;state.leanLiveDeg=0;updateCalibrationStatus('Kalibreret ✓');updateCalibrationLive(state.lastRawRoll);renderLeanSummary();
+  }catch(e){state.calibrating=false;state.calibrationFailed=true;updateCalibrationStatus('Kalibrering mislykkedes');alert(e.message||'Kalibrering mislykkedes.');}
   finally{if(btn){btn.disabled=false;btn.textContent='Kalibrer telefon'}}
 }
 function initLeanSensor(){
@@ -642,7 +642,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v71';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v72';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v66 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -877,7 +877,7 @@ async function armReplayPoliceAudio(){
     if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
     if(state.replayAudioCtx.state==='suspended')await state.replayAudioCtx.resume().catch(()=>{});
     if(!state.replayPoliceAudioBuffer){
-      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=71',{cache:'force-cache'});
+      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=72',{cache:'force-cache'});
       if(!res.ok)throw new Error('Kunne ikke hente motorcykellyden');
       const raw=await res.arrayBuffer();
       state.replayPoliceAudioBuffer=await state.replayAudioCtx.decodeAudioData(raw.slice(0));
@@ -1173,6 +1173,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=71').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=72').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

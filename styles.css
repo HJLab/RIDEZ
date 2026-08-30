@@ -293,7 +293,7 @@
 .calibration-copy p{margin-top:0}
 
 
-/* RIDEZ v71 - compact settings sections */
+/* RIDEZ v72 - compact settings sections */
 .settings-fold{border-top:1px solid #292d34;background:#12151a}
 .settings-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;cursor:pointer;list-style:none;user-select:none}
 .settings-fold>summary::-webkit-details-marker{display:none}
@@ -307,7 +307,14 @@
 .settings-fold-body>.setting-row:first-child{border-top:0}
 .calibration-inline-status{padding:11px 14px 0;color:var(--muted);font-size:12px}
 .calibration-inline-status .setting-status{display:inline;font-size:12px;margin-left:4px}
-/* v71 uses the same compact fold shell for phone/sensors; remove the old nested calibration visual. */
+/* v72 uses the same compact fold shell for phone/sensors; remove the old nested calibration visual. */
 .calibration-fold{border-top:1px solid #292d34;background:#12151a}
 .calibration-fold>summary{padding:14px}
 .calibration-fold-body{border-top:1px solid #292d34}
+
+/* RIDEZ v72 - collapsed settings and calibration status on phone/sensors */
+.settings-fold:not([open])>.settings-fold-body{display:none}
+.settings-panel.calibration-missing #calibrationPanel>summary .settings-fold-main strong{color:#e11d24;animation:ridezCalibrationAlert 1.35s ease-in-out infinite}
+.settings-panel.calibration-ok #calibrationPanel>summary .settings-fold-main strong{color:#46d878;animation:none}
+.settings-panel.calibration-working #calibrationPanel>summary .settings-fold-main strong{color:#ffd44e;animation:none}
+@media (prefers-reduced-motion: reduce){.settings-panel.calibration-missing #calibrationPanel>summary .settings-fold-main strong{animation:none}}
