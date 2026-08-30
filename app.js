@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedPos:null,topSpeedLookupTimer:null,topSpeedLookupSeq:0,topSpeedPolicy:null,viewerPenaltyShown:false,viewerSpeedLimitInfo:null,viewerSpeedLimitPos:null,viewerSpeedLimitAt:0,viewerSpeedLimitPending:false};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedPos:null,topSpeedLookupTimer:null,topSpeedLookupSeq:0,topSpeedPolicy:null,viewerPenaltyShown:false,viewerSpeedLimitInfo:null,viewerSpeedLimitPos:null,viewerSpeedLimitAt:0,viewerSpeedLimitPending:false,viewerSpeedLimitWayId:null,viewerLastRidePos:null};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 const fmtDuration=sec=>{sec=Math.max(0,Math.round(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;if(h)return s?`${h} t ${m} min ${s} sek.`:`${h} t ${m} min`;if(m)return s?`${m} min ${s} sek.`:`${m} min`;return `${s} sek.`};
 const isEmptyRide=r=>Number(r&&r.distance_m||0)<25;
@@ -49,28 +49,73 @@ function parseMaxspeed(raw,country,kind){
   const nums=(text.match(/[0-9]+(?:\.[0-9]+)?/g)||[]).map(Number).filter(Number.isFinite);if(nums.length)return Math.min(...nums);
   return null;
 }
-function speedLimitCache(){try{return JSON.parse(localStorage.getItem('ridez_speed_limit_cache_v19')||'{}')}catch{return{}}}
-function cacheSpeedLimit(key,value){const c=speedLimitCache();c[key]={...value,savedAt:Date.now()};const entries=Object.entries(c).sort((a,b)=>(b[1].savedAt||0)-(a[1].savedAt||0)).slice(0,120);try{localStorage.setItem('ridez_speed_limit_cache_v19',JSON.stringify(Object.fromEntries(entries)))}catch{}}
-async function lookupSpeedLimit(lat,lng){
-  const key=`${lat.toFixed(3)},${lng.toFixed(3)}`,cached=speedLimitCache()[key];
-  if(cached&&Date.now()-(cached.savedAt||0)<30*24*3600*1000)return cached;
-  const q=`[out:json][timeout:8];way(around:45,${lat},${lng})[highway];out tags geom;is_in(${lat},${lng})->.a;area.a[\"boundary\"=\"administrative\"][\"admin_level\"=\"2\"];out tags;`;
+function bearingDeg(a,b){
+  const rad=x=>x*Math.PI/180,deg=x=>x*180/Math.PI;
+  const y=Math.sin(rad(b.lng-a.lng))*Math.cos(rad(b.lat));
+  const x=Math.cos(rad(a.lat))*Math.sin(rad(b.lat))-Math.sin(rad(a.lat))*Math.cos(rad(b.lat))*Math.cos(rad(b.lng-a.lng));
+  return (deg(Math.atan2(y,x))+360)%360;
+}
+function angleDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d}
+function roadMatch(point,geometry){
+  if(!Array.isArray(geometry)||geometry.length<2)return{distanceM:Infinity,bearing:null};
+  const lat0=point.lat*Math.PI/180,ky=111320,kx=111320*Math.cos(lat0);
+  let best=Infinity,bearing=null;
+  for(let i=1;i<geometry.length;i++){
+    const a=geometry[i-1],b=geometry[i];
+    const ax=(a.lon-point.lng)*kx,ay=(a.lat-point.lat)*ky,bx=(b.lon-point.lng)*kx,by=(b.lat-point.lat)*ky;
+    const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+    const t=len2?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/len2)):0;
+    const x=ax+t*dx,y=ay+t*dy,d=Math.hypot(x,y);
+    if(d<best){best=d;bearing=bearingDeg({lat:a.lat,lng:a.lon},{lat:b.lat,lng:b.lon})}
+  }
+  return{distanceM:best,bearing};
+}
+function isMotorRoad(tags={}){
+  const h=tags.highway||'';
+  return !['footway','cycleway','path','steps','bridleway','pedestrian','corridor','platform','raceway','construction'].includes(h);
+}
+function directionalSpeedTag(tags,heading,segmentBearing){
+  if(tags.maxspeed)return tags.maxspeed;
+  if(Number.isFinite(heading)&&Number.isFinite(segmentBearing)){
+    const forward=angleDiff(heading,segmentBearing)<=90;
+    const directional=forward?tags['maxspeed:forward']:tags['maxspeed:backward'];
+    if(directional)return directional;
+  }
+  if(tags['maxspeed:forward']&&tags['maxspeed:backward']&&tags['maxspeed:forward']===tags['maxspeed:backward'])return tags['maxspeed:forward'];
+  return tags['zone:maxspeed']||tags['maxspeed:type']||tags['source:maxspeed']||null;
+}
+function speedLimitCache(){try{return JSON.parse(localStorage.getItem('ridez_speed_limit_cache_v31')||'{}')}catch{return{}}}
+function cacheSpeedLimit(key,value){const c=speedLimitCache();c[key]={...value,savedAt:Date.now()};const entries=Object.entries(c).sort((a,b)=>(b[1].savedAt||0)-(a[1].savedAt||0)).slice(0,160);try{localStorage.setItem('ridez_speed_limit_cache_v31',JSON.stringify(Object.fromEntries(entries)))}catch{}}
+async function lookupSpeedLimit(lat,lng,opts={}){
+  const heading=Number.isFinite(opts.heading)?opts.heading:null,preferWayId=opts.preferWayId??null,useCache=opts.useCache!==false;
+  const key=`${lat.toFixed(4)},${lng.toFixed(4)}`,cached=useCache?speedLimitCache()[key]:null;
+  if(cached&&Date.now()-(cached.savedAt||0)<6*3600*1000)return cached;
+  const q=`[out:json][timeout:8];way(around:35,${lat},${lng})[highway];out tags geom;is_in(${lat},${lng})->.a;area.a["boundary"="administrative"]["admin_level"="2"];out tags;`;
   try{
     const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(q)});
     if(!res.ok)throw new Error('Overpass '+res.status);
     const data=await res.json(),elements=Array.isArray(data.elements)?data.elements:[];
     const countryEl=elements.find(e=>e.tags&&(e.tags['ISO3166-1:alpha2']||e.tags['ISO3166-1']));
     const country=String(countryEl?.tags?.['ISO3166-1:alpha2']||countryEl?.tags?.['ISO3166-1']||'').toUpperCase().slice(0,2)||null;
-    const roads=elements.filter(e=>e.type==='way'&&e.tags?.highway&&Array.isArray(e.geometry)).map(e=>({...e,distanceM:roadDistanceM({lat,lng},e.geometry)})).sort((a,b)=>a.distanceM-b.distanceM);
+    const point={lat,lng};
+    const roads=elements.filter(e=>e.type==='way'&&e.tags?.highway&&Array.isArray(e.geometry)&&isMotorRoad(e.tags)).map(e=>{
+      const match=roadMatch(point,e.geometry),raw=directionalSpeedTag(e.tags,heading,match.bearing);
+      let score=match.distanceM;
+      if(['service','living_street'].includes(e.tags.highway))score+=14;
+      if(Number.isFinite(heading)&&Number.isFinite(match.bearing))score+=Math.min(42,angleDiff(heading,match.bearing)*0.32);
+      if(raw)score-=7;
+      if(preferWayId!=null&&String(preferWayId)===String(e.id))score-=4;
+      return{...e,distanceM:match.distanceM,segmentBearing:match.bearing,rawSpeed:raw,score};
+    }).sort((a,b)=>a.score-b.score);
     const road=roads[0]||null;
-    if(!road||road.distanceM>45){const unknown={limitKmh:null,country,kind:null,source:'unknown',roadDistanceM:road?.distanceM??null};cacheSpeedLimit(key,unknown);return unknown}
-    const kind=roadKind(road.tags),raw=road.tags.maxspeed||road.tags['maxspeed:type']||null;
-    let limit=parseMaxspeed(raw,country,kind),source=limit!=null?'osm':'country-default';
-    if(limit==null&&country)limit=standardLimit(country,kind);
-    if(limit==null)source='unknown';
-    const value={limitKmh:Number.isFinite(limit)?Math.round(limit):limit===Infinity?Infinity:null,country,kind,source,roadDistanceM:Math.round(road.distanceM),roadName:road.tags.name||road.tags.ref||null};
-    cacheSpeedLimit(key,value);return value;
-  }catch(e){console.warn('Fartgrænse kunne ikke slås op',e);return{limitKmh:null,country:null,kind:null,source:'unknown',roadDistanceM:null}}
+    if(!road||road.distanceM>28){const unknown={limitKmh:null,country,kind:null,source:'unknown',roadDistanceM:road?.distanceM??null,wayId:null};if(useCache)cacheSpeedLimit(key,unknown);return unknown}
+    const kind=roadKind(road.tags),raw=road.rawSpeed;
+    // v31: Til det levende fartskilt bruger vi kun eksplicit OSM-fartdata / maxspeed:type.
+    // Vi gætter ikke 50/80/130 ud fra vejtypen, fordi midlertidige 70-zoner ellers kan vises forkert.
+    const limit=parseMaxspeed(raw,country,kind),source=limit!=null?'osm-explicit':'unknown';
+    const value={limitKmh:Number.isFinite(limit)?Math.round(limit):limit===Infinity?Infinity:null,country,kind,source,roadDistanceM:Math.round(road.distanceM),roadName:road.tags.name||road.tags.ref||null,wayId:road.id};
+    if(useCache)cacheSpeedLimit(key,value);return value;
+  }catch(e){console.warn('Fartgrænse kunne ikke slås op',e);return{limitKmh:null,country:null,kind:null,source:'unknown',roadDistanceM:null,wayId:null}}
 }
 async function commitTopSpeedPolicy(){
   if(!state.driverToken||!state.topSpeedPos||state.maxSpeedMs<=0)return;
@@ -130,20 +175,27 @@ function paintViewerSpeed(limitKmh,ride){
 }
 function updateViewerSpeedColour(ride){
   const lat=Number(ride?.lat),lng=Number(ride?.lng);
-  if(!ride?.active||!Number.isFinite(lat)||!Number.isFinite(lng)){paintViewerSpeed(null,ride);return}
-  // Den dedikerede demo-test er altid en simuleret 50-zone.
+  if(!ride?.active||!Number.isFinite(lat)||!Number.isFinite(lng)){paintViewerSpeed(null,ride);state.viewerLastRidePos=null;return}
+  // Den dedikerede demo-test er fortsat en simuleret 50-zone.
   if(String(ride.title||'').toLowerCase().includes('fartgrænsetest')){paintViewerSpeed(50,ride);return}
-  const now=Date.now(),pos={lat,lng};
-  const close=state.viewerSpeedLimitPos&&hav(state.viewerSpeedLimitPos,pos)<150;
-  const fresh=now-state.viewerSpeedLimitAt<15000;
-  if(state.viewerSpeedLimitInfo&&(close||fresh))paintViewerSpeed(state.viewerSpeedLimitInfo.limitKmh,ride);
-  else paintViewerSpeed(null,ride);
-  if(state.viewerSpeedLimitPending||(close&&fresh))return;
+  const pos={lat,lng},prev=state.viewerLastRidePos;
+  const movedFromPrev=prev?hav(prev,pos):Infinity;
+  const heading=prev&&movedFromPrev>=5?bearingDeg(prev,pos):null;
+  state.viewerLastRidePos=pos;
+  const movedSinceLookup=state.viewerSpeedLimitPos?hav(state.viewerSpeedLimitPos,pos):Infinity;
+  // v31: nyt vejsegment-opslag for hver ca. 30 m. Dermed kan samme vej skifte 80 -> 70 -> 80.
+  if(state.viewerSpeedLimitInfo&&movedSinceLookup<30){paintViewerSpeed(state.viewerSpeedLimitInfo.limitKmh,ride);return}
+  if(state.viewerSpeedLimitPending){paintViewerSpeed(null,ride);return}
+  // Vis hellere ukendt end en gammel fartgrænse, mens et nyt segment bestemmes.
+  paintViewerSpeed(null,ride);
   state.viewerSpeedLimitPending=true;
-  lookupSpeedLimit(lat,lng).then(info=>{
-    state.viewerSpeedLimitInfo=info;state.viewerSpeedLimitPos=pos;state.viewerSpeedLimitAt=Date.now();
+  lookupSpeedLimit(lat,lng,{heading,preferWayId:state.viewerSpeedLimitWayId,useCache:false}).then(info=>{
+    state.viewerSpeedLimitInfo=info;state.viewerSpeedLimitPos=pos;state.viewerSpeedLimitAt=Date.now();state.viewerSpeedLimitWayId=info?.wayId??null;
     paintViewerSpeed(info?.limitKmh,ride);
-  }).catch(()=>paintViewerSpeed(null,ride)).finally(()=>{state.viewerSpeedLimitPending=false});
+  }).catch(()=>{
+    state.viewerSpeedLimitInfo={limitKmh:null,source:'unknown'};state.viewerSpeedLimitPos=pos;state.viewerSpeedLimitAt=Date.now();state.viewerSpeedLimitWayId=null;
+    paintViewerSpeed(null,ride);
+  }).finally(()=>{state.viewerSpeedLimitPending=false});
 }
 
 function initMap(id){const m=L.map(id,{zoomControl:true}).setView([55.6761,12.5683],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(m);return m}
@@ -218,7 +270,7 @@ function demoPointAt(route,meters){
   const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
-async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;$('demoBadge').textContent='DEMO v23';$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Klargør demo…';$('statusDetail').textContent=state.demoProfile==='speedtest'?'Fartgrænsetest: simuleret 50-zone, så den rolige røde topfartspuls kan afprøves hjemmefra.':'Demo v23 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';try{const gpsBase=await getDemoBase();state.demoBase=await snapDemoBaseToRoad(gpsBase);$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoBase=null;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';throw e}const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speedtest'?'fartgrænsetest':'landevej';await createRide(`RIDEZ demo · ${demoName}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent=state.demoProfile==='speedtest'?'Simulerer 50 km/t fartgrænse og kører op til ca. 72 km/t. Følgerlinkets højeste hastighed skal pulsere roligt rødt, mens den aktuelle fart er over 50 km/t.':`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:state.demoProfile==='speedtest'?50:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
+async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;$('demoBadge').textContent='DEMO v31';$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Klargør demo…';$('statusDetail').textContent=state.demoProfile==='speedtest'?'Fartgrænsetest: simuleret 50-zone, så den rolige røde topfartspuls kan afprøves hjemmefra.':'Demo v31 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';try{const gpsBase=await getDemoBase();state.demoBase=await snapDemoBaseToRoad(gpsBase);$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoBase=null;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';throw e}const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speedtest'?'fartgrænsetest':'landevej';await createRide(`RIDEZ demo · ${demoName}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent=state.demoProfile==='speedtest'?'Simulerer 50 km/t fartgrænse og kører op til ca. 72 km/t. Følgerlinkets højeste hastighed skal pulsere roligt rødt, mens den aktuelle fart er over 50 km/t.':`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:state.demoProfile==='speedtest'?50:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
 async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;stopDemoTimer();try{await flushTopSpeedPolicy()}catch(e){console.warn(e)}const finishedDistance=state.distanceM,finishedDuration=state.rideStartedAt?Math.max(0,Math.round((Date.now()-state.rideStartedAt)/1000)):0,finishedMoving=Math.max(0,Math.round(state.movingMs/1000)),finishedStopped=Math.max(0,Math.round(state.stoppedMs/1000)),finishedMaxSpeed=Math.max(0,state.maxSpeedMs);try{if(state.driverToken)await rpc('ridez_end_ride_v19',{p_driver_token:state.driverToken,p_distance_m:finishedDistance,p_duration_s:finishedDuration,p_max_speed_ms:finishedMaxSpeed,p_moving_s:finishedMoving,p_stopped_s:finishedStopped})}catch(e){console.error(e);try{if(state.driverToken)await rpc('ridez_end_ride_v18',{p_driver_token:state.driverToken,p_distance_m:finishedDistance,p_duration_s:finishedDuration,p_max_speed_ms:finishedMaxSpeed,p_moving_s:finishedMoving,p_stopped_s:finishedStopped})}catch(fallbackError){console.error(fallbackError)}}resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';await loadHistory()}
 async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
