@@ -55,18 +55,21 @@
       <div><span>Beskeder</span><strong id="messageCount">0</strong></div>
     </div>
 
-    <section id="accelerationSummary" class="acceleration-summary">
-      <div class="accel-card accel-fast">
-        <button class="accel-edit" type="button" data-accel-kind="fast" aria-label="Indstil hurtigste acceleration" title="Indstil måling">✏️</button>
-        <div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong id="accelFastRuleLabel">Måler +80 km/t</strong></div></div>
-        <div class="accel-metrics accel-metrics-single"><div class="wide"><span>Turens bedste</span><b id="accelFastResult">–</b></div></div>
-      </div>
-      <div class="accel-card accel-slow">
-        <button class="accel-edit" type="button" data-accel-kind="slow" aria-label="Indstil langsomste acceleration" title="Indstil måling">✏️</button>
-        <div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong id="accelSlowRuleLabel">Måler +80 km/t</strong></div></div>
-        <div class="accel-metrics accel-metrics-single"><div class="wide"><span>Turens langsomste gyldige</span><b id="accelSlowResult">–</b></div></div>
-      </div>
-    </section>
+    <details id="accelerationPanel" class="ridez-fold-panel">
+      <summary><span class="fold-summary-main"><span class="fold-icon">⚡</span><span>Acceleration</span></span><span class="fold-chevron">›</span></summary>
+      <section id="accelerationSummary" class="acceleration-summary fold-content">
+        <div class="accel-card accel-fast">
+          <button class="accel-edit" type="button" data-accel-kind="fast" aria-label="Indstil hurtigste acceleration" title="Indstil måling">✏️</button>
+          <div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong id="accelFastRuleLabel">Måler +80 km/t</strong></div></div>
+          <div class="accel-metrics accel-metrics-single"><div class="wide"><span>Turens bedste</span><b id="accelFastResult">–</b></div></div>
+        </div>
+        <div class="accel-card accel-slow">
+          <button class="accel-edit" type="button" data-accel-kind="slow" aria-label="Indstil langsomste acceleration" title="Indstil måling">✏️</button>
+          <div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong id="accelSlowRuleLabel">Måler +80 km/t</strong></div></div>
+          <div class="accel-metrics accel-metrics-single"><div class="wide"><span>Turens langsomste gyldige</span><b id="accelSlowResult">–</b></div></div>
+        </div>
+      </section>
+    </details>
 
     <dialog id="accelConfigDialog" class="ridez-dialog">
       <form id="accelConfigForm" method="dialog">
@@ -93,21 +96,24 @@
       </form>
     </dialog>
 
-    <section id="leanSummary" class="lean-summary">
-      <div class="lean-card">
-        <div class="lean-title"><span class="lean-icon">🏍️</span><div><span>LEAN & SVING</span><strong>Turens hældning og sving</strong></div></div>
-        <div class="lean-grid">
-          <div><span>Lean nu</span><b id="leanLive">Kalibrér</b></div>
-          <div><span>Maks venstre</span><b id="leanLeftMax">0°</b></div>
-          <div><span>Maks højre</span><b id="leanRightMax">0°</b></div>
-          <div><span>Venstresving</span><b id="leftTurnCount">0</b></div>
-          <div><span>Højresving</span><b id="rightTurnCount">0</b></div>
+    <details id="leanPanel" class="ridez-fold-panel">
+      <summary><span class="fold-summary-main"><span class="fold-icon">🏍️</span><span>Turens hældning &amp; sving</span></span><span class="fold-chevron">›</span></summary>
+      <section id="leanSummary" class="lean-summary fold-content">
+        <div class="lean-card">
+          <div class="lean-title"><span class="lean-icon">🏍️</span><div><span>LEAN & SVING</span><strong>Turens hældning og sving</strong></div></div>
+          <div class="lean-grid">
+            <div><span>Lean nu</span><b id="leanLive">Kalibrér</b></div>
+            <div><span>Maks venstre</span><b id="leanLeftMax">0°</b></div>
+            <div><span>Maks højre</span><b id="leanRightMax">0°</b></div>
+            <div><span>Venstresving</span><b id="leftTurnCount">0</b></div>
+            <div><span>Højresving</span><b id="rightTurnCount">0</b></div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </details>
 
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v42</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v44</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
         <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
         <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
@@ -128,10 +134,13 @@
 
     <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
 
-    <section id="historyPanel" class="history-panel">
-      <div class="section-heading"><div><span class="eyebrow">GEMTE TURE</span><h2>Historik</h2></div><div class="history-toolbar"><button id="historySelectBtn" class="secondary small-button" type="button">Vælg</button><button id="historyBulkDeleteBtn" class="danger small-button hidden" type="button" disabled>Slet valgte</button></div></div>
-      <div id="historyList" class="history-list"><div class="empty">Henter ture…</div></div>
-    </section>
+    <details id="historyPanel" class="ridez-fold-panel history-fold-panel">
+      <summary><span class="fold-summary-main"><span class="fold-icon">🕘</span><span>Historik</span></span><span class="fold-chevron">›</span></summary>
+      <section class="history-panel fold-content">
+        <div class="section-heading"><div><span class="eyebrow">GEMTE TURE</span><h2>Dine ture</h2></div><div class="history-toolbar"><button id="historySelectBtn" class="secondary small-button" type="button">Vælg</button><button id="historyBulkDeleteBtn" class="danger small-button hidden" type="button" disabled>Slet valgte</button></div></div>
+        <div id="historyList" class="history-list"><div class="empty">Henter ture…</div></div>
+      </section>
+    </details>
 
     <section id="historyDetail" class="history-detail hidden">
       <div class="history-detail-head">
