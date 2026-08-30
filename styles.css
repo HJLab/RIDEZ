@@ -373,3 +373,8 @@
 .app-version.runtime-error{color:#ef4444;font-weight:900}
 
 .vehicle-add-inline-btn{width:100%;margin-top:12px}
+
+
+/* v90 - active vehicle green, inactive vehicles red */
+.vehicle-card .vehicle-card-main strong{color:#ff5b5b}
+.vehicle-card.active .vehicle-card-main strong{color:#5ed07a}
