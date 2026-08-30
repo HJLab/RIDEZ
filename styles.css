@@ -109,3 +109,38 @@
 .viewer-result{background:#191c21;border:1px solid #2d3239;border-radius:12px;padding:11px;font-size:16px;font-weight:800;overflow-wrap:anywhere}
 .viewer-lean-card{margin-top:0}.viewer-lean-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 @media(max-width:700px){.viewer-metric-grid{grid-template-columns:1fr 1fr}.viewer-detail-grid{grid-template-columns:1fr}.viewer-lean-grid{grid-template-columns:1fr 1fr}.viewer-lean-grid>div:first-child{grid-column:1/-1}}
+
+
+/* RIDEZ Lean-ikon v46: diskret vinkelmåler ved alle gradfelter */
+.degree-metric{position:relative;padding-right:52px!important}
+.degree-metric::after{
+  content:"";
+  position:absolute;
+  right:13px;
+  top:50%;
+  width:28px;
+  height:14px;
+  transform:translateY(-48%);
+  border:2px solid #8f98a4;
+  border-radius:30px 30px 2px 2px;
+  box-sizing:border-box;
+  opacity:.88;
+  background:
+    linear-gradient(to bottom,transparent 0 72%,#8f98a4 73% 84%,transparent 85%),
+    radial-gradient(circle at 50% 100%,#8f98a4 0 2px,transparent 2.5px);
+}
+.degree-metric::before{
+  content:"";
+  position:absolute;
+  right:26px;
+  top:50%;
+  width:2px;
+  height:11px;
+  background:#e11d24;
+  border-radius:2px;
+  transform-origin:50% 100%;
+  transform:translateY(-9px) rotate(34deg);
+  z-index:2;
+  opacity:.95;
+}
+@media(max-width:420px){.degree-metric{padding-right:46px!important}.degree-metric::after{right:10px;width:25px;height:13px}.degree-metric::before{right:22px;height:10px}}
