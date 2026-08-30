@@ -39,6 +39,7 @@
         <option value="city">Bykørsel · stop/start</option>
         <option value="country">Landevej · fart og sving</option>
         <option value="twisty">Snoet tur · mange sving</option>
+        <option value="speed">Speed · 3 accelerationer / stop</option>
       </select>
       <button id="demoBtn" class="demo-button">Start demo</button>
     </section>
@@ -53,6 +54,17 @@
       <div><span>Stilstand</span><strong id="stoppedTimeValue">0 sek.</strong></div>
       <div><span>Beskeder</span><strong id="messageCount">0</strong></div>
     </div>
+
+    <section id="speedDemoResults" class="speed-demo-results hidden">
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO</span><h2>Accelerationsresultater</h2></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-summary">
+        <div><span>Bedste 0–80</span><strong id="speedBest80">–</strong></div>
+        <div><span>Bedste 0–100</span><strong id="speedBest100">–</strong></div>
+        <div><span>Topfart</span><strong id="speedDemoTop">0 km/t</strong></div>
+      </div>
+      <div id="speedAttemptList" class="speed-attempt-list"><div class="empty">Resultater vises efter hvert forsøg.</div></div>
+    </section>
+
     <div class="safety"><strong>🛡️ Sikker beskedvisning</strong><p>Beskeder holdes tilbage under kørsel og vises først, når motorcyklen har holdt stille i mindst 3 sekunder.</p></div>
     <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
 
