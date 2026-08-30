@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const APP_VERSION='87';
+const APP_VERSION='88';
 const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle',profileReady:false};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
@@ -101,11 +101,27 @@ function setViewerVehicleCopy(type){
   const notice=$('viewerChatMovingNotice');if(notice)notice.textContent=`Modtageren kan ikke læse din besked lige nu, da ${w.definite} er i bevægelse. Beskeden bliver leveret, så snart ${w.definite} holder stille.`;
 }
 function syncVehicleUi(){
-  const list=$('vehicleList'),summary=$('activeVehicleSummary'),v=activeVehicle();
-  if(summary)summary.textContent=v?`Aktiv: ${vehicleWords(v.type).emoji} ${vehicleDisplayName(v)}`:'Intet køretøj valgt';
+  const list=$('vehicleList');
   if(list){
     if(!state.vehicleProfiles.length){list.innerHTML='<div class="empty">Ingen køretøjer endnu.</div>'}
-    else list.innerHTML=state.vehicleProfiles.map(x=>{const active=x.id===state.activeVehicleId,w=vehicleWords(x.type),year=x.year?` · ${escapeHtml(String(x.year))}`:'';return `<div class="vehicle-card ${active?'active':''}" data-vehicle-id="${escapeHtml(x.id)}"><div class="vehicle-card-main"><span class="vehicle-card-icon">${w.emoji}</span><div><strong>${escapeHtml(x.name)}</strong><span>${escapeHtml([x.make,x.model].filter(Boolean).join(' ')||w.title)}${year}</span></div></div><div class="vehicle-card-actions"><button class="secondary small-button vehicle-select-btn" type="button" ${active?'disabled':''}>${active?'Aktiv':'Vælg'}</button><button class="secondary small-button vehicle-edit-btn" type="button">Rediger</button><button class="danger small-button vehicle-delete-btn" type="button">Slet</button></div></div>`}).join('');
+    else list.innerHTML=state.vehicleProfiles.map(x=>{
+      const active=x.id===state.activeVehicleId,w=vehicleWords(x.type),year=x.year?escapeHtml(String(x.year)):'';
+      const details=[x.make,x.model,year].filter(Boolean).map(escapeHtml).join(' · ');
+      return `<details class="vehicle-card ${active?'active':''}" data-vehicle-id="${escapeHtml(x.id)}">
+        <summary class="vehicle-card-summary">
+          <span class="vehicle-card-main"><span class="vehicle-card-icon">${w.emoji}</span><strong>${escapeHtml(x.name)}</strong></span>
+          <span class="vehicle-card-chevron" aria-hidden="true">›</span>
+        </summary>
+        <div class="vehicle-card-body">
+          ${details?`<div class="vehicle-card-details">${details}</div>`:''}
+          <div class="vehicle-card-actions">
+            <button class="secondary small-button vehicle-select-btn" type="button" ${active?'disabled':''}>${active?'Aktiv':'Gør aktiv'}</button>
+            <button class="secondary small-button vehicle-edit-btn" type="button">Rediger</button>
+            <button class="danger small-button vehicle-delete-btn" type="button">Slet</button>
+          </div>
+        </div>
+      </details>`
+    }).join('');
   }
   setDriverVehicleCopy();
 }
@@ -767,10 +783,10 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v87';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v88';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v87 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v88 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -1479,7 +1495,7 @@ document.addEventListener('click',e=>{
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
 {const versionEl=$('appVersion');if(versionEl){versionEl.textContent='v'+APP_VERSION;versionEl.classList.add('runtime-ok');versionEl.title='RIDEZ app.js v'+APP_VERSION+' er indlæst';}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=87').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=88').catch(()=>{}));
 function handleInitFailure(error){
   console.error('RIDEZ kunne ikke starte korrekt',error);
   const versionEl=$('appVersion');
