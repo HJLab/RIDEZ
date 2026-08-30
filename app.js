@@ -38,7 +38,15 @@ function vehicleDisplayName(v){if(!v)return 'Intet køretøj';const details=[v.m
 function createDefaultVehicle(type){const w=vehicleWords(type),v={id:'veh_'+token().slice(0,12),type:w.type,name:w.type==='car'?'Min bil':'Min motorcykel',make:'',model:'',year:null};state.vehicleProfiles.push(v);state.activeVehicleId=v.id;state.preferredVehicleType=v.type;localStorage.setItem('ridez_vehicle_type',v.type);persistVehicleProfiles();return v}
 function ensureActiveVehicle(){let v=activeVehicle();if(!v&&state.preferredVehicleType)v=createDefaultVehicle(state.preferredVehicleType);return v}
 function currentVehicleType(){const v=activeVehicle();return normalizeVehicleType(v?v.type:state.preferredVehicleType)}
-function setupComplete(){return !!state.userName&&['motorcycle','car'].includes(state.preferredVehicleType)&&!!ensureActiveVehicle()}
+function setupComplete(){
+  const savedName=(localStorage.getItem('ridez_username')||state.userName||'').trim();
+  const savedType=localStorage.getItem('ridez_vehicle_type')||state.preferredVehicleType||'';
+  if(savedName)state.userName=savedName;
+  if(['motorcycle','car'].includes(savedType))state.preferredVehicleType=savedType;
+  if(!state.vehicleProfiles.length)loadVehicleProfiles();
+  const v=ensureActiveVehicle();
+  return !!state.userName&&['motorcycle','car'].includes(state.preferredVehicleType)&&!!v;
+}
 function setDriverVehicleCopy(){
   const w=vehicleWords(currentVehicleType());
   const tag=$('brandTagline');if(tag)tag.textContent=`Din ${w.noun}. Din verden.`;
@@ -720,7 +728,7 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);throw n
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v80';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v81';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -1019,7 +1027,7 @@ function syncUsernameUi(){
 }
 function openUsernameDialog(required=false){
   const dlg=$('usernameDialog'),input=$('usernameInput'),cancel=$('usernameCancelBtn'),title=$('usernameDialogTitle'),help=$('usernameDialogHelp'),choice=$('setupVehicleChoice'),fb=$('usernameFeedback'),save=$('usernameSaveBtn');if(!dlg)return;
-  state.usernameRequired=!!required;if(title)title.textContent=required?'Opsæt RIDEZ':'Rediger brugernavn';if(help)help.textContent=required?'Vælg dit brugernavn og om du bruger RIDEZ til motorcykel eller bil. Teksterne i appen tilpasses automatisk dit aktive køretøj.':'Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.';if(cancel)cancel.classList.toggle('hidden',!!required);if(choice)choice.classList.toggle('hidden',!required);if(save)save.textContent=required?'Gem og fortsæt':'Gem brugernavn';if(input)input.value=state.userName||'';if(fb)fb.textContent='';
+  state.usernameRequired=!!required;if(title)title.textContent=required?'Opsæt RIDEZ':'Rediger brugernavn';if(help)help.textContent=required?'Vælg dit brugernavn og om du bruger RIDEZ til motorcykel eller bil.':'Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.';if(cancel)cancel.classList.toggle('hidden',!!required);if(choice)choice.classList.toggle('hidden',!required);if(save)save.textContent=required?'Gem og fortsæt':'Gem brugernavn';if(input)input.value=state.userName||'';if(fb)fb.textContent='';
   if(required){const selected=state.preferredVehicleType||activeVehicle()?.type||'';document.querySelectorAll('input[name="setupVehicleType"]').forEach(r=>r.checked=r.value===selected)}
   if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','');setTimeout(()=>{if(input)input.focus()},50);
 }
@@ -1027,13 +1035,46 @@ function closeUsernameDialog(){
   const dlg=$('usernameDialog');if(state.usernameRequired&&!setupComplete())return;if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open','');state.usernameRequired=false;
 }
 function saveUsername(e){
-  if(e&&e.preventDefault)e.preventDefault();const input=$('usernameInput'),fb=$('usernameFeedback');const name=(input?input.value:'').trim();
-  if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
+  if(e&&e.preventDefault)e.preventDefault();
+  const input=$('usernameInput'),fb=$('usernameFeedback');
+  const name=(input?input.value:'').trim();
+  if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}
+  if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
   let type=state.preferredVehicleType;
-  if(state.usernameRequired){const checked=document.querySelector('input[name="setupVehicleType"]:checked');if(!checked){if(fb)fb.textContent='Vælg Motorcykel eller Bil.';return}type=normalizeVehicleType(checked.value)}
-  state.userName=name;localStorage.setItem('ridez_username',name);
-  if(state.usernameRequired){state.preferredVehicleType=type;localStorage.setItem('ridez_vehicle_type',type);let v=activeVehicle();if(!v)v=createDefaultVehicle(type);else if(!state.activeVehicleId){state.activeVehicleId=v.id;persistVehicleProfiles()}if(v&&v.type!==type){const match=state.vehicleProfiles.find(x=>x.type===type);if(match)state.activeVehicleId=match.id;else createDefaultVehicle(type)}persistVehicleProfiles();}
-  syncUsernameUi();syncVehicleUi();state.usernameRequired=false;closeUsernameDialog();
+  const completingProfile=state.usernameRequired;
+  if(completingProfile){
+    const checked=document.querySelector('input[name="setupVehicleType"]:checked');
+    if(!checked){if(fb)fb.textContent='Vælg Motorcykel eller Bil.';return}
+    type=checked.value==='car'?'car':'motorcycle';
+  }
+  state.userName=name;
+  localStorage.setItem('ridez_username',name);
+  if(completingProfile){
+    state.preferredVehicleType=type;
+    localStorage.setItem('ridez_vehicle_type',type);
+    loadVehicleProfiles();
+    let v=activeVehicle();
+    if(!v){
+      v=createDefaultVehicle(type);
+    }else if(v.type!==type){
+      const match=state.vehicleProfiles.find(x=>x.type===type);
+      if(match){state.activeVehicleId=match.id;v=match}
+      else v=createDefaultVehicle(type);
+    }else{
+      state.activeVehicleId=v.id;
+    }
+    persistVehicleProfiles();
+  }
+  syncUsernameUi();
+  syncVehicleUi();
+  if(completingProfile&&!setupComplete()){
+    if(fb)fb.textContent='Profilen kunne ikke gemmes. Prøv igen.';
+    return;
+  }
+  state.usernameRequired=false;
+  const dlg=$('usernameDialog');
+  if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();
+  else if(dlg)dlg.removeAttribute('open');
 }
 function initUsernameSettings(){
   syncUsernameUi();const edit=$('editUsernameBtn'),form=$('usernameForm'),cancel=$('usernameCancelBtn'),dlg=$('usernameDialog');
@@ -1393,6 +1434,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=80').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=81').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
