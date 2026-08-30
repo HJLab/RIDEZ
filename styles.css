@@ -35,3 +35,10 @@
 .speed-demo-summary span{display:block;color:var(--muted);font-size:12px}.speed-demo-summary strong{display:block;margin-top:5px;font-size:18px}
 .speed-attempt-list{display:grid;gap:8px}.speed-attempt{display:grid;grid-template-columns:1.1fr repeat(3,1fr);gap:8px;align-items:center;background:#15181d;border:1px solid #2c3036;border-radius:12px;padding:10px;font-size:12px}.speed-attempt span{color:var(--muted)}.speed-attempt b{color:#fff}
 @media(max-width:650px){.speed-demo-heading{display:block}.speed-demo-heading>strong{display:block;text-align:left;margin-bottom:8px}.speed-demo-summary{grid-template-columns:1fr 1fr}.speed-demo-summary>div:last-child{grid-column:1/-1}.speed-attempt{grid-template-columns:1fr 1fr}.speed-attempt strong{grid-column:1/-1}}
+
+/* v35 - tydelig Speed-demo */
+.speed-demo-note{margin:0 0 8px;color:var(--muted);font-size:12px}
+#speedDemoLive{display:inline-block;min-width:220px;padding:9px 12px;border-radius:12px;background:#1a1d22;border:1px solid #343943;font-size:14px;line-height:1.35}
+#speedDemoLive.measuring{background:#201d10;border-color:#6d5d20;color:#ffd44e;font-size:16px;font-weight:800}
+.speed-demo-summary strong{font-size:21px}
+.speed-attempt b{font-size:14px}

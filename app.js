@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,speedDemoAttempt:null,speedDemoAttempts:[]};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[]};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 const fmtDuration=sec=>{sec=Math.max(0,Math.round(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;if(h)return s?`${h} t ${m} min ${s} sek.`:`${h} t ${m} min`;if(m)return s?`${m} min ${s} sek.`:`${m} min`;return `${s} sek.`};
 const isEmptyRide=r=>Number(r&&r.distance_m||0)<25;
@@ -72,6 +72,7 @@ async function snapDemoBaseToRoad(base){
 }
 function resetSpeedDemoResults(show=false){
   state.demoPrevSpeedMs=0;
+  state.demoPrevTimeS=0;
   state.speedDemoAttempt=null;
   state.speedDemoAttempts=[];
   const panel=$('speedDemoResults');
@@ -87,26 +88,39 @@ function formatAccel(sec){return Number.isFinite(sec)?`${sec.toFixed(1).replace(
 function renderSpeedDemoResults(currentSpeedMs=0){
   const attempts=state.speedDemoAttempts;
   const active=state.speedDemoAttempt;
-  const best80=attempts.filter(a=>Number.isFinite(a.t80)).reduce((m,a)=>Math.min(m,a.t80),Infinity);
-  const best100=attempts.filter(a=>Number.isFinite(a.t100)).reduce((m,a)=>Math.min(m,a.t100),Infinity);
+  const completed80=attempts.filter(a=>Number.isFinite(a.t80));
+  const completed100=attempts.filter(a=>Number.isFinite(a.t100));
+  const best80=completed80.reduce((m,a)=>Math.min(m,a.t80),Infinity);
+  const best100=completed100.reduce((m,a)=>Math.min(m,a.t100),Infinity);
   const el80=$('speedBest80'),el100=$('speedBest100'),top=$('speedDemoTop'),live=$('speedDemoLive'),list=$('speedAttemptList');
   if(el80)el80.textContent=Number.isFinite(best80)?formatAccel(best80):'–';
   if(el100)el100.textContent=Number.isFinite(best100)?formatAccel(best100):'–';
   if(top)top.textContent=fmtSpeed(Math.max(state.maxSpeedMs,currentSpeedMs||0));
   if(live){
-    if(active)live.textContent=`Forsøg ${attempts.length+1}: accelererer…`;
-    else if(attempts.length>=3)live.textContent='3 accelerationer gennemført';
-    else live.textContent=`Klar til forsøg ${attempts.length+1} af 3`;
+    if(active){
+      const n=attempts.length+1;
+      if(Number.isFinite(active.t100)) live.textContent=`Forsøg ${n}/3 · 0–80: ${formatAccel(active.t80)} · 0–100: ${formatAccel(active.t100)}`;
+      else if(Number.isFinite(active.t80)) live.textContent=`Forsøg ${n}/3 · 0–80: ${formatAccel(active.t80)} · måler 0–100…`;
+      else live.textContent=`Forsøg ${n}/3 · ACCELERERER…`;
+      live.classList.add('measuring');
+    }else{
+      live.classList.remove('measuring');
+      if(attempts.length>=3) live.textContent='FÆRDIG · 3 accelerationer målt';
+      else if(attempts.length) live.textContent=`Forsøg ${attempts.length} gemt · klar til ${attempts.length+1}/3`;
+      else live.textContent='Klar til første acceleration';
+    }
   }
   if(list){
-    if(!attempts.length){list.innerHTML='<div class="empty">Resultater vises efter hvert forsøg.</div>';return;}
+    if(!attempts.length){list.innerHTML='<div class="empty">0–80 og 0–100 vises straks, når grænsen passeres.</div>';return;}
     list.innerHTML=attempts.map((a,idx)=>`<div class="speed-attempt"><strong>Forsøg ${idx+1}</strong><span>0–80: <b>${formatAccel(a.t80)}</b></span><span>0–100: <b>${formatAccel(a.t100)}</b></span><span>Top: <b>${Math.round(a.topMs*3.6)} km/t</b></span></div>`).join('');
   }
 }
 function updateSpeedDemoAttempt(t,speedMs){
-  const prev=state.demoPrevSpeedMs||0,stop=C.STOPPED_THRESHOLD_MS||0.8;
+  const prev=state.demoPrevSpeedMs||0;
+  const prevT=Number.isFinite(state.demoPrevTimeS)?state.demoPrevTimeS:t;
+  const stop=C.STOPPED_THRESHOLD_MS||0.8;
   if(!state.speedDemoAttempt && prev<=stop && speedMs>stop && state.speedDemoAttempts.length<3){
-    state.speedDemoAttempt={startT:Math.max(0,t-1),t80:null,t100:null,topMs:speedMs};
+    state.speedDemoAttempt={startT:prevT,t80:null,t100:null,topMs:speedMs};
   }
   const a=state.speedDemoAttempt;
   if(a){
@@ -114,8 +128,9 @@ function updateSpeedDemoAttempt(t,speedMs){
     const prevK=prev*3.6,curK=speedMs*3.6;
     const cross=(target)=>{
       if(curK<=prevK||prevK>=target||curK<target)return null;
+      const span=Math.max(0.001,t-prevT);
       const f=(target-prevK)/(curK-prevK);
-      return (t-1)+Math.max(0,Math.min(1,f));
+      return prevT+span*Math.max(0,Math.min(1,f));
     };
     if(a.t80===null){const ct=cross(80);if(ct!==null)a.t80=Math.max(0,ct-a.startT)}
     if(a.t100===null){const ct=cross(100);if(ct!==null)a.t100=Math.max(0,ct-a.startT)}
@@ -125,9 +140,29 @@ function updateSpeedDemoAttempt(t,speedMs){
     }
   }
   state.demoPrevSpeedMs=speedMs;
+  state.demoPrevTimeS=t;
   renderSpeedDemoResults(speedMs);
 }
-function demoSpeed(type,i,total){if(type==='speed'){if(i<5)return 0;if(i<=17)return 32*((i-5)/12);if(i<=25)return 31+1.5*Math.sin(i/2);if(i<=32)return Math.max(0,31*(1-(i-25)/7));if(i<=38)return 0;if(i<=48)return 34*((i-38)/10);if(i<=56)return 33+1.5*Math.sin(i/2);if(i<=63)return Math.max(0,33*(1-(i-56)/7));if(i<=69)return 0;if(i<=78)return 36*((i-69)/9);if(i<=88)return 35+1.2*Math.sin(i/2);if(i<=96)return Math.max(0,35*(1-(i-88)/8));return 0}if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}if(type==='twisty'){if(i<4||i>total-5)return 0;const phase=i%20;if(phase<5)return 10+phase*1.4;if(phase<12)return 17+3*Math.sin(i/2.5);if(phase<16)return 12;return 15}const phase=i%36;if(i<4||i>total-5)return 0;if(phase<8)return 8+phase*1.8;if(phase<28)return 22+6*Math.sin(i/4);return 10}
+function demoSpeed(type,i,total){
+  if(type==='speed'){
+    // v35: Tre komplette accelerationer på ca. 18 sekunder i alt.
+    // Hvert forsøg: kort stilstand -> hurtig 0-120/130+ -> kort hold -> nedbremsning -> stop.
+    const cycleLen=6.0;
+    const attempt=Math.min(2,Math.floor(i/cycleLen));
+    const x=i-attempt*cycleLen;
+    const targets=[34.0,36.0,38.0]; // ca. 122, 130 og 137 km/t
+    const target=targets[attempt];
+    if(x<0.7)return 0;
+    if(x<3.5)return target*((x-0.7)/2.8);
+    if(x<4.1)return target;
+    if(x<5.1)return Math.max(0,target*(1-(x-4.1)/1.0));
+    return 0;
+  }
+  if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}
+  if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}
+  if(type==='twisty'){if(i<4||i>total-5)return 0;const phase=i%20;if(phase<5)return 10+phase*1.4;if(phase<12)return 17+3*Math.sin(i/2.5);if(phase<16)return 12;return 15}
+  const phase=i%36;if(i<4||i>total-5)return 0;if(phase<8)return 8+phase*1.8;if(phase<28)return 22+6*Math.sin(i/4);return 10
+}
 function demoWaypoints(base,type){
   // Start og slut er altid telefonens aktuelle position, snappet til nærmeste kørbare vej.
   // Når testen startes hjemmefra, starter demoen derfor på Toftevej i stedet for et fast punkt i Herslev.
@@ -172,7 +207,58 @@ function demoPointAt(route,meters){
   const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
-async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;$('demoBadge').textContent='DEMO v34';$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Klargør demo…';$('statusDetail').textContent='Demo v34 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';try{const gpsBase=await getDemoBase();state.demoBase=await snapDemoBaseToRoad(gpsBase);$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoBase=null;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';throw e}const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':'landevej';await createRide(`RIDEZ demo · ${demoName}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:state.demoProfile==='speed'?108:90;if(state.demoProfile==='speed')resetSpeedDemoResults(true);else resetSpeedDemoResults(false);async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);if(state.demoProfile==='speed')updateSpeedDemoAttempt(i,speed);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
+async function startDemo(){
+  if(state.rideId){alert('Afslut den aktive tur først.');return}
+  resetDriverTripDisplay({clearMarker:true});
+  state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
+  $('demoBadge').textContent='DEMO v35';$('demoBadge').classList.remove('hidden');
+  $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
+  $('rideStatus').textContent='Klargør demo…';
+  $('statusDetail').textContent='Demo v35 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  try{
+    const gpsBase=await getDemoBase();
+    state.demoBase=await snapDemoBaseToRoad(gpsBase);
+    $('rideStatus').textContent='Finder vej-rute…';
+    $('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;
+    state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile);
+  }catch(e){
+    state.demo=false;state.demoBase=null;state.demoRoute=null;
+    $('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');
+    $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';
+    throw e;
+  }
+  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':'landevej';
+  await createRide(`RIDEZ demo · ${demoName}`);
+  $('rideStatus').textContent='Demo starter…';
+  $('statusDetail').textContent=state.demoProfile==='speed'?'Speed-demo: 3 accelerationer gennemføres på ca. 18 sekunder.':`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
+  const isSpeed=state.demoProfile==='speed';
+  const total=isSpeed?18:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
+  const tickMs=isSpeed?200:1000;
+  const stepS=tickMs/1000;
+  if(isSpeed)resetSpeedDemoResults(true);else resetSpeedDemoResults(false);
+  async function tick(){
+    if(!state.demo||!state.rideId)return;
+    const step=state.demoIndex++;
+    const t=isSpeed?step*stepS:step;
+    const speed=demoSpeed(state.demoProfile,t,total);
+    if(isSpeed)updateSpeedDemoAttempt(t,speed);
+    state.demoTravelM+=speed*(isSpeed?stepS:1);
+    const cur=demoPointAt(state.demoRoute,state.demoTravelM);
+    if(!cur){await stopRide();return}
+    if(isSpeed){processPosition(cur,speed,4).catch(e=>console.error(e));}
+    else await processPosition(cur,speed,4);
+    if(t>=total||state.demoTravelM>=state.demoRoute.total-5){
+      // If the final stop just completed, preserve the third attempt before ending.
+      if(isSpeed&&state.speedDemoAttempt){
+        const a=state.speedDemoAttempt;
+        if(speed<=C.STOPPED_THRESHOLD_MS){state.speedDemoAttempts.push(a);state.speedDemoAttempt=null;renderSpeedDemoResults(speed)}
+      }
+      await stopRide();return;
+    }
+    state.demoTimer=setTimeout(tick,tickMs);
+  }
+  await tick();
+}
 async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;stopDemoTimer();try{await flushPublicTopSpeed()}catch(e){console.warn(e)}const finishedDistance=state.distanceM,finishedDuration=state.rideStartedAt?Math.max(0,Math.round((Date.now()-state.rideStartedAt)/1000)):0,finishedMoving=Math.max(0,Math.round(state.movingMs/1000)),finishedStopped=Math.max(0,Math.round(state.stoppedMs/1000)),finishedMaxSpeed=Math.max(0,state.maxSpeedMs);try{if(state.driverToken)await rpc('ridez_end_ride_v19',{p_driver_token:state.driverToken,p_distance_m:finishedDistance,p_duration_s:finishedDuration,p_max_speed_ms:finishedMaxSpeed,p_moving_s:finishedMoving,p_stopped_s:finishedStopped})}catch(e){console.error(e);try{if(state.driverToken)await rpc('ridez_end_ride_v18',{p_driver_token:state.driverToken,p_distance_m:finishedDistance,p_duration_s:finishedDuration,p_max_speed_ms:finishedMaxSpeed,p_moving_s:finishedMoving,p_stopped_s:finishedStopped})}catch(fallbackError){console.error(fallbackError)}}resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';await loadHistory()}
 async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
