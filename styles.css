@@ -6,3 +6,17 @@
 .history-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 4px}.history-stats>div{background:#15181d;border:1px solid #2c3036;border-radius:13px;padding:12px}.history-stats span{display:block;color:var(--muted);font-size:12px}.history-stats strong{display:block;margin-top:5px;font-size:16px}@media(max-width:650px){.history-stats{grid-template-columns:1fr 1fr}}
 
 .viewer-stats>div{min-width:0}.viewer-stats strong{overflow-wrap:anywhere}.viewer-top-speed-card{transition:border-color .25s,background .25s,box-shadow .25s}.viewer-top-speed-card.overspeed-live strong{display:inline-block;color:#e11d24;transform-origin:left center;animation:ridezTopSpeedRedPulse 1s ease-in-out infinite;will-change:color,transform}@keyframes ridezTopSpeedRedPulse{0%,100%{color:#e11d24;transform:scale(1)}50%{color:#963a42;transform:scale(1.06)}}
+
+/* v29: Aktuel hastighed farves efter den aktuelle fartgrænse. Højeste hastighed er altid hvid. */
+#viewerSpeed{transition:color .35s ease}
+#viewerSpeed.speed-under-limit{color:#22c55e}
+#viewerSpeed.speed-over-limit{color:#e11d24}
+#viewerTopSpeed{color:#f7f7f7!important;animation:none!important;transform:none!important;text-shadow:none!important}
+.viewer-top-speed-card.overspeed-live strong{color:#f7f7f7!important;animation:none!important;transform:none!important;text-shadow:none!important}
+
+
+/* v30: Fartgrænseskilt øverst til højre på følgekortet. */
+.ridez-speed-limit-wrap{margin:12px 12px 0 0!important;filter:drop-shadow(0 3px 7px rgba(0,0,0,.28));pointer-events:none}
+.ridez-speed-limit-sign{width:58px;height:58px;border-radius:50%;border:7px solid #d71920;background:#fff;display:flex;align-items:center;justify-content:center;color:#111;font-weight:900;font-size:24px;line-height:1;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.ridez-speed-limit-sign span{display:block;transform:translateY(-1px)}
+@media(max-width:650px){.ridez-speed-limit-sign{width:52px;height:52px;border-width:6px;font-size:22px}.ridez-speed-limit-wrap{margin:10px 10px 0 0!important}}
