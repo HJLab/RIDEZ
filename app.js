@@ -542,7 +542,7 @@ function updateSpeedDemoAttempt(t,speedMs){
 }
 function demoSpeed(type,i,total){
   if(type==='messagetest'){
-    // v74: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
+    // v75: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
     // De lange stop giver tid til at modtage en ventende besked efter 3 s og sende et svar.
     if(i<10)return 40/3.6;
     if(i<40)return 0;
@@ -654,10 +654,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v74';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v75';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v74 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v75 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -789,6 +789,7 @@ function updateReplyAvailability(){
   document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?'Svar er låst, mens motorcyklen kører.':'Svar på beskeden')});
   const send=$('replySendBtn');if(send)send.disabled=!!state.moving;
   const hint=$('replySafetyHint');if(hint)hint.textContent=state.moving?'Svar er låst, mens motorcyklen kører. Hold stille i mindst 3 sekunder.':'Motorcyklen holder stille – du kan sende svaret.';
+  const movingNotice=$('chatMovingNotice');if(movingNotice)movingNotice.classList.toggle('hidden',!state.moving);
   if(state.moving&&$('replyDialog')&&$('replyDialog').open)closeReplyDialog();
 }
 function openReplyDialog(messageId){
@@ -1272,6 +1273,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=74').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=75').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
