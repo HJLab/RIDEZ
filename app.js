@@ -149,6 +149,22 @@ function resetSpeedDemoResults(show=false){
   if(list)list.innerHTML='<div class="empty">Resultater vises efter hvert forsøg.</div>';
 }
 function formatAccel(sec){return Number.isFinite(sec)?`${sec.toFixed(1).replace('.',',')} sek.`:'–'}
+function syncSpeedDemoToAccelerationSummary(){
+  // Speed-demoen har sin egen meget stabile måling af hvert forsøg.
+  // Brug de samme resultater til de almindelige turstatistik-bokse, så demo og rigtig tur
+  // viser data samme sted. Rigtig GPS-kørsel bruger fortsat updateAccelerationStats().
+  const all=[...state.speedDemoAttempts];
+  if(state.speedDemoAttempt)all.push(state.speedDemoAttempt);
+  const times80=all.filter(a=>Number.isFinite(a.t80)).map(a=>a.t80);
+  const times100=all.filter(a=>Number.isFinite(a.t100)).map(a=>a.t100);
+  if(times80.length){
+    state.accelBest080=Math.min(...times80);
+    state.accelBest80={seconds:Math.min(...times80),startKmh:0,endKmh:80};
+    state.accelSlow80={seconds:Math.max(...times80),startKmh:0,endKmh:80};
+  }
+  if(times100.length)state.accelBest0100=Math.min(...times100);
+  renderAccelerationSummary();
+}
 function renderSpeedDemoResults(currentSpeedMs=0){
   const attempts=state.speedDemoAttempts;
   const active=state.speedDemoAttempt;
@@ -156,6 +172,7 @@ function renderSpeedDemoResults(currentSpeedMs=0){
   const completed100=attempts.filter(a=>Number.isFinite(a.t100));
   const best80=completed80.reduce((m,a)=>Math.min(m,a.t80),Infinity);
   const best100=completed100.reduce((m,a)=>Math.min(m,a.t100),Infinity);
+  syncSpeedDemoToAccelerationSummary();
   const el80=$('speedBest80'),el100=$('speedBest100'),top=$('speedDemoTop'),live=$('speedDemoLive'),list=$('speedAttemptList');
   if(el80)el80.textContent=Number.isFinite(best80)?formatAccel(best80):'–';
   if(el100)el100.textContent=Number.isFinite(best100)?formatAccel(best100):'–';
@@ -275,10 +292,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v36';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v37';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v36 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v37 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
