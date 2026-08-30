@@ -105,10 +105,23 @@ function photoMarkerIcon(){return L.divIcon({className:'ridez-photo-marker-wrap'
 function clearActivePhotoMarkers(){if(!state.map)return;state.activePhotoMarkers.forEach(m=>{try{state.map.removeLayer(m)}catch(e){}});state.activePhotoMarkers=[]}
 function clearHistoryPhotoMarkers(){if(!state.historyMap)return;state.historyPhotoMarkers.forEach(m=>{try{state.historyMap.removeLayer(m)}catch(e){}});state.historyPhotoMarkers=[]}
 function photoPublicUrl(path){if(!path)return'';const {data}=db.storage.from('ridez-photos').getPublicUrl(path);return data&&data.publicUrl?data.publicUrl:''}
-function photoPopupHtml(url,when=''){return `<div class="photo-popup"><button class="photo-popup-open" type="button" aria-label="Vis billede i fuld størrelse"><img src="${escapeHtml(url)}" alt="Billede fra turen"></button><span>${escapeHtml(when)}</span><small>Tryk på billedet for fuld størrelse</small></div>`}
+function photoPopupElement(url,when=''){
+  const wrap=document.createElement('div');wrap.className='photo-popup';
+  const btn=document.createElement('button');btn.className='photo-popup-open';btn.type='button';btn.setAttribute('aria-label','Vis billede i fuld størrelse');
+  const img=document.createElement('img');img.src=url;img.alt='Billede fra turen';btn.appendChild(img);
+  const stamp=document.createElement('span');stamp.textContent=when||'';
+  const hint=document.createElement('small');hint.textContent='Tryk på billedet for fuld størrelse';
+  wrap.append(btn,stamp,hint);
+  let lastTouch=0;
+  const open=(ev)=>{if(ev){ev.preventDefault();ev.stopPropagation()}openPhotoViewer(url,when)};
+  btn.addEventListener('touchend',ev=>{lastTouch=Date.now();open(ev)},{passive:false});
+  btn.addEventListener('click',ev=>{if(Date.now()-lastTouch<800){ev.preventDefault();ev.stopPropagation();return}open(ev)});
+  if(window.L&&L.DomEvent){L.DomEvent.disableClickPropagation(wrap);L.DomEvent.disableScrollPropagation(wrap)}
+  return wrap;
+}
 function openPhotoViewer(url,caption=''){if(!url)return;const dlg=$('photoViewerDialog'),img=$('photoViewerImage'),cap=$('photoViewerCaption');if(!dlg||!img)return;img.src=url;img.alt=caption||'Billede fra turen';if(cap){cap.textContent=caption||'';cap.classList.toggle('hidden',!caption)}if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
 function closePhotoViewer(){const dlg=$('photoViewerDialog'),img=$('photoViewerImage');if(!dlg)return;if(typeof dlg.close==='function'&&dlg.open)dlg.close();else dlg.removeAttribute('open');if(img)img.src=''}
-function addActivePhotoMarker(lat,lng,url,capturedAt){if(!state.map||!Number.isFinite(lat)||!Number.isFinite(lng))return;const when=capturedAt?fmtDate(capturedAt):'';const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.map);if(url)marker.bindPopup(photoPopupHtml(url,when),{maxWidth:300});state.activePhotoMarkers.push(marker)}
+function addActivePhotoMarker(lat,lng,url,capturedAt){if(!state.map||!Number.isFinite(lat)||!Number.isFinite(lng))return;const when=capturedAt?fmtDate(capturedAt):'';const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.map);if(url)marker.bindPopup(photoPopupElement(url,when),{maxWidth:300});state.activePhotoMarkers.push(marker)}
 async function getPhotoPosition(){if(state.lastPos&&Number.isFinite(state.lastPos.lat)&&Number.isFinite(state.lastPos.lng))return {lat:state.lastPos.lat,lng:state.lastPos.lng};if(!navigator.geolocation)throw new Error('GPS-position er ikke tilgængelig.');return await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>reject(new Error('Kunne ikke hente GPS-position til billedet.')),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}))}
 async function imageToJpeg(file){
   let img=null,url=null,close=null;
@@ -620,7 +633,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v56';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v57';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v47 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -828,7 +841,7 @@ function renderHistoryPhotos(photos){
   items.forEach(p=>{
     if(!state.historyMap||!Number.isFinite(Number(p.lat))||!Number.isFinite(Number(p.lng)))return;
     const lat=Number(p.lat),lng=Number(p.lng),when=p.captured_at?fmtDate(p.captured_at):'';
-    const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.historyMap).bindPopup(photoPopupHtml(p.url,when),{maxWidth:320});
+    const marker=L.marker([lat,lng],{icon:photoMarkerIcon()}).addTo(state.historyMap).bindPopup(photoPopupElement(p.url,when),{maxWidth:320});
     state.historyPhotoMarkers[p.index]=marker;
   });
   grid.querySelectorAll('.photo-card').forEach(btn=>btn.addEventListener('click',()=>{const p=items[Number(btn.dataset.photoIndex)];if(!p)return;const marker=state.historyPhotoMarkers[p.index];if(marker&&state.historyMap){state.historyMap.setView(marker.getLatLng(),17);marker.openPopup();$('historyMap').scrollIntoView({behavior:'smooth',block:'center'})}else if(p.url)window.open(p.url,'_blank','noopener')}));
@@ -935,6 +948,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=56').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=57').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
