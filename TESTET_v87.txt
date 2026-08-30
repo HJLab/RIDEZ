@@ -1,0 +1,18 @@
+RIDEZ Profilfix v87
+
+Rettet konkret fejl:
+- initDriver blev afbrudt af kald til en ikke-eksisterende funktion: syncChatSafetyUi().
+- Det skete før formularens submit-handler blev tilknyttet.
+- Derfor genindlaeste browseren siden ved Gem, uden at gemme profiloplysningerne.
+
+Rettelse:
+- Det ugyldige kald er erstattet med den eksisterende updateReplyAvailability().
+- Initialiseringsfejl vises nu tydeligt i versionsfeltet i stedet for at fejle lydloest.
+- Alle cache- og filreferencer er opdateret konsekvent til v87.
+
+Automatiske tests gennemfoert:
+1. Ny profil: brugernavn + motorcykel -> Gem -> dialog lukker.
+2. Start demo efter gem -> profil-dialogen aabner ikke igen.
+3. Genindlaesning med gemt profil -> dialogen aabner ikke.
+4. Bilprofil -> gemmes og accepteres.
+5. Aeldre/delvist gemte profiler -> repareres automatisk.

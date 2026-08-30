@@ -367,3 +367,5 @@
 @media(max-width:650px){.topbar-right{gap:6px}.app-version{font-size:9px}}
 
 .app-version.runtime-ok{color:#22c55e}
+
+.app-version.runtime-error{color:#ef4444;font-weight:900}
