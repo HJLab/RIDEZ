@@ -183,3 +183,39 @@
 }
 
 #speedValue{color:#32d66b}
+
+
+/* RIDEZ Kalibrering v51 - tydelig status på Indstillinger */
+.settings-panel summary{display:flex;align-items:center;gap:10px;}
+.settings-panel summary:after{margin-left:auto;}
+.settings-calibration-dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:0 0 auto;background:#d8b54a;box-shadow:0 0 0 3px rgba(216,181,74,.12);}
+.settings-panel.calibration-missing{border-color:rgba(225,29,36,.78);}
+.settings-panel.calibration-missing .settings-summary-label{color:#e11d24;animation:ridezCalibrationAlert 1.35s ease-in-out infinite;}
+.settings-panel.calibration-missing .settings-calibration-dot{background:#e11d24;box-shadow:0 0 0 3px rgba(225,29,36,.16);animation:ridezCalibrationDot 1.35s ease-in-out infinite;}
+.settings-panel.calibration-missing .setting-status{color:#e11d24;}
+.settings-panel.calibration-ok{border-color:rgba(34,197,94,.52);}
+.settings-panel.calibration-ok .settings-summary-label{color:#46d878;animation:none;}
+.settings-panel.calibration-ok .settings-calibration-dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15);animation:none;}
+.settings-panel.calibration-ok .setting-status{color:#46d878;}
+.settings-panel.calibration-working .settings-summary-label{color:#ffd44e;animation:none;}
+.settings-panel.calibration-working .settings-calibration-dot{background:#ffd44e;box-shadow:0 0 0 3px rgba(255,212,78,.14);animation:none;}
+@keyframes ridezCalibrationAlert{0%,100%{opacity:1;text-shadow:0 0 0 rgba(225,29,36,0)}50%{opacity:.48;text-shadow:0 0 10px rgba(225,29,36,.34)}}
+@keyframes ridezCalibrationDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.78);opacity:.5}}
+@media (prefers-reduced-motion: reduce){.settings-panel.calibration-missing .settings-summary-label,.settings-panel.calibration-missing .settings-calibration-dot{animation:none}}
+
+
+/* v52: live calibration readout */
+.calibration-live-panel{border-top:1px solid #292d34;padding:14px;background:linear-gradient(180deg,#12151a 0%,#101318 100%)}
+.calibration-live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.calibration-live-head strong{display:block;margin-top:3px;font-size:16px}
+.calibration-live-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.calibration-live-grid>div{background:#191c21;border:1px solid #2d3239;border-radius:12px;padding:11px}
+.calibration-live-grid span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.calibration-live-grid b{display:block;font-size:21px;font-variant-numeric:tabular-nums}
+.calibration-reading-dot{width:14px;height:14px;border-radius:50%;display:inline-block;flex:0 0 auto;background:#737982;box-shadow:0 0 0 4px rgba(115,121,130,.13)}
+.calibration-reading-dot.good{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.14)}
+.calibration-reading-dot.warn{background:#ffd44e;box-shadow:0 0 0 4px rgba(255,212,78,.14)}
+.calibration-reading-dot.bad{background:#e11d24;box-shadow:0 0 0 4px rgba(225,29,36,.14)}
+.calibration-reading-status{margin-top:10px;font-size:12px;font-weight:800;color:#d8dbe1}
+.calibration-hint{margin:7px 0 0;font-size:11px;line-height:1.45;color:var(--muted)}
+@media(max-width:520px){.calibration-live-grid{grid-template-columns:1fr 1fr}.calibration-live-grid b{font-size:18px}}

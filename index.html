@@ -125,11 +125,20 @@
 
     <div class="safety"><strong>🛡️ Sikker beskedvisning</strong><p>Beskeder holdes tilbage under kørsel og vises først, når motorcyklen har holdt stille i mindst 3 sekunder.</p></div>
 
-    <details class="settings-panel">
-      <summary>⚙️ Indstillinger</summary>
-      <div class="setting-row">
-        <div><strong>Telefonkalibrering</strong><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p><span id="calibrationStatus" class="setting-status">Ikke kalibreret</span></div>
+    <details id="settingsPanel" class="settings-panel calibration-missing">
+      <summary><span class="settings-summary-label">⚙️ Indstillinger</span><span id="settingsCalibrationDot" class="settings-calibration-dot" aria-hidden="true"></span></summary>
+      <div class="setting-row calibration-setting-row">
+        <div class="calibration-copy"><strong>Telefonkalibrering</strong><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p><span id="calibrationStatus" class="setting-status">Ikke kalibreret</span></div>
         <button id="calibrateBtn" class="secondary" type="button">Kalibrer telefon</button>
+      </div>
+      <div class="calibration-live-panel" aria-live="polite">
+        <div class="calibration-live-head"><div><span class="eyebrow">LIVE SENSOR</span><strong>Telefonens hældning</strong></div><span id="calibrationReadingDot" class="calibration-reading-dot unknown" aria-hidden="true"></span></div>
+        <div class="calibration-live-grid">
+          <div><span>Aktuel rå måling</span><b id="calibrationRawValue">Venter…</b></div>
+          <div><span>Efter kalibrering</span><b id="calibrationCorrectedValue">–</b></div>
+        </div>
+        <div id="calibrationReadingStatus" class="calibration-reading-status">Venter på telefonens hældningssensor…</div>
+        <p class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
       </div>
     </details>
 
@@ -209,6 +218,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=50"></script>
+<script src="app.js?v=52"></script>
 </body>
 </html>

@@ -267,9 +267,46 @@ function updateLeanStats(rawLean,now=Date.now(),speedMs=state.currentSpeedMs,{de
   }
   renderLeanSummary();
 }
-function updateCalibrationStatus(text){const el=$('calibrationStatus');if(!el)return;if(text){el.textContent=text;return}el.textContent=state.leanCalibration===null?'Ikke kalibreret':'Kalibreret ✓'}
+function formatCalibrationDeg(v){
+  if(!Number.isFinite(v))return '–';
+  const n=Math.abs(v)<0.05?0:v;
+  return `${n.toFixed(1).replace('.',',')}°`;
+}
+function updateCalibrationLive(raw=state.lastRawRoll){
+  const rawEl=$('calibrationRawValue'),correctedEl=$('calibrationCorrectedValue'),statusEl=$('calibrationReadingStatus'),dot=$('calibrationReadingDot');
+  if(!Number.isFinite(raw)){
+    if(rawEl)rawEl.textContent='Venter…';
+    if(correctedEl)correctedEl.textContent=state.leanCalibration===null?'Kalibrér først':'–';
+    if(statusEl)statusEl.textContent='Venter på telefonens hældningssensor…';
+    if(dot)dot.className='calibration-reading-dot unknown';
+    return;
+  }
+  const corrected=state.leanCalibration===null?null:normalizeDeg(raw-state.leanCalibration);
+  if(rawEl)rawEl.textContent=formatCalibrationDeg(raw);
+  if(correctedEl)correctedEl.textContent=corrected===null?'Kalibrér først':formatCalibrationDeg(corrected);
+  const check=corrected===null?raw:corrected,abs=Math.abs(check);
+  const level=abs<=2?'good':abs<=5?'warn':'bad';
+  if(dot)dot.className=`calibration-reading-dot ${level}`;
+  if(statusEl){
+    if(state.leanCalibration===null){
+      statusEl.textContent=level==='good'?'Telefonen står tæt på 0° – klar til kalibrering.':level==='warn'?'Telefonen står lidt skævt. Hold motorcyklen oprejst og kalibrér.':'Telefonen afviger tydeligt fra 0°. Det er netop denne vinkel, kalibreringen vil gemme som nulpunkt.';
+    }else{
+      statusEl.textContent=level==='good'?'Godt – korrigeret måling ligger tæt på 0°.':level==='warn'?'Lille afvigelse fra nulpunktet.':'Tydelig afvigelse fra nulpunktet – kontrollér at motorcyklen står oprejst eller kalibrér igen.';
+    }
+  }
+}
+function updateCalibrationStatus(text){
+  const el=$('calibrationStatus'),panel=$('settingsPanel');
+  const calibrated=state.leanCalibration!==null;
+  if(el)el.textContent=text||(calibrated?'Kalibreret ✓':'Ikke kalibreret');
+  if(panel){
+    panel.classList.toggle('calibration-ok',calibrated);
+    panel.classList.toggle('calibration-missing',!calibrated);
+    panel.classList.toggle('calibration-working',!!text&&text.includes('oprejst'));
+  }
+}
 function onDeviceOrientation(e){
-  const raw=rawRollFromOrientation(e);if(raw===null)return;state.lastRawRoll=raw;
+  const raw=rawRollFromOrientation(e);if(raw===null)return;state.lastRawRoll=raw;updateCalibrationLive(raw);
   if(state.calibrating)state.calibrationSamples.push(raw);
   if(state.demo||state.leanCalibration===null)return;
   const lean=normalizeDeg(raw-state.leanCalibration);updateLeanStats(lean,Date.now(),state.currentSpeedMs);
@@ -290,12 +327,12 @@ async function calibratePhone(){
     const a=state.calibrationSamples.filter(Number.isFinite);if(a.length<4)throw new Error('Der kom ikke nok sensordata. Sørg for, at telefonens bevægelsessensor er tilladt, og prøv igen.');
     // Trim de yderste målinger, så et enkelt ryk ikke flytter nulpunktet.
     a.sort((x,y)=>x-y);const trim=Math.floor(a.length*.15),use=a.slice(trim,a.length-trim||a.length);const avg=use.reduce((s,x)=>s+x,0)/use.length;
-    state.leanCalibration=avg;localStorage.setItem('ridez_lean_calibration',String(avg));state.leanFilteredDeg=0;state.leanLiveDeg=0;updateCalibrationStatus('Kalibreret ✓');renderLeanSummary();
+    state.leanCalibration=avg;localStorage.setItem('ridez_lean_calibration',String(avg));state.leanFilteredDeg=0;state.leanLiveDeg=0;updateCalibrationStatus('Kalibreret ✓');updateCalibrationLive(state.lastRawRoll);renderLeanSummary();
   }catch(e){state.calibrating=false;updateCalibrationStatus('Kalibrering mislykkedes');alert(e.message||'Kalibrering mislykkedes.');}
   finally{if(btn){btn.disabled=false;btn.textContent='Kalibrer telefon'}}
 }
 function initLeanSensor(){
-  updateCalibrationStatus();renderLeanSummary();
+  updateCalibrationStatus();updateCalibrationLive();renderLeanSummary();
   // Android/Chrome tillader normalt dette direkte. iPhone aktiveres via knappen pga. krav om brugertryk.
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function'&&!state.orientationBound){window.addEventListener('deviceorientation',onDeviceOrientation,true);state.orientationBound=true;}
 }
@@ -503,7 +540,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v50';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v52';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v47 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -788,7 +825,7 @@ async function initViewer(){
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=50').catch(()=>{}));
+async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=52').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
