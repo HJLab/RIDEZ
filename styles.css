@@ -42,3 +42,14 @@
 #speedDemoLive.measuring{background:#201d10;border-color:#6d5d20;color:#ffd44e;font-size:16px;font-weight:800}
 .speed-demo-summary strong{font-size:21px}
 .speed-attempt b{font-size:14px}
+
+
+/* RIDEZ Acceleration v36 */
+.acceleration-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.accel-card{position:relative;overflow:hidden;background:#12151a;border:1px solid #343941;border-radius:16px;padding:14px}
+.accel-fast{border-color:#4a4140}.accel-slow{border-color:#3d4940}
+.accel-title{display:flex;align-items:center;gap:12px;margin-bottom:12px}.accel-icon{font-size:34px;line-height:1}
+.accel-title div{min-width:0}.accel-title div>span{display:block;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em}.accel-title strong{display:block;margin-top:3px;font-size:16px}
+.accel-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.accel-metrics>div{background:#191c21;border:1px solid #2d3239;border-radius:12px;padding:10px}.accel-metrics .wide{grid-column:1/-1}.accel-metrics span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.accel-metrics b{font-size:16px;overflow-wrap:anywhere}
+.history-acceleration{margin-top:12px}
+@media(max-width:650px){.acceleration-summary{grid-template-columns:1fr}.accel-icon{font-size:31px}}

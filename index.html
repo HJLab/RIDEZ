@@ -55,11 +55,26 @@
       <div><span>Beskeder</span><strong id="messageCount">0</strong></div>
     </div>
 
+    <section id="accelerationSummary" class="acceleration-summary">
+      <div class="accel-card accel-fast">
+        <div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste</strong></div></div>
+        <div class="accel-metrics">
+          <div><span>0–80 km/t</span><b id="accel080">–</b></div>
+          <div><span>0–100 km/t</span><b id="accel0100">–</b></div>
+          <div class="wide"><span>Bedste +80 km/t</span><b id="accelBest80">–</b></div>
+        </div>
+      </div>
+      <div class="accel-card accel-slow">
+        <div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige +80 km/t</strong></div></div>
+        <div class="accel-metrics"><div class="wide"><span>+80 km/t</span><b id="accelSlow80">–</b></div></div>
+      </div>
+    </section>
+
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v35</span><h2>Acceleration 0–80 / 0–100</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v36</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
-        <div><span>Bedste 0–80</span><strong id="speedBest80">–</strong></div>
-        <div><span>Bedste 0–100</span><strong id="speedBest100">–</strong></div>
+        <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
+        <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
         <div><span>Topfart</span><strong id="speedDemoTop">0 km/t</strong></div>
       </div>
       <div id="speedAttemptList" class="speed-attempt-list"><div class="empty">Resultater vises efter hvert forsøg.</div></div>
@@ -80,6 +95,7 @@
       </div>
       <div id="historyMap" class="map history-map"></div>
       <div id="historyStats" class="history-stats"></div>
+      <div id="historyAcceleration" class="acceleration-summary history-acceleration"></div>
       <div class="photo-section"><h3>Billeder fra turen</h3><div id="historyPhotos" class="photo-grid"><div class="empty">Ingen billeder endnu.</div></div></div>
     </section>
   </section>
