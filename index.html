@@ -124,7 +124,7 @@
     </details>
 
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v61</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v66</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
         <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
         <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
@@ -137,6 +137,14 @@
 
     <details id="settingsPanel" class="settings-panel calibration-missing">
       <summary><span class="settings-summary-label">⚙️ Indstillinger</span><span id="settingsCalibrationDot" class="settings-calibration-dot" aria-hidden="true"></span></summary>
+
+      <div class="settings-section-title"><span>🔊</span><div><strong>Lyde</strong><small>Samlet styring af lyde i RIDEZ</small></div></div>
+      <div class="setting-row sound-setting-row master-sound-row">
+        <div><strong>Lyde i RIDEZ</strong><p>Én samlet kontakt for alle lyde i appen, inklusive motorcykel-/raketlyden under Replay. Selve raketten vises stadig, når betingelserne er opfyldt.</p></div>
+        <label class="settings-toggle" for="settingsSoundsEnabled"><input id="settingsSoundsEnabled" type="checkbox"><span class="settings-toggle-track" aria-hidden="true"><span></span></span><b id="settingsSoundsEnabledStatus">Til</b></label>
+      </div>
+
+      <div class="settings-section-title"><span>📱</span><div><strong>Telefon & sensorer</strong><small>Kalibrering til lean- og svingmåling</small></div></div>
       <div class="setting-row calibration-setting-row">
         <div class="calibration-copy"><strong>Telefonkalibrering</strong><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p><span id="calibrationStatus" class="setting-status">Ikke kalibreret</span></div>
         <button id="calibrateBtn" class="secondary" type="button">Kalibrer telefon</button>
@@ -150,10 +158,8 @@
         <div id="calibrationReadingStatus" class="calibration-reading-status">Venter på telefonens hældningssensor…</div>
         <p class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
       </div>
-      <div class="setting-row sound-setting-row">
-        <div><strong>Lyd ved topfart i Replay</strong><p>Effekten vises automatisk, når betingelserne er opfyldt. Her vælger du kun, om motorcykellyden skal kunne høres.</p></div>
-        <label class="settings-toggle" for="settingsReplayPoliceSound"><input id="settingsReplayPoliceSound" type="checkbox"><span class="settings-toggle-track" aria-hidden="true"><span></span></span><b id="settingsReplayPoliceSoundStatus">Til</b></label>
-      </div>
+
+      <div class="settings-coming-row"><span>＋</span><div><strong>Flere indstillinger senere</strong><p>Her er der gjort plads til bl.a. kortretning, notifikationer og andre valg, efterhånden som vi bygger dem.</p></div></div>
     </details>
 
     <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
@@ -245,6 +251,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=64"></script>
+<script src="app.js?v=66"></script>
 </body>
 </html>

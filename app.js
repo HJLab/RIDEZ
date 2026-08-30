@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,replayPoliceSoundEnabled:(localStorage.getItem('ridez_police_sound')===null?true:localStorage.getItem('ridez_police_sound')==='1')};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1')};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -642,10 +642,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v64';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v66';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v61 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v66 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -850,30 +850,34 @@ function replayPoliceIcon(speedKmh){
   const s=Math.max(0,Math.round(Number(speedKmh)||0));
   return L.divIcon({className:'ridez-rocket-marker-wrap',html:`<div class="ridez-rocket-marker"><span class="rocket-flame" aria-hidden="true">🔥</span><span class="rocket-body" aria-hidden="true">🚀</span><b>TOPFART ${s} km/t</b></div>`,iconSize:[118,70],iconAnchor:[59,35]});
 }
-function setReplayPoliceSoundEnabled(enabled,persist=true){
-  state.replayPoliceSoundEnabled=!!enabled;
-  if(persist)localStorage.setItem('ridez_police_sound',state.replayPoliceSoundEnabled?'1':'0');
-  const input=$('settingsReplayPoliceSound'),status=$('settingsReplayPoliceSoundStatus');
-  if(input)input.checked=state.replayPoliceSoundEnabled;
-  if(status)status.textContent=state.replayPoliceSoundEnabled?'Til':'Fra';
-  if(!state.replayPoliceSoundEnabled)stopReplayPoliceSound();
+function replaySoundIsActive(){return !!state.soundsEnabled}
+function syncSoundSettingsUi(){
+  const master=$('settingsSoundsEnabled'),masterStatus=$('settingsSoundsEnabledStatus');
+  if(master)master.checked=state.soundsEnabled;
+  if(masterStatus)masterStatus.textContent=state.soundsEnabled?'Til':'Fra';
 }
-function initReplayPoliceSoundSetting(){
-  const input=$('settingsReplayPoliceSound');
-  setReplayPoliceSoundEnabled(state.replayPoliceSoundEnabled,false);
-  if(input)input.addEventListener('change',()=>setReplayPoliceSoundEnabled(input.checked,true));
+function setSoundsEnabled(enabled,persist=true){
+  state.soundsEnabled=!!enabled;
+  if(persist)localStorage.setItem('ridez_sounds_enabled',state.soundsEnabled?'1':'0');
+  if(!state.soundsEnabled)stopReplayPoliceSound();
+  syncSoundSettingsUi();
+}
+function initSoundSettings(){
+  const master=$('settingsSoundsEnabled');
+  syncSoundSettingsUi();
+  if(master)master.addEventListener('change',()=>setSoundsEnabled(master.checked,true));
 }
 function stopReplayPoliceSound(){
   if(state.replayPoliceAudioSource){try{state.replayPoliceAudioSource.stop()}catch(e){}state.replayPoliceAudioSource=null}
 }
 async function armReplayPoliceAudio(){
-  if(!state.replayPoliceSoundEnabled)return;
+  if(!replaySoundIsActive())return;
   try{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
     if(state.replayAudioCtx.state==='suspended')await state.replayAudioCtx.resume().catch(()=>{});
     if(!state.replayPoliceAudioBuffer){
-      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=64',{cache:'force-cache'});
+      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=66',{cache:'force-cache'});
       if(!res.ok)throw new Error('Kunne ikke hente motorcykellyden');
       const raw=await res.arrayBuffer();
       state.replayPoliceAudioBuffer=await state.replayAudioCtx.decodeAudioData(raw.slice(0));
@@ -881,7 +885,7 @@ async function armReplayPoliceAudio(){
   }catch(e){console.warn('Motorcykellyd kunne ikke klargøres',e)}
 }
 async function playReplayPoliceSound(){
-  if(!state.replayPoliceSoundEnabled)return;
+  if(!replaySoundIsActive())return;
   try{
     await armReplayPoliceAudio();
     const ctx=state.replayAudioCtx,buffer=state.replayPoliceAudioBuffer;
@@ -1161,7 +1165,7 @@ async function initViewer(){
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initReplayPoliceSoundSetting();$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
+async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
 document.addEventListener('click',e=>{
   const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
   if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
@@ -1169,6 +1173,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=64').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=66').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

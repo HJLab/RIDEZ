@@ -1,5 +1,5 @@
-const CACHE='ridez-replay-raket-v64';
-const CORE=['./','./index.html','./styles.css?v=64','./app.js?v=64','./RIDEZ_Sportsbike_4-8sek.wav?v=64','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE='ridez-indstillinger-v66';
+const CORE=['./','./index.html','./styles.css?v=66','./app.js?v=66','./RIDEZ_Sportsbike_4-8sek.wav?v=66','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(url=>c.add(url)))));
