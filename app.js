@@ -541,6 +541,15 @@ function updateSpeedDemoAttempt(t,speedMs){
   renderSpeedDemoResults(speedMs);
 }
 function demoSpeed(type,i,total){
+  if(type==='messagetest'){
+    // v74: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
+    // De lange stop giver tid til at modtage en ventende besked efter 3 s og sende et svar.
+    if(i<10)return 40/3.6;
+    if(i<40)return 0;
+    if(i<50)return 40/3.6;
+    if(i<80)return 0;
+    return 0;
+  }
   if(type==='policereplay'){
     // v59: Hurtig test af Replay-politiet. 0-10 s accelererer til 135 km/t,
     // 10-30 s holdes 135 km/t (tydeligt over 130), 30-40 s bremses roligt ned til 0.
@@ -606,6 +615,7 @@ function demoWaypoints(base,type){
   if(type==='speed') return [start,bognaes,kattinge,brewery,start];
   if(type==='speedcolors') return [start,bognaes,kattinge,brewery,start];
   if(type==='policereplay') return [start,bognaes,kattinge,brewery,start];
+  if(type==='messagetest') return [start,brewery,bognaes,start];
   if(type==='turntest') return [start,brewery,bognaes,start];
   if(type==='city') return [start,brewery,kattinge,start];
   if(type==='twisty') return [start,gevninge,kattinge,boserup,svogerslev,kattinge,brewery,start];
@@ -644,10 +654,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v73';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v74';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v66 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v74 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -660,7 +670,7 @@ async function startDemo(){
     $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';
     throw e;
   }
-  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':state.demoProfile==='policereplay'?'raket Replay-test':'landevej';
+  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':state.demoProfile==='policereplay'?'raket Replay-test':state.demoProfile==='messagetest'?'beskedtest':'landevej';
   await createRide(`RIDEZ demo · ${demoName}`);
   await publishDemoChannel();
   $('rideStatus').textContent='Demo starter…';
@@ -669,6 +679,7 @@ async function startDemo(){
   const isTurnTest=state.demoProfile==='turntest';
   const isRightTurnTest=state.demoProfile==='rightturntest';
   const isPoliceReplay=state.demoProfile==='policereplay';
+  const isMessageTest=state.demoProfile==='messagetest';
   $('statusDetail').textContent=isSpeed
     ?'Speed-demo: 3 accelerationer gennemføres på ca. 18 sekunder.'
     :isSpeedColors
@@ -679,8 +690,10 @@ async function startDemo(){
           ?'Højresvingtest: 5 tydelige højresving på ca. 20 sekunder. Venstresving skal blive på 0.'
           :isPoliceReplay
             ?'Raket Replay-test: 10 sek. op til 135 km/t, 20 sek. ved 135 km/t og derefter rolig nedbremsning. Åbn turen i Historik og start Replay bagefter.'
-            :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
-  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:isPoliceReplay?40:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
+            :isMessageTest
+              ?'Beskedtest: 10 sek. kørsel, 30 sek. stille, 10 sek. kørsel og 30 sek. stille. Brug følgelinket til at teste beskeder og svar.'
+              :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
+  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:isPoliceReplay?40:isMessageTest?80:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
   const tickMs=isSpeed?200:(isTurnTest||isRightTurnTest)?250:1000;
   const stepS=tickMs/1000;
   if(isSpeed)resetSpeedDemoResults(true);else resetSpeedDemoResults(false);
@@ -1259,6 +1272,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=73').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=74').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
