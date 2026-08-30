@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:20,replayPhotoShown:new Set()};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:20,replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -540,6 +540,14 @@ function updateSpeedDemoAttempt(t,speedMs){
   renderSpeedDemoResults(speedMs);
 }
 function demoSpeed(type,i,total){
+  if(type==='policereplay'){
+    // v59: Hurtig test af Replay-politiet. 0-10 s accelererer til 135 km/t,
+    // 10-30 s holdes 135 km/t (tydeligt over 130), 30-40 s bremses roligt ned til 0.
+    if(i<10)return (135/3.6)*(i/10);
+    if(i<30)return 135/3.6;
+    if(i<40)return Math.max(0,(135/3.6)*(1-(i-30)/10));
+    return 0;
+  }
   if(type==='speedcolors'){
     // v49: Farvedemo. Farven skifter KUN fordi hastigheden krydser de normale tærskler.
     // 0-20 s: 60 km/t (grøn), 20-40 s: 100 km/t (gul),
@@ -596,6 +604,7 @@ function demoWaypoints(base,type){
   if(type==='short') return [start,brewery,bognaes,start];
   if(type==='speed') return [start,bognaes,kattinge,brewery,start];
   if(type==='speedcolors') return [start,bognaes,kattinge,brewery,start];
+  if(type==='policereplay') return [start,bognaes,kattinge,brewery,start];
   if(type==='turntest') return [start,brewery,bognaes,start];
   if(type==='city') return [start,brewery,kattinge,start];
   if(type==='twisty') return [start,gevninge,kattinge,boserup,svogerslev,kattinge,brewery,start];
@@ -633,10 +642,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v58';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v59';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v58 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v59 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -649,7 +658,7 @@ async function startDemo(){
     $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';
     throw e;
   }
-  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':'landevej';
+  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':state.demoProfile==='policereplay'?'politi Replay-test':'landevej';
   await createRide(`RIDEZ demo · ${demoName}`);
   await publishDemoChannel();
   $('rideStatus').textContent='Demo starter…';
@@ -657,6 +666,7 @@ async function startDemo(){
   const isSpeedColors=state.demoProfile==='speedcolors';
   const isTurnTest=state.demoProfile==='turntest';
   const isRightTurnTest=state.demoProfile==='rightturntest';
+  const isPoliceReplay=state.demoProfile==='policereplay';
   $('statusDetail').textContent=isSpeed
     ?'Speed-demo: 3 accelerationer gennemføres på ca. 18 sekunder.'
     :isSpeedColors
@@ -665,8 +675,10 @@ async function startDemo(){
         ?'Svingtest: 6 tydelige sving (3 venstre + 3 højre) på ca. 22 sekunder. Små udsving skal ignoreres.'
         :isRightTurnTest
           ?'Højresvingtest: 5 tydelige højresving på ca. 20 sekunder. Venstresving skal blive på 0.'
-          :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
-  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
+          :isPoliceReplay
+            ?'Politi Replay-test: 10 sek. op til 135 km/t, 20 sek. ved 135 km/t og derefter rolig nedbremsning. Åbn turen i Historik og start Replay bagefter.'
+            :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
+  const total=isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:isPoliceReplay?40:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
   const tickMs=isSpeed?200:(isTurnTest||isRightTurnTest)?250:1000;
   const stepS=tickMs/1000;
   if(isSpeed)resetSpeedDemoResults(true);else resetSpeedDemoResults(false);
@@ -834,6 +846,57 @@ async function loadHistory(){
 }
 // RIDEZ Replay v58
 function replayMotorcycleIcon(){return L.divIcon({className:'ridez-replay-marker-wrap',html:'<div class="ridez-replay-marker">🏍️</div>',iconSize:[44,44],iconAnchor:[22,22]})}
+function replayPoliceIcon(speedKmh){
+  const s=Math.max(0,Math.round(Number(speedKmh)||0));
+  return L.divIcon({className:'ridez-police-marker-wrap',html:`<div class="ridez-police-marker"><span class="police-lamp police-lamp-left"></span><span class="police-lamp police-lamp-right"></span><span class="police-car">🚓</span><b>TOPFART ${s} km/t</b></div>`,iconSize:[132,64],iconAnchor:[118,34]});
+}
+function stopReplayPoliceSound(){
+  if(state.replayAudioCtx){try{state.replayAudioCtx.close()}catch(e){}state.replayAudioCtx=null}
+}
+function armReplayPoliceAudio(){
+  const enabled=$('historyReplayPoliceSound');if(enabled&&!enabled.checked)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
+    if(state.replayAudioCtx.state==='suspended')state.replayAudioCtx.resume().catch(()=>{});
+  }catch(e){}
+}
+function playReplayPoliceSound(){
+  const enabled=$('historyReplayPoliceSound');if(enabled&&!enabled.checked)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    const ctx=state.replayAudioCtx||new AC();state.replayAudioCtx=ctx;
+    if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+    const now=ctx.currentTime;
+    for(let n=0;n<5;n++){
+      const osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.type='sine';osc.frequency.setValueAtTime(n%2===0?760:560,now+n*.34);
+      gain.gain.setValueAtTime(.0001,now+n*.34);gain.gain.exponentialRampToValueAtTime(.12,now+n*.34+.03);gain.gain.exponentialRampToValueAtTime(.0001,now+n*.34+.28);
+      osc.connect(gain);gain.connect(ctx.destination);osc.start(now+n*.34);osc.stop(now+n*.34+.30);
+    }
+    setTimeout(()=>stopReplayPoliceSound(),2300);
+  }catch(e){console.warn('Politilyd kunne ikke afspilles',e)}
+}
+function clearReplayPolice(){
+  if(state.replayPoliceTimer){clearTimeout(state.replayPoliceTimer);state.replayPoliceTimer=null}
+  if(state.historyMap&&state.replayPoliceMarker){try{state.historyMap.removeLayer(state.replayPoliceMarker)}catch(e){}}
+  state.replayPoliceMarker=null;stopReplayPoliceSound();
+}
+function prepareReplayPoliceTrigger(){
+  state.replayPoliceTriggered=false;state.replayPoliceIndex=-1;clearReplayPolice();
+  let maxKmh=0,maxIndex=-1;
+  state.historyTrack.forEach((p,i)=>{const kmh=Math.max(0,Number(p.speed_ms||0)*3.6);if(kmh>maxKmh){maxKmh=kmh;maxIndex=i}});
+  if(maxKmh>130)state.replayPoliceIndex=maxIndex;
+}
+function triggerReplayPolice(p){
+  if(state.replayPoliceTriggered||!p||!state.historyMap)return;
+  state.replayPoliceTriggered=true;
+  const kmh=Math.max(0,Number(p.speed_ms||0)*3.6),latlng=[p.lat,p.lng];
+  state.replayPoliceMarker=L.marker(latlng,{icon:replayPoliceIcon(kmh),zIndexOffset:2200,interactive:false}).addTo(state.historyMap);
+  playReplayPoliceSound();
+  const status=$('historyReplayStatus');if(status)status.textContent=`🚓 Topfart ${Math.round(kmh)} km/t · politibilen blinker 5 gange`;
+  state.replayPoliceTimer=setTimeout(()=>{if(state.historyMap&&state.replayPoliceMarker){try{state.historyMap.removeLayer(state.replayPoliceMarker)}catch(e){}}state.replayPoliceMarker=null;state.replayPoliceTimer=null},3000);
+}
 function prepareReplayTrack(track){
   let cum=0,firstTs=null,prev=null;
   return (track||[]).map((p,i)=>{
@@ -883,10 +946,10 @@ function clearReplayLayers(){
   if(state.replayTimer){clearTimeout(state.replayTimer);state.replayTimer=null}
   if(state.historyMap&&state.replayMarker){try{state.historyMap.removeLayer(state.replayMarker)}catch(e){}}
   if(state.historyMap&&state.replayProgressLine){try{state.historyMap.removeLayer(state.replayProgressLine)}catch(e){}}
-  state.replayMarker=null;state.replayProgressLine=null;state.replayProgressPoints=[];
+  state.replayMarker=null;state.replayProgressLine=null;state.replayProgressPoints=[];clearReplayPolice();
 }
 function resetHistoryReplay({restorePhotos=true,fitRoute=true}={}){
-  clearReplayLayers();state.replayRunning=false;state.replayPaused=false;state.replayIndex=0;state.replayPhotoShown=new Set();
+  clearReplayLayers();state.replayRunning=false;state.replayPaused=false;state.replayIndex=0;state.replayPhotoShown=new Set();state.replayPoliceTriggered=false;state.replayPoliceIndex=-1;
   if(state.historyLine)state.historyLine.setStyle({weight:5,color:'#e11d24',opacity:1});
   if(restorePhotos)restoreHistoryPhotoMarkers();
   if(fitRoute&&state.historyMap&&state.historyLine){try{state.historyMap.fitBounds(state.historyLine.getBounds(),{padding:[20,20]})}catch(e){}}
@@ -916,11 +979,11 @@ function renderReplayFrame(){
   if(!state.replayProgressPoints.length)state.replayProgressPoints.push(latlng);else state.replayProgressPoints.push(latlng);
   if(!state.replayProgressLine)state.replayProgressLine=L.polyline(state.replayProgressPoints,{weight:6,color:'#f2b705',opacity:.95}).addTo(state.historyMap);else state.replayProgressLine.setLatLngs(state.replayProgressPoints);
   if(state.replayIndex===0)state.historyMap.setView(latlng,16);else state.historyMap.panTo(latlng,{animate:true,duration:.18});
-  revealReplayPhotos(p.replayTs);updateReplayLive(p,state.replayIndex);
+  revealReplayPhotos(p.replayTs);updateReplayLive(p,state.replayIndex);if(!state.replayPoliceTriggered&&state.replayPoliceIndex>=0&&state.replayIndex>=state.replayPoliceIndex)triggerReplayPolice(p);
 }
 function startHistoryReplay(){
   if(state.historyTrack.length<2){alert('Der er ikke nok GPS-punkter på denne tur til Replay.');return}
-  clearReplayLayers();clearHistoryPhotoMarkers();state.replayPhotoShown=new Set();state.replayIndex=0;state.replayRunning=true;state.replayPaused=false;
+  clearReplayLayers();clearHistoryPhotoMarkers();state.replayPhotoShown=new Set();state.replayIndex=0;state.replayRunning=true;state.replayPaused=false;prepareReplayPoliceTrigger();armReplayPoliceAudio();
   if(state.historyLine)state.historyLine.setStyle({weight:4,color:'#5b616b',opacity:.65});
   renderReplayFrame();setReplayControls('running');scheduleReplayNext();
 }
@@ -1045,6 +1108,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=58').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=59').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
