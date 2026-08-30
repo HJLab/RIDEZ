@@ -152,15 +152,34 @@
 #speedValue.speed-yellow,#viewerSpeed.speed-yellow{color:#ffd23f!important}
 #speedValue.speed-red,#viewerSpeed.speed-red{color:#e11d24!important}
 #speedValue.speed-red-alert,#viewerSpeed.speed-red-alert{
-  color:#ff2028!important;
-  animation:ridezSpeedAlert .55s steps(2,end) infinite;
+  display:inline-block;
+  color:#ff111b!important;
+  transform-origin:center;
+  animation:ridezSpeedAlert .46s ease-in-out infinite;
 }
 @keyframes ridezSpeedAlert{
-  0%,49%{color:#ff1b24;text-shadow:0 0 4px rgba(255,27,36,.65),0 0 11px rgba(255,27,36,.35)}
-  50%,100%{color:#8f080d;text-shadow:0 0 1px rgba(143,8,13,.15)}
+  0%,100%{
+    color:#ff101a;
+    transform:scale(1);
+    opacity:1;
+    text-shadow:0 0 4px rgba(255,16,26,.60),0 0 10px rgba(255,16,26,.38);
+  }
+  50%{
+    color:#ff4a50;
+    transform:scale(1.22);
+    opacity:.58;
+    text-shadow:0 0 10px rgba(255,34,45,1),0 0 24px rgba(255,20,32,.78),0 0 38px rgba(255,20,32,.42);
+  }
 }
 @media (prefers-reduced-motion:reduce){
-  #speedValue.speed-red-alert,#viewerSpeed.speed-red-alert{animation:none;color:#ff2028!important;text-shadow:0 0 6px rgba(255,32,40,.45)}
+  #speedValue.speed-red-alert,#viewerSpeed.speed-red-alert{
+    transform:none;
+    animation:ridezSpeedAlertReduced .46s steps(2,end) infinite;
+  }
+  @keyframes ridezSpeedAlertReduced{
+    0%,49%{color:#ff101a!important;opacity:1;text-shadow:0 0 10px rgba(255,16,26,.9),0 0 24px rgba(255,16,26,.55)}
+    50%,100%{color:#830008!important;opacity:.42;text-shadow:none}
+  }
 }
 
 #speedValue{color:#32d66b}

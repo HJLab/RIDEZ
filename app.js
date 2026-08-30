@@ -3,10 +3,10 @@
 const C=window.RIDEZ_CONFIG||{};
 const configured=C.SUPABASE_URL&&!C.SUPABASE_URL.startsWith('PASTE_')&&C.SUPABASE_ANON_KEY&&!C.SUPABASE_ANON_KEY.startsWith('PASTE_');
 const $=id=>document.getElementById(id);
-const params=new URLSearchParams(location.search),publicRideToken=params.get('ride');
+const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[]};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[]};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -21,6 +21,8 @@ const fmtDuration=sec=>{sec=Math.max(0,Math.round(sec||0));const h=Math.floor(se
 const isEmptyRide=r=>Number(r&&r.distance_m||0)<25;
 const fmtDate=d=>new Date(d).toLocaleString('da-DK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 function ensureOwnerToken(){if(!state.ownerToken){state.ownerToken=token();localStorage.setItem('ridez_owner_token',state.ownerToken)}return state.ownerToken}
+function ensureDemoChannelToken(){if(!state.demoChannelToken){state.demoChannelToken=token();localStorage.setItem('ridez_demo_channel_token',state.demoChannelToken)}return state.demoChannelToken}
+async function publishDemoChannel(){if(!state.demo||!state.publicToken)return;await rpc('ridez_set_demo_channel_v50',{p_owner_token:ensureOwnerToken(),p_channel_token:ensureDemoChannelToken(),p_public_token:state.publicToken})}
 const escapeHtml=s=>(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function token(){const a=new Uint8Array(24);crypto.getRandomValues(a);return[...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function hav(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
@@ -411,7 +413,7 @@ function updateSpeedDemoAttempt(t,speedMs){
 }
 function demoSpeed(type,i,total){
   if(type==='speedcolors'){
-    // v48: Farvedemo. Farven skifter KUN fordi hastigheden krydser de normale tærskler.
+    // v49: Farvedemo. Farven skifter KUN fordi hastigheden krydser de normale tærskler.
     // 0-20 s: 60 km/t (grøn), 20-40 s: 100 km/t (gul),
     // 40-60 s: 140 km/t (rød), 60-80 s: 160 km/t (kraftigt blinkende rød).
     if(i<20)return 60/3.6;
@@ -501,7 +503,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v48';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v50';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v47 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -519,6 +521,7 @@ async function startDemo(){
   }
   const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':'landevej';
   await createRide(`RIDEZ demo · ${demoName}`);
+  await publishDemoChannel();
   $('rideStatus').textContent='Demo starter…';
   const isSpeed=state.demoProfile==='speed';
   const isSpeedColors=state.demoProfile==='speedcolors';
@@ -584,7 +587,7 @@ async function stopRide(){
   }
   resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';await loadHistory()
 }
-async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
+async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':'Følg min motorcykeltur live på RIDEZ';if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
 function renderMessages(rows){const el=$('messagesList');if(!rows.length){el.className='empty';el.textContent='Ingen beskeder endnu.';return}el.className='';el.innerHTML=rows.map(r=>`<div class="message"><div class="meta"><strong>${escapeHtml(r.sender_name)}</strong> · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div>${escapeHtml(r.body)}</div></div>`).join('')}
 function updateHistorySelectionUi(){
@@ -737,24 +740,38 @@ function closeHistoryRide(){$('historyDetail').classList.add('hidden');$('histor
 async function initViewer(){
   $('viewerView').classList.remove('hidden');
   state.map=initMap('viewerMap');
-  let lastTrackCount=0;
+  let lastTrackCount=0,viewerRideToken=publicRideToken||null;
+  async function resolveViewerRideToken(){
+    if(!demoChannelToken)return publicRideToken;
+    const result=await rpc('ridez_resolve_demo_channel_v50',{p_channel_token:demoChannelToken});
+    const row=Array.isArray(result)?result[0]:result;
+    return row&&row.public_token?row.public_token:null;
+  }
+  function resetViewerForNewRide(){
+    lastTrackCount=0;state.points=[];
+    if(state.line){state.map.removeLayer(state.line);state.line=null}
+    if(state.marker){state.map.removeLayer(state.marker);state.marker=null}
+  }
   async function refresh(){
     try{
-      const rideResult=await rpc('ridez_public_ride_v45',{p_public_token:publicRideToken})
-        .catch(()=>rpc('ridez_public_ride_v23',{p_public_token:publicRideToken}))
-        .catch(()=>rpc('ridez_public_ride_v21',{p_public_token:publicRideToken}))
-        .catch(()=>rpc('ridez_public_ride_v19',{p_public_token:publicRideToken}));
+      const resolvedToken=await resolveViewerRideToken();
+      if(!resolvedToken){$('viewerStatus').textContent=demoChannelToken?'Venter på at en demo bliver startet.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
+      if(viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide()}
+      const rideResult=await rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken})
+        .catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken}))
+        .catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken}))
+        .catch(()=>rpc('ridez_public_ride_v19',{p_public_token:viewerRideToken}));
       const ride=Array.isArray(rideResult)?rideResult[0]:rideResult;
-      if(!ride){$('viewerStatus').textContent='Turen findes ikke eller er udløbet.';return}
+      if(!ride){$('viewerStatus').textContent=demoChannelToken?'Venter på næste demo.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
       $('viewerTitle').textContent=ride.title||'RIDEZ live-tur';
       $('viewerSpeed').textContent=fmtSpeed(ride.speed_ms);applySpeedColor($('viewerSpeed'),ride.speed_ms);
       showViewerTopSpeed(ride);
       renderViewerDashboard(ride);
       $('viewerUpdated').textContent=ride.updated_at?new Date(ride.updated_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}):'–';
-      $('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':'Motorcyklen holder stille'):'Turen er afsluttet';
+      $('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':'Motorcyklen holder stille'):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet');
       const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;
       if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);
-      const pts=await rpc('ridez_public_track',{p_public_token:publicRideToken});
+      const pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});
       if(pts.length!==lastTrackCount){lastTrackCount=pts.length;state.points=pts.map(x=>[x.lat,x.lng]);if(state.line)state.line.setLatLngs(state.points);else if(state.points.length)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map)}
     }catch(e){console.error(e);$('viewerStatus').textContent='Kunne ikke hente live-data.'}
     setTimeout(refresh,3000)
@@ -763,11 +780,15 @@ async function initViewer(){
   $('messageForm').addEventListener('submit',async e=>{
     e.preventDefault();const name=$('senderName').value.trim(),body=$('messageBody').value.trim();if(!name||!body)return;
     $('sendFeedback').textContent='Sender…';
-    try{const result=await rpc('ridez_send_message',{p_public_token:publicRideToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.'}
-    catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
+    try{
+      const tokenNow=await resolveViewerRideToken();
+      if(!tokenNow){$('sendFeedback').textContent='Der er ingen aktiv demo at sende beskeden til endnu.';return}
+      viewerRideToken=tokenNow;
+      const result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.'
+    }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
 async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=48').catch(()=>{}));
-publicRideToken?initViewer():initDriver();
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=50').catch(()=>{}));
+(publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
