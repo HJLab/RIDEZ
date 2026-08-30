@@ -329,3 +329,5 @@
 /* RIDEZ v75 - sikker chatstatus */
 .chat-moving-notice{margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,82,89,.55);background:rgba(255,82,89,.10);color:#ff5d63;font-size:13px;font-weight:900;line-height:1.35;}
 .chat-moving-notice.hidden{display:none!important;}
+
+.chat-locked-content{display:none!important;}

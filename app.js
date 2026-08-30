@@ -654,7 +654,7 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v76';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v77';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -786,10 +786,11 @@ async function notifyNewDriverMessages(unseen){
   }catch(e){console.warn('Systemnotifikation kunne ikke vises',e)}
 }
 function updateReplyAvailability(){
-  document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?'Svar er låst, mens motorcyklen kører.':'Svar på beskeden')});
+  document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?'Chatfunktionen er deaktiveret, mens motorcyklen er i bevægelse.':'Svar på beskeden')});
   const send=$('replySendBtn');if(send)send.disabled=!!state.moving;
-  const hint=$('replySafetyHint');if(hint)hint.textContent=state.moving?'Svar er låst, mens motorcyklen kører. Hold stille i mindst 3 sekunder.':'Motorcyklen holder stille – du kan sende svaret.';
+  const hint=$('replySafetyHint');if(hint)hint.textContent=state.moving?'Motorcyklen er i bevægelse. Chatfunktionen er deaktiveret.':'Motorcyklen holder stille – du kan sende svaret.';
   const movingNotice=$('chatMovingNotice');if(movingNotice)movingNotice.classList.toggle('hidden',!state.moving);
+  const messageList=$('messagesList');if(messageList)messageList.classList.toggle('chat-locked-content',!!state.moving);
   if(state.moving&&$('replyDialog')&&$('replyDialog').open)closeReplyDialog();
 }
 function openReplyDialog(messageId){
@@ -806,22 +807,25 @@ async function sendDriverReply(){
   const body=$('replyBody'),fb=$('replyFeedback'),btn=$('replySendBtn');const text=body?body.value.trim():'';if(!text||!state.replyingMessageId)return;
   if(btn){btn.disabled=true;btn.textContent='Sender…'}if(fb)fb.textContent='';
   try{
-    await rpc('ridez_driver_reply_v73',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_body:text});
+    await rpc('ridez_driver_reply_v77',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_body:text});
     if(fb)fb.textContent='✓ Svar sendt til følgeren.';if(body)body.value='';setTimeout(closeReplyDialog,650);
-  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v73 SQL-opdateringen er kørt.'}
+  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v77 SQL-opdateringen er kørt.'}
   finally{if(btn){btn.textContent='Send svar';btn.disabled=!!state.moving}}
 }
 async function pollMessages(){
   if(!state.driverToken||!state.rideId)return;
   try{
-    let rows;
-    try{rows=await rpc('ridez_driver_messages_v73',{p_driver_token:state.driverToken})}
-    catch(e){rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken})}
-    rows=Array.isArray(rows)?rows:[];state.lastDriverMessages=rows;
-    $('messageCount').textContent=rows.length;
-    const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));
-    if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);notifyNewDriverMessages(unseen)}
-    else if(!state.moving)renderMessages(rows);
+    // Under kørsel henter førerens app slet ikke chatbeskeder. De bliver liggende i kø i Supabase.
+    if(!state.moving){
+      let rows;
+      try{rows=await rpc('ridez_driver_messages_v77',{p_driver_token:state.driverToken})}
+      catch(e){rows=await rpc('ridez_driver_messages_v73',{p_driver_token:state.driverToken})}
+      rows=Array.isArray(rows)?rows:[];state.lastDriverMessages=rows;
+      $('messageCount').textContent=rows.length;
+      const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));
+      if(unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);notifyNewDriverMessages(unseen)}
+      else renderMessages(rows);
+    }
   }catch(e){console.error(e)}
   if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)
 }
@@ -969,7 +973,7 @@ async function armReplayPoliceAudio(){
     if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
     if(state.replayAudioCtx.state==='suspended')await state.replayAudioCtx.resume().catch(()=>{});
     if(!state.replayPoliceAudioBuffer){
-      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=72',{cache:'force-cache'});
+      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=77',{cache:'force-cache'});
       if(!res.ok)throw new Error('Kunne ikke hente motorcykellyden');
       const raw=await res.arrayBuffer();
       state.replayPoliceAudioBuffer=await state.replayAudioCtx.decodeAudioData(raw.slice(0));
@@ -1246,6 +1250,7 @@ async function initViewer(){
       $('viewerUpdated').textContent=ride.updated_at?new Date(ride.updated_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}):'–';
       $('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':'Motorcyklen holder stille'):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet');
       const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;
+      const viewerMovingNotice=$('viewerChatMovingNotice');if(viewerMovingNotice)viewerMovingNotice.classList.toggle('hidden',!(ride.active&&ride.moving));
       if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);
       const pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});
       if(pts.length!==lastTrackCount){lastTrackCount=pts.length;state.points=pts.map(x=>[x.lat,x.lng]);if(state.line)state.line.setLatLngs(state.points);else if(state.points.length)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map)}
@@ -1261,7 +1266,7 @@ async function initViewer(){
       const tokenNow=await resolveViewerRideToken();
       if(!tokenNow){$('sendFeedback').textContent='Der er ingen aktiv demo at sende beskeden til endnu.';return}
       viewerRideToken=tokenNow;
-      let result;try{result=await rpc('ridez_send_message_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body})}catch(e){result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body})}$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
+      let result;try{result=await rpc('ridez_send_message_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body})}catch(e){result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body})}$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'✓ Beskeden er sat i kø og bliver leveret, så snart motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
@@ -1273,6 +1278,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=76').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=77').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

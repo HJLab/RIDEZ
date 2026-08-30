@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=76">
+  <link rel="stylesheet" href="styles.css?v=77">
 </head>
 <body>
 <header class="topbar">
@@ -183,7 +183,7 @@
 
     </details>
 
-    <section id="messagesPanel" class="messages"><h2>Beskeder</h2><p id="chatMovingNotice" class="chat-moving-notice hidden">Motorcyklen er i bevægelse. Chat er ikke mulig.</p><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
+    <section id="messagesPanel" class="messages"><h2>Beskeder</h2><p id="chatMovingNotice" class="chat-moving-notice hidden">Motorcyklen er i bevægelse. Chatfunktionen er deaktiveret.</p><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
 
     <div id="messageNotification" class="ridez-message-notification hidden" role="status" aria-live="polite">
       <div class="ridez-message-notification-icon">💬</div>
@@ -245,6 +245,7 @@
 
     <section class="viewer-chat-panel" aria-label="Samtale med føreren">
       <h2>Samtale med føreren</h2>
+      <p id="viewerChatMovingNotice" class="chat-moving-notice hidden">Modtageren kan ikke læse din besked lige nu, da motorcyklen er i bevægelse. Beskeden bliver leveret, så snart motorcyklen holder stille.</p>
       <div id="viewerConversation" class="viewer-conversation empty">Ingen beskeder i samtalen endnu.</div>
     </section>
 
@@ -285,6 +286,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=76"></script>
+<script src="app.js?v=77"></script>
 </body>
 </html>
