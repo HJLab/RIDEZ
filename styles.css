@@ -331,3 +331,6 @@
 .chat-moving-notice.hidden{display:none!important;}
 
 .chat-locked-content{display:none!important;}
+
+/* RIDEZ v78 - brugernavn / foerstegangsopsaetning */
+.profile-setting-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.profile-setting-row>div{display:grid;gap:4px}.settings-inline-value{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.username-label{display:grid;gap:7px;margin:16px 0 6px;font-size:12px;font-weight:800;color:#d9dce1}.username-label input{width:100%;box-sizing:border-box;background:#1a1e24;color:#fff;border:1px solid #3b414a;border-radius:11px;padding:12px;font:inherit}.username-dialog .feedback{min-height:18px;margin:7px 0 0}.username-dialog .dialog-help{margin-bottom:0}

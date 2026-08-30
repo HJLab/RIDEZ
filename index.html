@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=77">
+  <link rel="stylesheet" href="styles.css?v=78">
 </head>
 <body>
 <header class="topbar">
@@ -145,6 +145,19 @@
     <details id="settingsPanel" class="settings-panel calibration-missing">
       <summary><span class="settings-summary-label">⚙️ Indstillinger</span><span id="settingsCalibrationDot" class="settings-calibration-dot" aria-hidden="true"></span></summary>
 
+      <details id="profileSettingsPanel" class="settings-fold">
+        <summary>
+          <span class="settings-fold-main"><span class="settings-fold-icon">👤</span><strong>Profil</strong></span>
+          <span class="settings-fold-chevron" aria-hidden="true">›</span>
+        </summary>
+        <div class="settings-fold-body">
+          <div class="setting-row profile-setting-row">
+            <div><strong>Brugernavn</strong><span id="settingsUsernameValue" class="settings-inline-value">Ikke angivet</span></div>
+            <button id="editUsernameBtn" class="secondary small-button" type="button">Rediger</button>
+          </div>
+        </div>
+      </details>
+
       <details id="soundSettingsPanel" class="settings-fold">
         <summary>
           <span class="settings-fold-main"><span class="settings-fold-icon">🔊</span><strong>Lyde</strong></span>
@@ -258,6 +271,16 @@
     </form>
   </section>
 
+  <dialog id="usernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn i RIDEZ">
+    <form id="usernameForm" method="dialog">
+      <div class="dialog-head"><div><span class="eyebrow">RIDEZ PROFIL</span><h2 id="usernameDialogTitle">Vælg dit brugernavn</h2></div><button id="usernameCancelBtn" class="dialog-close" type="button" aria-label="Luk">×</button></div>
+      <p class="dialog-help">Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.</p>
+      <label class="username-label">Brugernavn<input id="usernameInput" type="text" maxlength="40" autocomplete="name" required placeholder="F.eks. Henning"></label>
+      <p id="usernameFeedback" class="feedback"></p>
+      <button class="primary dialog-save" type="submit">Gem brugernavn</button>
+    </form>
+  </dialog>
+
   <dialog id="replyDialog" class="reply-dialog" aria-label="Svar på besked">
     <div class="reply-dialog-card">
       <div class="reply-dialog-head"><div><span class="eyebrow">BESKED</span><h2>Svar til <span id="replyToName">følgeren</span></h2></div><button id="replyCancelBtn" class="reply-close" type="button" aria-label="Luk">×</button></div>
@@ -286,6 +309,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=77"></script>
+<script src="app.js?v=78"></script>
 </body>
 </html>
