@@ -191,7 +191,11 @@ function initLeanSensor(){
 function demoLean(type,t,total,speedMs){
   if(speedMs<2.8)return 0;
   if(type==='speed')return 4*Math.sin(t*1.4);
-  if(type==='twisty')return 42*Math.sin(t*0.78)+5*Math.sin(t*1.7);
+  if(type==='twisty'){
+    // Hold motorcyklen omtrent lige under de to accelerationstests; derefter simuleres sving normalt.
+    if((t>=3&&t<12)||(t>=44&&t<62))return 0;
+    return 42*Math.sin(t*0.78)+5*Math.sin(t*1.7);
+  }
   if(type==='country')return 25*Math.sin(t*0.42)+3*Math.sin(t*1.15);
   if(type==='city')return 24*Math.sin(t*0.62);
   return 24*Math.sin(t*0.48);
@@ -328,7 +332,21 @@ function demoSpeed(type,i,total){
   }
   if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}
   if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}
-  if(type==='twisty'){if(i<4||i>total-5)return 0;const phase=i%20;if(phase<5)return 10+phase*1.4;if(phase<12)return 17+3*Math.sin(i/2.5);if(phase<16)return 12;return 15}
+  if(type==='twisty'){
+    // v39: Snoet demo tester både lean/sving og de almindelige accelerationsbokse.
+    // Først en tydelig hurtig 0-108 km/t acceleration, senere en langsommere 0-108 km/t.
+    if(i<3||i>total-5)return 0;
+    if(i<8)return 30*((i-3)/5);                 // 0 -> 108 km/t på 5 sek.
+    if(i<12)return 30-(i-8)*3.5;               // roligt ned til ca. 58 km/t
+    if(i>=44&&i<48)return Math.max(0,16-(i-44)*4); // stop før andet forsøg
+    if(i>=48&&i<58)return 30*((i-48)/10);       // 0 -> 108 km/t på 10 sek.
+    if(i>=58&&i<62)return 30-(i-58)*3.5;
+    const phase=i%20;
+    if(phase<5)return 10+phase*1.4;
+    if(phase<12)return 17+3*Math.sin(i/2.5);
+    if(phase<16)return 12;
+    return 15;
+  }
   const phase=i%36;if(i<4||i>total-5)return 0;if(phase<8)return 8+phase*1.8;if(phase<28)return 22+6*Math.sin(i/4);return 10
 }
 function demoWaypoints(base,type){
@@ -379,10 +397,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v38';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v39';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v38 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v39 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
