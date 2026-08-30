@@ -48,6 +48,9 @@
     <div class="stats">
       <div><span>Hastighed</span><strong id="speedValue">0 km/t</strong></div>
       <div><span>Distance</span><strong id="distanceValue">0,0 km</strong></div>
+      <div><span>Topfart</span><strong id="topSpeedValue">0 km/t</strong></div>
+      <div><span>Kørselstid</span><strong id="movingTimeValue">0 sek.</strong></div>
+      <div><span>Stilstand</span><strong id="stoppedTimeValue">0 sek.</strong></div>
       <div><span>Beskeder</span><strong id="messageCount">0</strong></div>
     </div>
     <div class="safety"><strong>🛡️ Sikker beskedvisning</strong><p>Beskeder holdes tilbage under kørsel og vises først, når motorcyklen har holdt stille i mindst 3 sekunder.</p></div>
@@ -64,6 +67,7 @@
         <div class="history-detail-actions"><button id="historyDeleteBtn" class="danger small-button" type="button">Slet tur</button><button id="historyCloseBtn" class="secondary small-button" type="button">Luk</button></div>
       </div>
       <div id="historyMap" class="map history-map"></div>
+      <div id="historyStats" class="history-stats"></div>
       <div class="photo-section"><h3>Billeder fra turen</h3><div id="historyPhotos" class="photo-grid"><div class="empty">Ingen billeder endnu.</div></div></div>
     </section>
   </section>
