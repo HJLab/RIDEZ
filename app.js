@@ -40,12 +40,32 @@ function ensureActiveVehicle(){let v=activeVehicle();if(!v&&state.preferredVehic
 function currentVehicleType(){const v=activeVehicle();return normalizeVehicleType(v?v.type:state.preferredVehicleType)}
 function setupComplete(){
   const savedName=(localStorage.getItem('ridez_username')||state.userName||'').trim();
-  const savedType=localStorage.getItem('ridez_vehicle_type')||state.preferredVehicleType||'';
-  if(savedName)state.userName=savedName;
-  if(['motorcycle','car'].includes(savedType))state.preferredVehicleType=savedType;
-  if(!state.vehicleProfiles.length)loadVehicleProfiles();
-  const v=ensureActiveVehicle();
-  return !!state.userName&&['motorcycle','car'].includes(state.preferredVehicleType)&&!!v;
+  if(!savedName)return false;
+
+  loadVehicleProfiles();
+  let v=activeVehicle();
+  let savedType=localStorage.getItem('ridez_vehicle_type')||state.preferredVehicleType||'';
+
+  // Heal older/local profiles: if the type key is missing but a vehicle exists,
+  // use that vehicle's type instead of blocking Start/Demo.
+  if(!['motorcycle','car'].includes(savedType)&&v)savedType=normalizeVehicleType(v.type);
+  if(!['motorcycle','car'].includes(savedType))return false;
+
+  state.userName=savedName;
+  state.preferredVehicleType=savedType;
+  localStorage.setItem('ridez_username',savedName);
+  localStorage.setItem('ridez_vehicle_type',savedType);
+
+  // A saved username + vehicle type means setup is complete. The concrete
+  // vehicle profile is repaired/created automatically and must never block.
+  if(!v||normalizeVehicleType(v.type)!==savedType){
+    const match=state.vehicleProfiles.find(x=>normalizeVehicleType(x.type)===savedType);
+    if(match){state.activeVehicleId=match.id;v=match}
+    else v=createDefaultVehicle(savedType);
+  }
+  if(v){state.activeVehicleId=v.id;persistVehicleProfiles()}
+  localStorage.setItem('ridez_profile_complete','1');
+  return true;
 }
 function setDriverVehicleCopy(){
   const w=vehicleWords(currentVehicleType());
@@ -728,7 +748,7 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);throw n
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v81';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v83';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -1041,29 +1061,31 @@ function saveUsername(e){
   if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}
   if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
   let type=state.preferredVehicleType;
-  const completingProfile=state.usernameRequired;
-  if(completingProfile){
-    const checked=document.querySelector('input[name="setupVehicleType"]:checked');
-    if(!checked){if(fb)fb.textContent='Vælg Motorcykel eller Bil.';return}
-    type=checked.value==='car'?'car':'motorcycle';
-  }
+  const setupChoice=$('setupVehicleChoice');
+  const checked=document.querySelector('input[name="setupVehicleType"]:checked');
+  const completingProfile=state.usernameRequired||!!(setupChoice&&!setupChoice.classList.contains('hidden'));
+  if(completingProfile&&!checked){if(fb)fb.textContent='Vælg Motorcykel eller Bil.';return}
+  // If a type is selected, always persist it. This avoids a stale dialog-state
+  // flag leaving the setup half-saved.
+  if(checked)type=checked.value==='car'?'car':'motorcycle';
   state.userName=name;
   localStorage.setItem('ridez_username',name);
-  if(completingProfile){
+  if(completingProfile||checked){
     state.preferredVehicleType=type;
     localStorage.setItem('ridez_vehicle_type',type);
     loadVehicleProfiles();
     let v=activeVehicle();
     if(!v){
       v=createDefaultVehicle(type);
-    }else if(v.type!==type){
-      const match=state.vehicleProfiles.find(x=>x.type===type);
+    }else if(normalizeVehicleType(v.type)!==type){
+      const match=state.vehicleProfiles.find(x=>normalizeVehicleType(x.type)===type);
       if(match){state.activeVehicleId=match.id;v=match}
       else v=createDefaultVehicle(type);
     }else{
       state.activeVehicleId=v.id;
     }
     persistVehicleProfiles();
+    localStorage.setItem('ridez_profile_complete','1');
   }
   syncUsernameUi();
   syncVehicleUi();
@@ -1434,6 +1456,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=81').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=83').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
