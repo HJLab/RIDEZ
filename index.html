@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=61">
+  <link rel="stylesheet" href="styles.css?v=70">
 </head>
 <body>
 <header class="topbar">
@@ -140,26 +140,33 @@
 
       <div class="settings-section-title"><span>🔊</span><div><strong>Lyde</strong><small>Samlet styring af lyde i RIDEZ</small></div></div>
       <div class="setting-row sound-setting-row master-sound-row">
-        <div><strong>Lyde i RIDEZ</strong><p>Én samlet kontakt for alle lyde i appen, inklusive motorcykel-/raketlyden under Replay. Selve raketten vises stadig, når betingelserne er opfyldt.</p></div>
+        <div><strong>Lyde i RIDEZ</strong></div>
         <label class="settings-toggle" for="settingsSoundsEnabled"><input id="settingsSoundsEnabled" type="checkbox"><span class="settings-toggle-track" aria-hidden="true"><span></span></span><b id="settingsSoundsEnabledStatus">Til</b></label>
       </div>
 
       <div class="settings-section-title"><span>📱</span><div><strong>Telefon & sensorer</strong><small>Kalibrering til lean- og svingmåling</small></div></div>
-      <div class="setting-row calibration-setting-row">
-        <div class="calibration-copy"><strong>Telefonkalibrering</strong><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p><span id="calibrationStatus" class="setting-status">Ikke kalibreret</span></div>
-        <button id="calibrateBtn" class="secondary" type="button">Kalibrer telefon</button>
-      </div>
-      <div class="calibration-live-panel" aria-live="polite">
-        <div class="calibration-live-head"><div><span class="eyebrow">LIVE SENSOR</span><strong>Telefonens hældning</strong></div><span id="calibrationReadingDot" class="calibration-reading-dot unknown" aria-hidden="true"></span></div>
-        <div class="calibration-live-grid">
-          <div><span>Aktuel rå måling</span><b id="calibrationRawValue">Venter…</b></div>
-          <div><span>Efter kalibrering</span><b id="calibrationCorrectedValue">–</b></div>
+      <details id="calibrationPanel" class="calibration-fold">
+        <summary>
+          <span class="calibration-fold-main"><span class="calibration-fold-icon">📱</span><span><strong>Telefonkalibrering</strong><small id="calibrationStatus" class="setting-status">Ikke kalibreret</small></span></span>
+          <span class="calibration-fold-chevron" aria-hidden="true">›</span>
+        </summary>
+        <div class="calibration-fold-body">
+          <div class="setting-row calibration-setting-row">
+            <div class="calibration-copy"><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p></div>
+            <button id="calibrateBtn" class="secondary" type="button">Kalibrer telefon</button>
+          </div>
+          <div class="calibration-live-panel" aria-live="polite">
+            <div class="calibration-live-head"><div><span class="eyebrow">LIVE SENSOR</span><strong>Telefonens hældning</strong></div><span id="calibrationReadingDot" class="calibration-reading-dot unknown" aria-hidden="true"></span></div>
+            <div class="calibration-live-grid">
+              <div><span>Aktuel rå måling</span><b id="calibrationRawValue">Venter…</b></div>
+              <div><span>Efter kalibrering</span><b id="calibrationCorrectedValue">–</b></div>
+            </div>
+            <div id="calibrationReadingStatus" class="calibration-reading-status">Venter på telefonens hældningssensor…</div>
+            <p class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
+          </div>
         </div>
-        <div id="calibrationReadingStatus" class="calibration-reading-status">Venter på telefonens hældningssensor…</div>
-        <p class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
-      </div>
+      </details>
 
-      <div class="settings-coming-row"><span>＋</span><div><strong>Flere indstillinger senere</strong><p>Her er der gjort plads til bl.a. kortretning, notifikationer og andre valg, efterhånden som vi bygger dem.</p></div></div>
     </details>
 
     <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
@@ -251,6 +258,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=66"></script>
+<script src="app.js?v=70"></script>
 </body>
 </html>
