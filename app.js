@@ -93,30 +93,25 @@ function scheduleTopSpeedPolicy(cur){
 }
 async function flushTopSpeedPolicy(){if(state.topSpeedLookupTimer){clearTimeout(state.topSpeedLookupTimer);state.topSpeedLookupTimer=null}if(state.maxSpeedMs>0&&state.topSpeedPos)await commitTopSpeedPolicy()}
 function showViewerTopSpeed(ride){
-  const value=$('viewerTopSpeed'),warning=$('speedPenalty');if(!value||!warning)return;
+  const value=$('viewerTopSpeed'),card=$('viewerTopSpeedCard');if(!value||!card)return;
   const limit=Number(ride.top_speed_limit_kmh);
   const currentKmh=Math.max(0,Number(ride.speed_ms||0)*3.6);
   const currentlyOver=Boolean(ride.active&&ride.top_speed_over_limit&&Number.isFinite(limit)&&currentKmh>limit+0.5);
 
-  // Topfarten forbliver skjult, hvis den registrerede maksimumshastighed var ulovlig.
-  // Det blå blink er derimod kun en LIVE-advarsel og forsvinder igen, når den aktuelle
-  // hastighed er tilbage på eller under den kendte fartgrænse.
-  if(ride.top_speed_over_limit){value.textContent='Skjult'}
-  else if(ride.top_speed_hidden){value.textContent='Afventer fartgrænse'}
-  else value.textContent=fmtSpeed(ride.public_top_speed_ms||0);
-
+  // Følgeren får aldrig vist den ulovlige topfart som tal.
+  // Mens den AKTUELLE fart ligger over den kendte grænse, bliver selve
+  // "Højeste hastighed"-feltet til en blå blinkende advarsel.
   if(currentlyOver){
-    warning.classList.remove('hidden');
-    if(!state.viewerPenaltyShown){
-      state.viewerPenaltyShown=true;
-      const beacon=warning.querySelector('.blue-beacon');
-      beacon?.classList.remove('flash');void beacon?.offsetWidth;beacon?.classList.add('flash');
-    }
+    value.textContent='Blå blink i sidespejlet';
+    card.classList.add('overspeed-live');
   }else{
-    warning.classList.add('hidden');
-    state.viewerPenaltyShown=false;
+    card.classList.remove('overspeed-live');
+    if(ride.top_speed_over_limit)value.textContent='Skjult';
+    else if(ride.top_speed_hidden)value.textContent='Afventer fartgrænse';
+    else value.textContent=fmtSpeed(ride.public_top_speed_ms||0);
   }
 }
+
 function initMap(id){const m=L.map(id,{zoomControl:true}).setView([55.6761,12.5683],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(m);return m}
 function updateMap(lat,lng,follow=true){if(!state.map)return;const p=[lat,lng];if(!state.marker)state.marker=L.circleMarker(p,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(p);state.points.push(p);if(!state.line)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map);else state.line.setLatLngs(state.points);if(follow)state.map.setView(p,16)}
 function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?(state.demo?'Demo kører':'På farten'):(state.demo?'Demo holder stille':'Holder stille');$('statusDetail').textContent=moving?'Beskeder holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder.'}
