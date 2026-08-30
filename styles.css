@@ -357,7 +357,6 @@
 .vehicle-card-body{display:grid;gap:12px;padding:0 14px 14px}
 .vehicle-card-details{padding-top:2px;color:#aab3bf;font-size:.86rem}
 .vehicle-card-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-start}
-.vehicle-add-button{width:100%;margin-top:12px}
 .vehicle-dialog form{min-width:min(520px,calc(100vw - 36px))}
 .vehicle-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .vehicle-form-grid label:last-child{grid-column:1/-1}
@@ -372,3 +371,5 @@
 .app-version.runtime-ok{color:#22c55e}
 
 .app-version.runtime-error{color:#ef4444;font-weight:900}
+
+.vehicle-add-inline-btn{width:100%;margin-top:12px}
