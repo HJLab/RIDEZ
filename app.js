@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[]};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationSamples:[]};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 const fmtDuration=sec=>{sec=Math.max(0,Math.round(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;if(h)return s?`${h} t ${m} min ${s} sek.`:`${h} t ${m} min`;if(m)return s?`${m} min ${s} sek.`:`${m} min`;return `${s} sek.`};
 const isEmptyRide=r=>Number(r&&r.distance_m||0)<25;
@@ -51,11 +51,33 @@ function formatAccelerationRange(metric){
   if(!metric||!Number.isFinite(metric.seconds))return '–';
   return `${Math.round(metric.startKmh)} → ${Math.round(metric.endKmh)} km/t · ${formatAccelerationResult(metric.seconds)}`;
 }
+function normalizeAccelRule(raw){
+  const r=raw&&typeof raw==='object'?raw:{};
+  const mode=r.mode==='range'?'range':'delta';
+  if(mode==='range'){
+    const from=Math.max(0,Math.min(250,Number(r.from)||0));
+    const to=Math.max(from+10,Math.min(350,Number(r.to)||100));
+    return {mode:'range',from,to,delta:Math.max(10,to-from)};
+  }
+  return {mode:'delta',delta:Math.max(10,Math.min(200,Number(r.delta)||80)),from:0,to:100};
+}
+function loadAccelRule(kind){
+  try{return normalizeAccelRule(JSON.parse(localStorage.getItem(`ridez_accel_${kind}_rule`)||'null'))}catch(e){return normalizeAccelRule(null)}
+}
+function saveAccelRule(kind,rule){
+  const normalized=normalizeAccelRule(rule);
+  localStorage.setItem(`ridez_accel_${kind}_rule`,JSON.stringify(normalized));
+  if(kind==='fast')state.accelFastRule=normalized;else state.accelSlowRule=normalized;
+  return normalized;
+}
+function accelRuleLabel(rule){rule=normalizeAccelRule(rule);return rule.mode==='range'?`${Math.round(rule.from)} → ${Math.round(rule.to)} km/t`:`+${Math.round(rule.delta)} km/t`}
+state.accelFastRule=loadAccelRule('fast');
+state.accelSlowRule=loadAccelRule('slow');
 function renderAccelerationSummary(){
-  const a080=$('accel080'),a0100=$('accel0100'),best=$('accelBest80'),slow=$('accelSlow80');
-  if(a080)a080.textContent=formatAccelerationResult(state.accelBest080);
-  if(a0100)a0100.textContent=formatAccelerationResult(state.accelBest0100);
-  if(best)best.textContent=formatAccelerationRange(state.accelBest80);
+  const fastRule=$('accelFastRuleLabel'),slowRule=$('accelSlowRuleLabel'),fast=$('accelFastResult'),slow=$('accelSlowResult');
+  if(fastRule)fastRule.textContent=`Måler ${accelRuleLabel(state.accelFastRule)}`;
+  if(slowRule)slowRule.textContent=`Måler ${accelRuleLabel(state.accelSlowRule)}`;
+  if(fast)fast.textContent=formatAccelerationRange(state.accelBest80);
   if(slow)slow.textContent=formatAccelerationRange(state.accelSlow80);
 }
 function resetAccelerationStats(){
@@ -63,51 +85,83 @@ function resetAccelerationStats(){
   state.accelBest080=null;state.accelBest0100=null;state.accelBest80=null;state.accelSlow80=null;
   renderAccelerationSummary();
 }
-function updateAccelerationStats(now,speedMs){
-  const speedKmh=Math.max(0,(speedMs||0)*3.6);
-  const samples=state.accelSamples;
-  const prev=samples.length?samples[samples.length-1]:null;
-  const maxGapMs=5000,dropToleranceKmh=3;
-  if(!prev||now<=prev.t||now-prev.t>maxGapMs||speedKmh<prev.kmh-dropToleranceKmh){
-    state.accelSamples=[{t:now,kmh:speedKmh}];
-    state.accelZeroActive=speedKmh<=3;
-    state.accelZeroStartMs=speedKmh<=3?now:null;
-    renderAccelerationSummary();
-    return;
-  }
-  if(speedKmh<=3){state.accelZeroStartMs=now;state.accelZeroActive=true}
-  else if(prev.kmh<=3&&speedKmh>3&&state.accelZeroStartMs===null){state.accelZeroStartMs=prev.t;state.accelZeroActive=true}
-
-  // Crossings for 0-80 and 0-100, using interpolation between GPS samples.
-  const crossTarget=(target)=>{
-    if(prev.kmh>=target||speedKmh<target||speedKmh<=prev.kmh||!state.accelZeroActive||state.accelZeroStartMs===null)return null;
-    const f=(target-prev.kmh)/(speedKmh-prev.kmh);
-    const crossT=prev.t+(now-prev.t)*Math.max(0,Math.min(1,f));
-    return Math.max(0,(crossT-state.accelZeroStartMs)/1000);
-  };
-  const t80=crossTarget(80),t100=crossTarget(100);
-  if(Number.isFinite(t80)&&(state.accelBest080===null||t80<state.accelBest080))state.accelBest080=t80;
-  if(Number.isFinite(t100)&&(state.accelBest0100===null||t100<state.accelBest0100))state.accelBest0100=t100;
-
-  // Evaluate all valid +80 km/t windows inside the current continuous acceleration segment.
-  if(speedKmh>prev.kmh){
-    for(const start of samples){
-      const target=start.kmh+80;
-      if(prev.kmh<target&&speedKmh>=target){
-        const f=(target-prev.kmh)/(speedKmh-prev.kmh);
-        const crossT=prev.t+(now-prev.t)*Math.max(0,Math.min(1,f));
-        const seconds=(crossT-start.t)/1000;
-        if(seconds<=0||seconds>90)continue;
-        const metric={seconds,startKmh:start.kmh,endKmh:target};
-        if(!state.accelBest80||seconds<state.accelBest80.seconds)state.accelBest80=metric;
-        if(!state.accelSlow80||seconds>state.accelSlow80.seconds)state.accelSlow80=metric;
+function crossTime(a,b,target){
+  if(!a||!b||b.kmh<=a.kmh||a.kmh>target||b.kmh<target)return null;
+  const f=(target-a.kmh)/(b.kmh-a.kmh);
+  return a.t+(b.t-a.t)*Math.max(0,Math.min(1,f));
+}
+function candidatesForRule(rule,samples,prev,cur){
+  rule=normalizeAccelRule(rule);const out=[];
+  if(!prev||cur.kmh<=prev.kmh)return out;
+  if(rule.mode==='delta'){
+    for(const s of samples){
+      const target=s.kmh+rule.delta;
+      if(prev.kmh<target&&cur.kmh>=target){
+        const t=crossTime(prev,cur,target);if(t===null)continue;
+        const seconds=(t-s.t)/1000;
+        if(seconds>0&&seconds<=90)out.push({seconds,startKmh:s.kmh,endKmh:target});
       }
     }
+    return out;
   }
-  samples.push({t:now,kmh:speedKmh});
-  // Keep memory bounded and discard samples older than 90 seconds.
+  if(!(prev.kmh<rule.to&&cur.kmh>=rule.to))return out;
+  let startT=null;
+  if(samples.length&&Math.abs(samples[0].kmh-rule.from)<0.001)startT=samples[0].t;
+  for(let i=1;startT===null&&i<samples.length;i++){
+    const t=crossTime(samples[i-1],samples[i],rule.from);if(t!==null)startT=t;
+  }
+  if(startT===null)return out;
+  const endT=crossTime(prev,cur,rule.to);if(endT===null)return out;
+  const seconds=(endT-startT)/1000;
+  if(seconds>0&&seconds<=90)out.push({seconds,startKmh:rule.from,endKmh:rule.to});
+  return out;
+}
+function updateAccelerationStats(now,speedMs){
+  const speedKmh=Math.max(0,(speedMs||0)*3.6),samples=state.accelSamples,prev=samples.length?samples[samples.length-1]:null;
+  const maxGapMs=5000,dropToleranceKmh=3;
+  if(!prev||now<=prev.t||now-prev.t>maxGapMs||speedKmh<prev.kmh-dropToleranceKmh){
+    state.accelSamples=[{t:now,kmh:speedKmh}];renderAccelerationSummary();return;
+  }
+  const cur={t:now,kmh:speedKmh};
+  for(const metric of candidatesForRule(state.accelFastRule,samples,prev,cur))if(!state.accelBest80||metric.seconds<state.accelBest80.seconds)state.accelBest80=metric;
+  for(const metric of candidatesForRule(state.accelSlowRule,samples,prev,cur))if(!state.accelSlow80||metric.seconds>state.accelSlow80.seconds)state.accelSlow80=metric;
+  samples.push(cur);
   while(samples.length>2&&(samples.length>300||now-samples[0].t>90000))samples.shift();
   renderAccelerationSummary();
+}
+function renderAccelEditorFields(){
+  const mode=$('accelConfigMode');if(!mode)return;
+  $('accelDeltaGroup').classList.toggle('hidden',mode.value!=='delta');
+  $('accelRangeGroup').classList.toggle('hidden',mode.value!=='range');
+}
+function openAccelEditor(kind){
+  const dialog=$('accelConfigDialog');if(!dialog)return;
+  state.accelEditorKind=kind;
+  const rule=kind==='fast'?state.accelFastRule:state.accelSlowRule;
+  $('accelConfigTitle').textContent=kind==='fast'?'🚀 Hurtigste acceleration':'🐢 Langsomste acceleration';
+  $('accelConfigHelp').textContent=kind==='fast'?'RIDEZ finder turens hurtigste sammenhængende acceleration, der matcher din valgte måling.':'RIDEZ finder turens langsomste gyldige sammenhængende acceleration, der matcher din valgte måling.';
+  $('accelConfigMode').value=rule.mode;
+  $('accelConfigDelta').value=Math.round(rule.delta||80);
+  $('accelConfigFrom').value=Math.round(rule.from||0);
+  $('accelConfigTo').value=Math.round(rule.to||100);
+  renderAccelEditorFields();
+  if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+}
+function saveAccelEditor(e){
+  e.preventDefault();const kind=state.accelEditorKind||'fast',mode=$('accelConfigMode').value;
+  let rule;
+  if(mode==='range'){
+    const from=Number($('accelConfigFrom').value),to=Number($('accelConfigTo').value);
+    if(!Number.isFinite(from)||!Number.isFinite(to)||from<0||to<=from||to-from<10){alert('Sluthastigheden skal være mindst 10 km/t højere end starthastigheden.');return}
+    rule={mode:'range',from,to};
+  }else{
+    const delta=Number($('accelConfigDelta').value);
+    if(!Number.isFinite(delta)||delta<10||delta>200){alert('Hastighedsstigningen skal være mellem 10 og 200 km/t.');return}
+    rule={mode:'delta',delta};
+  }
+  saveAccelRule(kind,rule);
+  if(state.rideId)resetAccelerationStats();else renderAccelerationSummary();
+  const dialog=$('accelConfigDialog');if(dialog&&typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');
 }
 function normalizeDeg(v){while(v>180)v-=360;while(v<-180)v+=360;return v}
 function orientationAngle(){const a=(screen.orientation&&Number.isFinite(screen.orientation.angle))?screen.orientation.angle:(Number(window.orientation)||0);return ((a%360)+360)%360}
@@ -240,22 +294,7 @@ function resetSpeedDemoResults(show=false){
   if(list)list.innerHTML='<div class="empty">Resultater vises efter hvert forsøg.</div>';
 }
 function formatAccel(sec){return Number.isFinite(sec)?`${sec.toFixed(1).replace('.',',')} sek.`:'–'}
-function syncSpeedDemoToAccelerationSummary(){
-  // Speed-demoen har sin egen meget stabile måling af hvert forsøg.
-  // Brug de samme resultater til de almindelige turstatistik-bokse, så demo og rigtig tur
-  // viser data samme sted. Rigtig GPS-kørsel bruger fortsat updateAccelerationStats().
-  const all=[...state.speedDemoAttempts];
-  if(state.speedDemoAttempt)all.push(state.speedDemoAttempt);
-  const times80=all.filter(a=>Number.isFinite(a.t80)).map(a=>a.t80);
-  const times100=all.filter(a=>Number.isFinite(a.t100)).map(a=>a.t100);
-  if(times80.length){
-    state.accelBest080=Math.min(...times80);
-    state.accelBest80={seconds:Math.min(...times80),startKmh:0,endKmh:80};
-    state.accelSlow80={seconds:Math.max(...times80),startKmh:0,endKmh:80};
-  }
-  if(times100.length)state.accelBest0100=Math.min(...times100);
-  renderAccelerationSummary();
-}
+function syncSpeedDemoToAccelerationSummary(){renderAccelerationSummary();}
 function renderSpeedDemoResults(currentSpeedMs=0){
   const attempts=state.speedDemoAttempts;
   const active=state.speedDemoAttempt;
@@ -397,10 +436,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v40';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v42';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v40 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v42 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -599,7 +638,7 @@ async function openHistoryRide(rideId){
     $('historyDetailTitle').textContent=fmtDate(ride.created_at);
     $('historyDetailMeta').textContent=`${(Number(ride.distance_m||0)/1000).toFixed(1).replace('.',',')} km · samlet ${fmtDuration(ride.duration_s)}`;
     if($('historyStats'))$('historyStats').innerHTML=`<div><span>Topfart</span><strong>${top.toFixed(0)} km/t</strong></div><div><span>Gns. under kørsel</span><strong>${avgMoving.toFixed(0)} km/t</strong></div><div><span>Kørselstid</span><strong>${fmtDuration(ride.moving_s)}</strong></div><div><span>Stilstand</span><strong>${fmtDuration(ride.stopped_s)}</strong></div>`;
-    const histAccel=$('historyAcceleration');if(histAccel){const bestMetric=Number.isFinite(Number(ride.accel_best_80_s))&&ride.accel_best_80_s!==null?{seconds:Number(ride.accel_best_80_s),startKmh:Number(ride.accel_best_80_start_kmh),endKmh:Number(ride.accel_best_80_end_kmh)}:null;const slowMetric=Number.isFinite(Number(ride.accel_slowest_80_s))&&ride.accel_slowest_80_s!==null?{seconds:Number(ride.accel_slowest_80_s),startKmh:Number(ride.accel_slowest_80_start_kmh),endKmh:Number(ride.accel_slowest_80_end_kmh)}:null;histAccel.innerHTML=`<div class="accel-card accel-fast"><div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste</strong></div></div><div class="accel-metrics"><div><span>0–80 km/t</span><b>${ride.accel_0_80_s==null?'–':formatAccelerationResult(Number(ride.accel_0_80_s))}</b></div><div><span>0–100 km/t</span><b>${ride.accel_0_100_s==null?'–':formatAccelerationResult(Number(ride.accel_0_100_s))}</b></div><div class="wide"><span>Bedste +80 km/t</span><b>${formatAccelerationRange(bestMetric)}</b></div></div></div><div class="accel-card accel-slow"><div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige +80 km/t</strong></div></div><div class="accel-metrics"><div class="wide"><span>+80 km/t</span><b>${formatAccelerationRange(slowMetric)}</b></div></div></div>`;}
+    const histAccel=$('historyAcceleration');if(histAccel){const bestMetric=Number.isFinite(Number(ride.accel_best_80_s))&&ride.accel_best_80_s!==null?{seconds:Number(ride.accel_best_80_s),startKmh:Number(ride.accel_best_80_start_kmh),endKmh:Number(ride.accel_best_80_end_kmh)}:null;const slowMetric=Number.isFinite(Number(ride.accel_slowest_80_s))&&ride.accel_slowest_80_s!==null?{seconds:Number(ride.accel_slowest_80_s),startKmh:Number(ride.accel_slowest_80_start_kmh),endKmh:Number(ride.accel_slowest_80_end_kmh)}:null;histAccel.innerHTML=`<div class="accel-card accel-fast"><div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(bestMetric)}</b></div></div></div><div class="accel-card accel-slow"><div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(slowMetric)}</b></div></div></div>`;}
     const histLean=$('historyLean');if(histLean){histLean.innerHTML=`<div class="lean-card"><div class="lean-title"><span class="lean-icon">🏍️</span><div><span>LEAN & SVING</span><strong>Turens hældning</strong></div></div><div class="lean-grid"><div><span>Maks venstre</span><b>${Math.round(Number(ride.max_lean_left_deg||0))}°</b></div><div><span>Maks højre</span><b>${Math.round(Number(ride.max_lean_right_deg||0))}°</b></div><div><span>Venstresving</span><b>${Number(ride.turn_left_count||0)}</b></div><div><span>Højresving</span><b>${Number(ride.turn_right_count||0)}</b></div></div></div>`;}
     if(!state.historyMap){state.historyMap=initMap('historyMap')}else{if(state.historyLine){state.historyMap.removeLayer(state.historyLine);state.historyLine=null}}
     const pts=track.map(p=>[p.lat,p.lng]);
@@ -626,7 +665,7 @@ async function deleteHistoryRide(){
 function closeHistoryRide(){$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId=''}
 
 async function initViewer(){$('viewerView').classList.remove('hidden');state.map=initMap('viewerMap');let lastTrackCount=0;async function refresh(){try{const rideResult=await rpc('ridez_public_ride_v23',{p_public_token:publicRideToken}).catch(()=>rpc('ridez_public_ride_v21',{p_public_token:publicRideToken})).catch(()=>rpc('ridez_public_ride_v19',{p_public_token:publicRideToken}));const ride=Array.isArray(rideResult)?rideResult[0]:rideResult;if(!ride){$('viewerStatus').textContent='Turen findes ikke eller er udløbet.';return}$('viewerTitle').textContent=ride.title||'RIDEZ live-tur';$('viewerSpeed').textContent=fmtSpeed(ride.speed_ms);showViewerTopSpeed(ride);$('viewerUpdated').textContent=ride.updated_at?new Date(ride.updated_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}):'–';$('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':'Motorcyklen holder stille'):'Turen er afsluttet';const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);const pts=await rpc('ridez_public_track',{p_public_token:publicRideToken});if(pts.length!==lastTrackCount){lastTrackCount=pts.length;state.points=pts.map(x=>[x.lat,x.lng]);if(state.line)state.line.setLatLngs(state.points);else if(state.points.length)state.line=L.polyline(state.points,{weight:5,color:'#e11d24'}).addTo(state.map)}}catch(e){console.error(e);$('viewerStatus').textContent='Kunne ikke hente live-data.'}setTimeout(refresh,3000)}refresh();$('messageForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('senderName').value.trim(),body=$('messageBody').value.trim();if(!name||!body)return;$('sendFeedback').textContent='Sender…';try{const result=await rpc('ridez_send_message',{p_public_token:publicRideToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'🏍️ Beskeden er modtaget. Føreren er på farten, så den bliver først vist, når motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.'}catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}})}
-async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
+async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{}));
 publicRideToken?initViewer():initDriver();
 })();
