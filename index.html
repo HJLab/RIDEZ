@@ -21,11 +21,27 @@
       <div><span class="eyebrow">KØRERSTATUS</span><h1 id="rideStatus">Ikke startet</h1><p id="statusDetail">Start en tur for at dele din position.</p></div>
       <div id="motionLight" class="motion stopped">STILLE</div>
     </div>
+    <div id="demoBadge" class="demo-badge hidden">DEMO MODE</div>
     <div class="actions">
       <button id="startBtn" class="primary">Start tur</button>
       <button id="stopBtn" class="danger hidden">Afslut tur</button>
       <button id="shareBtn" class="secondary hidden">Del følgelink</button>
     </div>
+
+    <section id="demoPanel" class="demo-panel">
+      <div>
+        <strong>🧪 Demo Mode</strong>
+        <p>Simulér en tur hjemmefra. Demoen sender live-data præcis som en rigtig tur.</p>
+      </div>
+      <label for="demoType">Vælg test</label>
+      <select id="demoType">
+        <option value="short">Kort testtur · ca. 1 minut</option>
+        <option value="city">Bykørsel · stop/start</option>
+        <option value="country">Landevej · fart og sving</option>
+      </select>
+      <button id="demoBtn" class="demo-button">Start demo</button>
+    </section>
+
     <div id="driverMap" class="map"></div>
     <div class="stats">
       <div><span>Hastighed</span><strong id="speedValue">0 km/t</strong></div>
