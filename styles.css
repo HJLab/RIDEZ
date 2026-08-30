@@ -378,3 +378,13 @@
 /* v90 - active vehicle green, inactive vehicles red */
 .vehicle-card .vehicle-card-main strong{color:#ff5b5b}
 .vehicle-card.active .vehicle-card-main strong{color:#5ed07a}
+
+/* RIDEZ v91 - Indstillinger er kun alarmfarvet ved manglende/fejlende kalibrering */
+.settings-panel.calibration-ok{border-color:#343941}
+.settings-panel.calibration-ok>summary .settings-summary-label{color:#fff;animation:none;text-shadow:none}
+.settings-panel.calibration-ok>summary .settings-calibration-dot{display:none}
+.settings-panel.calibration-working{border-color:#343941}
+.settings-panel.calibration-working>summary .settings-summary-label{color:#fff;animation:none;text-shadow:none}
+.settings-panel.calibration-working>summary .settings-calibration-dot{display:none}
+.settings-panel.calibration-missing>summary .settings-summary-label{color:#e11d24;animation:ridezCalibrationAlert 1.35s ease-in-out infinite}
+.settings-panel.calibration-missing>summary .settings-calibration-dot{display:inline-block;background:#e11d24;box-shadow:0 0 0 3px rgba(225,29,36,.16);animation:ridezCalibrationDot 1.35s ease-in-out infinite}
