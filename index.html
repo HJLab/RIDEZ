@@ -113,7 +113,7 @@
     </details>
 
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v44</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v45</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
         <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
         <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
@@ -158,7 +158,38 @@
   <section id="viewerView" class="panel hidden">
     <div class="status-row"><div><span class="eyebrow">LIVE TUR</span><h1 id="viewerTitle">RIDEZ</h1><p id="viewerStatus">Henter position…</p></div><div id="viewerMotion" class="motion stopped">STILLE</div></div>
     <div id="viewerMap" class="map"></div>
-    <div class="stats viewer-stats"><div><span>Hastighed</span><strong id="viewerSpeed">0 km/t</strong></div><div id="viewerTopSpeedCard" class="viewer-top-speed-card"><span>Højeste hastighed</span><strong id="viewerTopSpeed">0 km/t</strong></div><div><span>Senest set</span><strong id="viewerUpdated">–</strong></div></div>
+    <div class="stats viewer-stats viewer-primary-stats"><div><span>Aktuel hastighed</span><strong id="viewerSpeed">0 km/t</strong></div><div id="viewerTopSpeedCard" class="viewer-top-speed-card"><span>Højeste hastighed</span><strong id="viewerTopSpeed">0 km/t</strong></div><div><span>Senest set</span><strong id="viewerUpdated">–</strong></div></div>
+
+    <section class="viewer-dashboard" aria-label="Live turdata">
+      <div class="viewer-dashboard-heading"><span class="eyebrow">LIVE DATA</span><h2>Turens statistik</h2></div>
+      <div class="viewer-metric-grid viewer-trip-grid">
+        <div><span>Distance</span><strong id="viewerDistance">0,0 km</strong></div>
+        <div><span>Gns. under kørsel</span><strong id="viewerAverageSpeed">0 km/t</strong></div>
+        <div><span>Kørselstid</span><strong id="viewerMovingTime">0 sek.</strong></div>
+        <div><span>Stilstand</span><strong id="viewerStoppedTime">0 sek.</strong></div>
+      </div>
+      <div class="viewer-detail-grid">
+        <article class="viewer-detail-card viewer-accel-card">
+          <div class="viewer-card-title"><span class="viewer-card-icon">🚀</span><div><span>ACCELERATION</span><strong>Hurtigste</strong></div></div>
+          <div class="viewer-result" id="viewerFastAccel">–</div>
+        </article>
+        <article class="viewer-detail-card viewer-accel-card">
+          <div class="viewer-card-title"><span class="viewer-card-icon">🐢</span><div><span>ACCELERATION</span><strong>Langsomste</strong></div></div>
+          <div class="viewer-result" id="viewerSlowAccel">–</div>
+        </article>
+      </div>
+      <article class="viewer-detail-card viewer-lean-card">
+        <div class="viewer-card-title"><span class="viewer-card-icon">🏍️</span><div><span>LEAN &amp; SVING</span><strong>Turens hældning og sving</strong></div></div>
+        <div class="viewer-lean-grid">
+          <div><span>Lean nu</span><strong id="viewerLeanLive">–</strong></div>
+          <div><span>Maks venstre</span><strong id="viewerLeanLeft">0°</strong></div>
+          <div><span>Maks højre</span><strong id="viewerLeanRight">0°</strong></div>
+          <div><span>Venstresving</span><strong id="viewerTurnsLeft">0</strong></div>
+          <div><span>Højresving</span><strong id="viewerTurnsRight">0</strong></div>
+        </div>
+      </article>
+    </section>
+
     <form id="messageForm" class="message-form">
       <h2>Send en besked</h2>
       <label>Dit navn<input id="senderName" maxlength="40" required placeholder="F.eks. Peter"></label>
@@ -177,6 +208,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=42"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

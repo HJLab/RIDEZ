@@ -93,3 +93,19 @@
 .history-fold-panel .history-panel{margin:0;padding:0;border-top:0}
 .history-fold-panel .section-heading{padding:2px 0 10px}
 .history-fold-panel .history-list{padding-bottom:2px}
+
+
+/* RIDEZ Foelgedashboard v45 */
+.viewer-dashboard{margin-top:18px;border-top:1px solid #2c3036;padding-top:16px}
+.viewer-dashboard-heading{margin-bottom:10px}.viewer-dashboard-heading h2{margin:3px 0 0}
+.viewer-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.viewer-metric-grid>div,.viewer-lean-grid>div{background:#121417;border:1px solid #2b2f35;border-radius:14px;padding:12px;min-width:0}
+.viewer-metric-grid span,.viewer-lean-grid span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.viewer-metric-grid strong,.viewer-lean-grid strong{display:block;font-size:17px;overflow-wrap:anywhere}
+.viewer-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.viewer-detail-card{background:#12151a;border:1px solid #343941;border-radius:16px;padding:14px;min-width:0}
+.viewer-card-title{display:flex;gap:10px;align-items:center;margin-bottom:11px}.viewer-card-icon{font-size:28px;line-height:1}
+.viewer-card-title div>span{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em}.viewer-card-title strong{display:block;margin-top:2px;font-size:15px}
+.viewer-result{background:#191c21;border:1px solid #2d3239;border-radius:12px;padding:11px;font-size:16px;font-weight:800;overflow-wrap:anywhere}
+.viewer-lean-card{margin-top:0}.viewer-lean-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:700px){.viewer-metric-grid{grid-template-columns:1fr 1fr}.viewer-detail-grid{grid-template-columns:1fr}.viewer-lean-grid{grid-template-columns:1fr 1fr}.viewer-lean-grid>div:first-child{grid-column:1/-1}}
