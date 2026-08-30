@@ -24,12 +24,18 @@ async function processPosition(cur,speed,accuracy=5){const now=cur.t||Date.now()
 async function onPosition(pos){const now=Date.now(),cur={lat:pos.coords.latitude,lng:pos.coords.longitude,t:now,accuracy:pos.coords.accuracy};let speed=Number.isFinite(pos.coords.speed)?Math.max(0,pos.coords.speed):null;if(state.lastPos&&speed===null){const dt=(now-state.lastPos.t)/1000;if(dt>0)speed=hav(state.lastPos,cur)/dt}await processPosition(cur,speed||0,cur.accuracy)}
 function stopDemoTimer(){if(state.demoTimer){clearTimeout(state.demoTimer);state.demoTimer=null}}
 function getDemoBase(){
-  // Fast demo-start på Toftevej i Herslev. Demo Mode er bevidst uafhængig af telefonens GPS,
-  // så testen altid starter samme sted og ikke flyttes af GPS-usikkerhed eller nearest-road snapping.
-  return Promise.resolve({lat:55.66894776,lng:11.98715109,name:'Toftevej, Herslev'});
+  // v9: Brug telefonens faktiske GPS-position som demo-start. Rutetjenesten får bagefter
+  // kun lov til at snapper til en kørbar vej meget tæt på positionen, så den ikke kan flytte
+  // starten flere hundrede meter (fx op til kirken).
+  if(!navigator.geolocation) return Promise.reject(new Error('GPS understøttes ikke på denne enhed.'));
+  return new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(pos=>{
+    const accuracy=Number(pos.coords.accuracy)||999;
+    if(accuracy>100){reject(new Error('GPS-positionen er for upræcis til Demo Mode. Gå tættere på et vindue eller udenfor og prøv igen.'));return;}
+    resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,name:'din aktuelle position',accuracy});
+  },()=>reject(new Error('RIDEZ kunne ikke hente din aktuelle GPS-position til demoen.')),{enableHighAccuracy:true,maximumAge:5000,timeout:12000}));
 }
 async function snapDemoBaseToRoad(base){
-  // Behold det faste Toftevej-startpunkt. Selve rutetjenesten snapper koordinatet til vejgeometrien.
+  // Selve kontrollen af vej-snap sker i buildRoadDemoRoute med en hård afstandsgrænse.
   return base;
 }
 function demoSpeed(type,i,total){if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}if(type==='twisty'){if(i<4||i>total-5)return 0;const phase=i%20;if(phase<5)return 10+phase*1.4;if(phase<12)return 17+3*Math.sin(i/2.5);if(phase<16)return 12;return 15}const phase=i%36;if(i<4||i>total-5)return 0;if(phase<8)return 8+phase*1.8;if(phase<28)return 22+6*Math.sin(i/4);return 10}
@@ -49,14 +55,21 @@ function demoWaypoints(base,type){
   return [start,bognaes,kattinge,brewery,start];
 }
 async function buildRoadDemoRoute(base,type){
-  const coords=demoWaypoints(base,type).map(p=>p.join(',')).join(';');
-  const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+  const waypoints=demoWaypoints(base,type);
+  const coords=waypoints.map(p=>p.join(',')).join(';');
+  // v9: Første og sidste punkt må højst flyttes 120 m til en kørbar vej.
+  // Mellempunkter får lidt mere spillerum. Dermed kan OSRM ikke flytte Toftevej-starten til kirken.
+  const radiuses=waypoints.map((_,i)=>(i===0||i===waypoints.length-1)?120:250).join(';');
+  const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false&radiuses=${radiuses}`;
   const res=await fetch(url,{cache:'no-store'});
   if(!res.ok)throw new Error('Rutetjenesten svarede ikke.');
   const json=await res.json();
+  if(json.code&&json.code!=='Ok')throw new Error('Kunne ikke finde en kørbar vej tæt nok på demoens startpunkt.');
   const raw=json.routes&&json.routes[0]&&json.routes[0].geometry&&json.routes[0].geometry.coordinates;
   if(!raw||raw.length<2)throw new Error('Kunne ikke finde en vej-rute til demoen.');
   const pts=raw.map(([lng,lat])=>({lat,lng}));
+  const firstDistance=hav(base,pts[0]);
+  if(firstDistance>140)throw new Error('Demoens vej-rute ligger for langt fra din startposition. RIDEZ nægter at flytte starten til en anden del af Herslev.');
   const cum=[0];
   for(let i=1;i<pts.length;i++)cum[i]=cum[i-1]+hav(pts[i-1],pts[i]);
   return{pts,cum,total:cum[cum.length-1]};
@@ -69,7 +82,7 @@ function demoPointAt(route,meters){
   const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
-async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Klargør demo…';$('statusDetail').textContent='Demo Mode starter fast på Toftevej i Herslev.';try{const gpsBase=await getDemoBase();state.demoBase=await snapDemoBaseToRoad(gpsBase);$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoBase=null;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';throw e}const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':'landevej';await createRide(`RIDEZ demo · ${demoName}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
+async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;$('demoBadge').textContent='DEMO v9';$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Klargør demo…';$('statusDetail').textContent='Demo v9 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';try{const gpsBase=await getDemoBase();state.demoBase=await snapDemoBaseToRoad(gpsBase);$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoBase=null;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';throw e}const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':'landevej';await createRide(`RIDEZ demo · ${demoName}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
 async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;stopDemoTimer();try{if(state.driverToken)await rpc('ridez_end_ride',{p_driver_token:state.driverToken})}catch(e){console.error(e)}resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.'}
 async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
