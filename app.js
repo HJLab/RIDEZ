@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerToken:localStorage.getItem('ridez_viewer_token')||null};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -654,7 +654,7 @@ async function startDemo(){if(!state.userName){openUsernameDialog(true);throw ne
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v78';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v79';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -804,12 +804,13 @@ function openReplyDialog(messageId){
 function closeReplyDialog(){const dlg=$('replyDialog');if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open');state.replyingMessageId=null}
 async function sendDriverReply(){
   if(state.moving){updateReplyAvailability();return}
+  if(!state.userName){openUsernameDialog(true);return}
   const body=$('replyBody'),fb=$('replyFeedback'),btn=$('replySendBtn');const text=body?body.value.trim():'';if(!text||!state.replyingMessageId)return;
   if(btn){btn.disabled=true;btn.textContent='Sender…'}if(fb)fb.textContent='';
   try{
-    await rpc('ridez_driver_reply_v78',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_sender_name:state.userName||'Føreren',p_body:text});
+    await rpc('ridez_driver_reply_v79',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_sender_name:state.userName,p_body:text});
     if(fb)fb.textContent='✓ Svar sendt til følgeren.';if(body)body.value='';setTimeout(closeReplyDialog,650);
-  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v78 SQL-opdateringen er kørt.'}
+  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v79 SQL-opdateringen er kørt.'}
   finally{if(btn){btn.textContent='Send svar';btn.disabled=!!state.moving}}
 }
 async function pollMessages(){
@@ -970,6 +971,25 @@ function initUsernameSettings(){
   if(dlg)dlg.addEventListener('cancel',e=>{if(state.usernameRequired&&!state.userName){e.preventDefault();return}closeUsernameDialog()});
   if(!state.userName)setTimeout(()=>openUsernameDialog(true),80);
 }
+function openViewerUsernameDialog(){
+  const dlg=$('viewerUsernameDialog'),input=$('viewerUsernameInput'),fb=$('viewerUsernameFeedback');if(!dlg)return;
+  if(input)input.value=state.viewerUserName||'';if(fb)fb.textContent='';
+  if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','');
+  setTimeout(()=>{if(input)input.focus()},60);
+}
+function closeViewerUsernameDialog(){
+  if(!state.viewerUserName)return;const dlg=$('viewerUsernameDialog');if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open');
+}
+function saveViewerUsername(e){
+  if(e&&e.preventDefault)e.preventDefault();const input=$('viewerUsernameInput'),fb=$('viewerUsernameFeedback');const name=(input?input.value:'').trim();
+  if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
+  state.viewerUserName=name;localStorage.setItem('ridez_viewer_username',name);closeViewerUsernameDialog();
+}
+function initViewerUsernameSettings(){
+  const form=$('viewerUsernameForm'),dlg=$('viewerUsernameDialog');if(form)form.addEventListener('submit',saveViewerUsername);
+  if(dlg)dlg.addEventListener('cancel',e=>{if(!state.viewerUserName){e.preventDefault();return}closeViewerUsernameDialog()});
+  if(!state.viewerUserName)setTimeout(openViewerUsernameDialog,180);
+}
 function syncSoundSettingsUi(){
   const master=$('settingsSoundsEnabled'),masterStatus=$('settingsSoundsEnabledStatus');
   if(master)master.checked=state.soundsEnabled;
@@ -996,7 +1016,7 @@ async function armReplayPoliceAudio(){
     if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
     if(state.replayAudioCtx.state==='suspended')await state.replayAudioCtx.resume().catch(()=>{});
     if(!state.replayPoliceAudioBuffer){
-      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=78',{cache:'force-cache'});
+      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=79',{cache:'force-cache'});
       if(!res.ok)throw new Error('Kunne ikke hente motorcykellyden');
       const raw=await res.arrayBuffer();
       state.replayPoliceAudioBuffer=await state.replayAudioCtx.decodeAudioData(raw.slice(0));
@@ -1241,7 +1261,7 @@ function renderViewerConversation(rows){
 }
 
 async function initViewer(){
-  $('viewerView').classList.remove('hidden');
+  $('viewerView').classList.remove('hidden');initViewerUsernameSettings();
   state.map=initMap('viewerMap');
   let lastTrackCount=0,viewerRideToken=publicRideToken||null;const viewerToken=ensureViewerToken();
   async function resolveViewerRideToken(){
@@ -1283,7 +1303,7 @@ async function initViewer(){
   }
   refresh();
   $('messageForm').addEventListener('submit',async e=>{
-    e.preventDefault();const name=$('senderName').value.trim(),body=$('messageBody').value.trim();if(!name||!body)return;
+    e.preventDefault();const name=(state.viewerUserName||'').trim(),body=$('messageBody').value.trim();if(!name){openViewerUsernameDialog();return}if(!body)return;
     $('sendFeedback').textContent='Sender…';
     try{
       const tokenNow=await resolveViewerRideToken();
@@ -1301,6 +1321,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=78').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=79').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=78">
+  <link rel="stylesheet" href="styles.css?v=79">
 </head>
 <body>
 <header class="topbar">
@@ -264,12 +264,21 @@
 
     <form id="messageForm" class="message-form">
       <h2>Send en besked</h2>
-      <label>Dit navn<input id="senderName" maxlength="40" required placeholder="F.eks. Peter"></label>
       <label>Besked<textarea id="messageBody" maxlength="240" required placeholder="Skriv din besked…"></textarea></label>
       <button class="primary" type="submit">Send besked</button>
       <p id="sendFeedback" class="feedback"></p>
     </form>
   </section>
+
+  <dialog id="viewerUsernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn til RIDEZ-chat">
+    <form id="viewerUsernameForm" method="dialog">
+      <div class="dialog-head"><div><span class="eyebrow">RIDEZ CHAT</span><h2>Vælg dit brugernavn</h2></div></div>
+      <p class="dialog-help">Navnet gemmes på denne enhed og bruges i chatten, så føreren kan se, hvem beskederne kommer fra.</p>
+      <label class="username-label">Brugernavn<input id="viewerUsernameInput" type="text" maxlength="40" autocomplete="name" required placeholder="F.eks. Peter"></label>
+      <p id="viewerUsernameFeedback" class="feedback"></p>
+      <button class="primary dialog-save" type="submit">Gem brugernavn</button>
+    </form>
+  </dialog>
 
   <dialog id="usernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn i RIDEZ">
     <form id="usernameForm" method="dialog">
@@ -309,6 +318,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=78"></script>
+<script src="app.js?v=79"></script>
 </body>
 </html>
