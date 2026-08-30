@@ -361,7 +361,9 @@
 .username-label select{width:100%;margin-top:7px;padding:12px;border-radius:12px;border:1px solid #39414d;background:#101419;color:#fff}
 @media(max-width:620px){.vehicle-card{align-items:flex-start;flex-direction:column}.vehicle-card-actions{width:100%;justify-content:flex-start}.vehicle-form-grid{grid-template-columns:1fr}.vehicle-form-grid label:last-child{grid-column:auto}}
 
-/* RIDEZ v84 - altid synligt versionsnummer */
+/* RIDEZ v85 - altid synligt versionsnummer */
 .topbar-right{display:flex;align-items:center;gap:8px}
 .app-version{font-size:10px;font-weight:700;letter-spacing:.04em;color:#7f858e;white-space:nowrap;align-self:flex-start;margin-top:1px}
 @media(max-width:650px){.topbar-right{gap:6px}.app-version{font-size:9px}}
+
+.app-version.runtime-ok{color:#22c55e}

@@ -6,6 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
+const APP_VERSION='85';
 const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle'};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
@@ -39,25 +40,39 @@ function createDefaultVehicle(type){const w=vehicleWords(type),v={id:'veh_'+toke
 function ensureActiveVehicle(){let v=activeVehicle();if(!v&&state.preferredVehicleType)v=createDefaultVehicle(state.preferredVehicleType);return v}
 function currentVehicleType(){const v=activeVehicle();return normalizeVehicleType(v?v.type:state.preferredVehicleType)}
 function setupComplete(){
-  const savedName=(localStorage.getItem('ridez_username')||state.userName||'').trim();
+  // v85: keep first-time setup deliberately simple and self-healing.
+  // Username + vehicle type are the only requirements. A concrete vehicle
+  // profile is repaired/created automatically and must never block Start/Demo.
+  let savedName=(localStorage.getItem('ridez_username')||state.userName||'').trim();
+  let savedType=localStorage.getItem('ridez_vehicle_type')||state.preferredVehicleType||'';
+
+  // New single profile record. This avoids older individual keys drifting apart.
+  try{
+    const saved=JSON.parse(localStorage.getItem('ridez_primary_profile')||'null');
+    if(saved&&typeof saved==='object'){
+      if(!savedName&&typeof saved.name==='string')savedName=saved.name.trim();
+      if(!['motorcycle','car'].includes(savedType)&&['motorcycle','car'].includes(saved.type))savedType=saved.type;
+    }
+  }catch(e){}
   if(!savedName)return false;
 
   loadVehicleProfiles();
   let v=activeVehicle();
-  let savedType=localStorage.getItem('ridez_vehicle_type')||state.preferredVehicleType||'';
-
-  // Heal older/local profiles: if the type key is missing but a vehicle exists,
-  // use that vehicle's type instead of blocking Start/Demo.
   if(!['motorcycle','car'].includes(savedType)&&v)savedType=normalizeVehicleType(v.type);
+
+  // Older v80-v84 profiles may have been marked complete without a usable
+  // vehicle-type key. Do not trap the user in setup: recover as motorcycle,
+  // which was the original/default RIDEZ vehicle type. New saves always store
+  // the explicit choice in ridez_primary_profile.
+  if(!['motorcycle','car'].includes(savedType)&&localStorage.getItem('ridez_profile_complete')==='1')savedType='motorcycle';
   if(!['motorcycle','car'].includes(savedType))return false;
 
   state.userName=savedName;
   state.preferredVehicleType=savedType;
   localStorage.setItem('ridez_username',savedName);
   localStorage.setItem('ridez_vehicle_type',savedType);
+  localStorage.setItem('ridez_primary_profile',JSON.stringify({name:savedName,type:savedType}));
 
-  // A saved username + vehicle type means setup is complete. The concrete
-  // vehicle profile is repaired/created automatically and must never block.
   if(!v||normalizeVehicleType(v.type)!==savedType){
     const match=state.vehicleProfiles.find(x=>normalizeVehicleType(x.type)===savedType);
     if(match){state.activeVehicleId=match.id;v=match}
@@ -539,7 +554,7 @@ async function rpc(name,args){const{data,error}=await db.rpc(name,args);if(error
 function resetDriverTripDisplay({clearMarker=true}={}){resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.replyingMessageId=null;closeReplyDialog();clearActivePhotoMarkers();if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
 function setRideButtons(active){$('startBtn').classList.toggle('hidden',active);$('stopBtn').classList.toggle('hidden',!active);$('shareBtn').classList.toggle('hidden',!active);const photos=$('photoActions');if(photos)photos.classList.toggle('hidden',!active);$('demoBtn').disabled=active&&!state.demo;$('demoType').disabled=active;if(!active){const fb=$('photoFeedback');if(fb)fb.textContent=''}}
 async function createRide(title){const v=ensureActiveVehicle();if(!v)throw new Error('Vælg først et køretøj i Indstillinger.');state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();try{state.rideId=await rpc('ridez_create_ride_v80',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title,p_vehicle_type:v.type,p_vehicle_name:v.name||'',p_vehicle_make:v.make||'',p_vehicle_model:v.model||'',p_vehicle_year:v.year||null})}catch(e){console.error(e);throw new Error('Køretøjer v80 er ikke aktiveret i Supabase endnu. Kør supabase-koeretoejer-v80.sql én gang.')}setRideButtons(true);pollMessages()}
-async function startRide(){if(!setupComplete()){openUsernameDialog(true);throw new Error('Færdiggør først din RIDEZ-profil.')}requestMessageNotificationPermission();if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
+async function startRide(){if(!setupComplete()){openUsernameDialog(true);return}requestMessageNotificationPermission();if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
 function onGeoError(e){$('statusDetail').textContent=`GPS-fejl: ${e.message}`}
 async function processPosition(cur,speed,accuracy=5){const now=cur.t||Date.now();if(state.lastPos){const dist=hav(state.lastPos,cur);if(dist<1000&&accuracy<80)state.distanceM+=dist}speed=Math.max(0,speed||0);state.currentSpeedMs=speed;const newTop=speed>state.maxSpeedMs+0.05;updateRideStats(now,speed);updateAccelerationStats(now,speed);if(newTop)schedulePublicTopSpeed();if(speed>=C.MOVING_THRESHOLD_MS){state.stoppedSince=null;setMotion(true)}else if(speed<=C.STOPPED_THRESHOLD_MS){if(!state.stoppedSince)state.stoppedSince=now;if(now-state.stoppedSince>=C.STATIONARY_SECONDS*1000)setMotion(false)}state.lastPos=cur;$('speedValue').textContent=fmtSpeed(speed);applySpeedColor($('speedValue'),speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;updateMap(cur.lat,cur.lng,true);if(now-state.lastUpload>=C.LOCATION_UPLOAD_MS){state.lastUpload=now;try{await rpc('ridez_update_location',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:accuracy});await publishLiveStats()}catch(e){console.error(e)}}}
 async function onPosition(pos){const now=Date.now(),cur={lat:pos.coords.latitude,lng:pos.coords.longitude,t:now,accuracy:pos.coords.accuracy};let speed=Number.isFinite(pos.coords.speed)?Math.max(0,pos.coords.speed):null;if(state.lastPos&&speed===null){const dt=(now-state.lastPos.t)/1000;if(dt>0)speed=hav(state.lastPos,cur)/dt}await processPosition(cur,speed||0,cur.accuracy)}
@@ -743,12 +758,12 @@ function demoPointAt(route,meters){
   const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
-async function startDemo(){if(!setupComplete()){openUsernameDialog(true);throw new Error('Færdiggør først din RIDEZ-profil.')}
+async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   requestMessageNotificationPermission();
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v84';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v85';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -1086,6 +1101,7 @@ function saveUsername(e){
     }
     persistVehicleProfiles();
     localStorage.setItem('ridez_profile_complete','1');
+    localStorage.setItem('ridez_primary_profile',JSON.stringify({name,type}));
   }
   syncUsernameUi();
   syncVehicleUi();
@@ -1456,6 +1472,7 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=84').catch(()=>{}));
+{const versionEl=$('appVersion');if(versionEl){versionEl.textContent='v'+APP_VERSION;versionEl.classList.add('runtime-ok');versionEl.title='RIDEZ app.js v'+APP_VERSION+' er indlæst';}}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=85').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
