@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#e9b000">
+  <title>RIDEZ</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img src="assets/icon-192.png" alt="RIDEZ"><div><strong>RIDEZ</strong><span>Din motorcykel. Din verden.</span></div></div>
+  <span id="connectionBadge" class="badge">Klar</span>
+</header>
+<main>
+  <section id="driverView" class="panel hidden">
+    <div class="status-row">
+      <div><span class="eyebrow">KØRERSTATUS</span><h1 id="rideStatus">Ikke startet</h1><p id="statusDetail">Start en tur for at dele din position.</p></div>
+      <div id="motionLight" class="motion stopped">STILLE</div>
+    </div>
+    <div class="actions">
+      <button id="startBtn" class="primary">Start tur</button>
+      <button id="stopBtn" class="danger hidden">Afslut tur</button>
+      <button id="shareBtn" class="secondary hidden">Del følgelink</button>
+    </div>
+    <div id="driverMap" class="map"></div>
+    <div class="stats">
+      <div><span>Hastighed</span><strong id="speedValue">0 km/t</strong></div>
+      <div><span>Distance</span><strong id="distanceValue">0,0 km</strong></div>
+      <div><span>Beskeder</span><strong id="messageCount">0</strong></div>
+    </div>
+    <div class="safety"><strong>🛡️ Sikker beskedvisning</strong><p>Beskeder holdes tilbage under kørsel og vises først, når motorcyklen har holdt stille i mindst 3 sekunder.</p></div>
+    <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
+  </section>
+
+  <section id="viewerView" class="panel hidden">
+    <div class="status-row"><div><span class="eyebrow">LIVE TUR</span><h1 id="viewerTitle">RIDEZ</h1><p id="viewerStatus">Henter position…</p></div><div id="viewerMotion" class="motion stopped">STILLE</div></div>
+    <div id="viewerMap" class="map"></div>
+    <div class="stats"><div><span>Hastighed</span><strong id="viewerSpeed">0 km/t</strong></div><div><span>Senest set</span><strong id="viewerUpdated">–</strong></div></div>
+    <form id="messageForm" class="message-form">
+      <h2>Send en besked</h2>
+      <label>Dit navn<input id="senderName" maxlength="40" required placeholder="F.eks. Peter"></label>
+      <label>Besked<textarea id="messageBody" maxlength="240" required placeholder="Skriv din besked…"></textarea></label>
+      <button class="primary" type="submit">Send besked</button>
+      <p id="sendFeedback" class="feedback"></p>
+    </form>
+  </section>
+
+  <section id="setupView" class="panel hidden setup">
+    <h1>RIDEZ mangler forbindelse</h1>
+    <p>Indsæt din Supabase URL og anon key i <code>config.js</code>, og kør SQL-filen <code>supabase.sql</code> én gang i Supabase.</p>
+    <p>Derefter kan siden bruges direkte fra GitHub Pages.</p>
+  </section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

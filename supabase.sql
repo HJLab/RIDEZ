@@ -1,0 +1,65 @@
+-- RIDEZ backend. Run once in Supabase SQL Editor.
+create extension if not exists pgcrypto;
+create table if not exists public.ridez_rides (
+ id uuid primary key default gen_random_uuid(),
+ public_token text unique not null,
+ driver_token text unique not null,
+ title text not null default 'RIDEZ live-tur',
+ active boolean not null default true,
+ moving boolean not null default false,
+ lat double precision, lng double precision, speed_ms double precision not null default 0,
+ accuracy_m double precision, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+create table if not exists public.ridez_track_points (
+ id bigserial primary key, ride_id uuid not null references public.ridez_rides(id) on delete cascade,
+ lat double precision not null,lng double precision not null,speed_ms double precision not null default 0,
+ created_at timestamptz not null default now()
+);
+create table if not exists public.ridez_messages (
+ id bigserial primary key,ride_id uuid not null references public.ridez_rides(id) on delete cascade,
+ sender_name text not null check(char_length(sender_name) between 1 and 40),
+ body text not null check(char_length(body) between 1 and 240),created_at timestamptz not null default now()
+);
+alter table public.ridez_rides enable row level security;
+alter table public.ridez_track_points enable row level security;
+alter table public.ridez_messages enable row level security;
+revoke all on public.ridez_rides, public.ridez_track_points, public.ridez_messages from anon, authenticated;
+
+create or replace function public.ridez_create_ride(p_driver_token text,p_public_token text,p_title text default 'RIDEZ live-tur') returns uuid language plpgsql security definer set search_path=public as $$
+declare rid uuid; begin
+ if length(p_driver_token)<32 or length(p_public_token)<32 then raise exception 'invalid token'; end if;
+ insert into ridez_rides(driver_token,public_token,title) values(p_driver_token,p_public_token,left(coalesce(p_title,'RIDEZ live-tur'),80)) returning id into rid; return rid; end $$;
+
+create or replace function public.ridez_update_location(p_driver_token text,p_lat double precision,p_lng double precision,p_speed_ms double precision,p_moving boolean,p_accuracy_m double precision) returns void language plpgsql security definer set search_path=public as $$
+declare rid uuid; begin
+ if p_lat not between -90 and 90 or p_lng not between -180 and 180 then raise exception 'invalid coordinates'; end if;
+ update ridez_rides set lat=p_lat,lng=p_lng,speed_ms=greatest(0,least(coalesce(p_speed_ms,0),120)),moving=coalesce(p_moving,false),accuracy_m=p_accuracy_m,updated_at=now() where driver_token=p_driver_token and active=true returning id into rid;
+ if rid is null then raise exception 'ride not found'; end if;
+ insert into ridez_track_points(ride_id,lat,lng,speed_ms) values(rid,p_lat,p_lng,greatest(0,least(coalesce(p_speed_ms,0),120)));
+ end $$;
+
+create or replace function public.ridez_end_ride(p_driver_token text) returns void language sql security definer set search_path=public as $$ update ridez_rides set active=false,moving=false,updated_at=now() where driver_token=p_driver_token $$;
+
+create or replace function public.ridez_public_ride(p_public_token text) returns table(title text,active boolean,moving boolean,lat double precision,lng double precision,speed_ms double precision,updated_at timestamptz) language sql security definer set search_path=public as $$ select r.title,r.active,r.moving,r.lat,r.lng,r.speed_ms,r.updated_at from ridez_rides r where r.public_token=p_public_token limit 1 $$;
+
+create or replace function public.ridez_public_track(p_public_token text) returns table(lat double precision,lng double precision,created_at timestamptz) language sql security definer set search_path=public as $$ select p.lat,p.lng,p.created_at from ridez_track_points p join ridez_rides r on r.id=p.ride_id where r.public_token=p_public_token order by p.id asc limit 5000 $$;
+
+create or replace function public.ridez_send_message(p_public_token text,p_sender_name text,p_body text) returns text language plpgsql security definer set search_path=public as $$
+declare rid uuid; mv boolean; recent int; begin
+ select id,moving into rid,mv from ridez_rides where public_token=p_public_token and active=true;
+ if rid is null then raise exception 'ride not active'; end if;
+ if char_length(trim(p_sender_name)) not between 1 and 40 or char_length(trim(p_body)) not between 1 and 240 then raise exception 'invalid message'; end if;
+ select count(*) into recent from ridez_messages where ride_id=rid and created_at>now()-interval '20 seconds';
+ if recent>=5 then raise exception 'too many messages'; end if;
+ insert into ridez_messages(ride_id,sender_name,body) values(rid,trim(p_sender_name),trim(p_body));
+ return case when mv then 'moving' else 'stopped' end; end $$;
+
+create or replace function public.ridez_driver_messages(p_driver_token text) returns table(id bigint,sender_name text,body text,created_at timestamptz) language sql security definer set search_path=public as $$ select m.id,m.sender_name,m.body,m.created_at from ridez_messages m join ridez_rides r on r.id=m.ride_id where r.driver_token=p_driver_token order by m.created_at desc limit 100 $$;
+
+grant execute on function public.ridez_create_ride(text,text,text) to anon;
+grant execute on function public.ridez_update_location(text,double precision,double precision,double precision,boolean,double precision) to anon;
+grant execute on function public.ridez_end_ride(text) to anon;
+grant execute on function public.ridez_public_ride(text) to anon;
+grant execute on function public.ridez_public_track(text) to anon;
+grant execute on function public.ridez_send_message(text,text,text) to anon;
+grant execute on function public.ridez_driver_messages(text) to anon;
