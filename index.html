@@ -35,7 +35,7 @@
       </div>
       <label for="demoType">Vælg test</label>
       <select id="demoType">
-        <option value="short">Kort testtur · ca. 12 sek.</option>
+        <option value="short">Kort testtur · ca. 1 min.</option>
         <option value="city">Bykørsel · stop/start</option>
         <option value="country">Landevej · fart og sving</option>
         <option value="twisty">Snoet tur · mange sving</option>
@@ -52,6 +52,20 @@
     </div>
     <div class="safety"><strong>🛡️ Sikker beskedvisning</strong><p>Beskeder holdes tilbage under kørsel og vises først, når motorcyklen har holdt stille i mindst 3 sekunder.</p></div>
     <section id="messagesPanel" class="messages"><h2>Beskeder</h2><div id="messagesList" class="empty">Ingen beskeder endnu.</div></section>
+
+    <section id="historyPanel" class="history-panel">
+      <div class="section-heading"><div><span class="eyebrow">GEMTE TURE</span><h2>Historik</h2></div></div>
+      <div id="historyList" class="history-list"><div class="empty">Henter ture…</div></div>
+    </section>
+
+    <section id="historyDetail" class="history-detail hidden">
+      <div class="history-detail-head">
+        <div><span class="eyebrow">TURDETALJER</span><h2 id="historyDetailTitle">Tur</h2><p id="historyDetailMeta">Henter tur…</p></div>
+        <button id="historyCloseBtn" class="secondary small-button" type="button">Luk</button>
+      </div>
+      <div id="historyMap" class="map history-map"></div>
+      <div class="photo-section"><h3>Billeder fra turen</h3><div id="historyPhotos" class="photo-grid"><div class="empty">Ingen billeder endnu.</div></div></div>
+    </section>
   </section>
 
   <section id="viewerView" class="panel hidden">
@@ -74,7 +88,6 @@
   </section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@tomickigrzegorz/leaflet-rotate@0.2.4/dist/leaflet-rotate.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
