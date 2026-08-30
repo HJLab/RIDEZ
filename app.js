@@ -542,7 +542,7 @@ function updateSpeedDemoAttempt(t,speedMs){
 }
 function demoSpeed(type,i,total){
   if(type==='messagetest'){
-    // v75: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
+    // v76: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
     // De lange stop giver tid til at modtage en ventende besked efter 3 s og sende et svar.
     if(i<10)return 40/3.6;
     if(i<40)return 0;
@@ -654,10 +654,10 @@ async function startDemo(){
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v75';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v76';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v75 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -1273,6 +1273,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=75').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=76').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();
