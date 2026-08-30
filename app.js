@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle'};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -26,6 +26,72 @@ async function publishDemoChannel(){if(!state.demo||!state.publicToken)return;aw
 const escapeHtml=s=>(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function token(){const a=new Uint8Array(24);crypto.getRandomValues(a);return[...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function ensureViewerToken(){if(!state.viewerToken){state.viewerToken=token();localStorage.setItem('ridez_viewer_token',state.viewerToken)}return state.viewerToken}
+function normalizeVehicleType(type){return type==='car'?'car':'motorcycle'}
+function vehicleWords(type){const car=normalizeVehicleType(type)==='car';return car?{type:'car',noun:'bil',definite:'bilen',definiteCap:'Bilen',title:'Bil',emoji:'🚗',possessive:'biltur'}:{type:'motorcycle',noun:'motorcykel',definite:'motorcyklen',definiteCap:'Motorcyklen',title:'Motorcykel',emoji:'🏍️',possessive:'motorcykeltur'}}
+function loadVehicleProfiles(){
+  try{const raw=JSON.parse(localStorage.getItem('ridez_vehicle_profiles')||'[]');state.vehicleProfiles=Array.isArray(raw)?raw.filter(v=>v&&v.id).map(v=>({...v,type:normalizeVehicleType(v.type)})):[]}catch(e){state.vehicleProfiles=[]}
+  if(state.activeVehicleId&&!state.vehicleProfiles.some(v=>v.id===state.activeVehicleId))state.activeVehicleId=null;
+}
+function persistVehicleProfiles(){localStorage.setItem('ridez_vehicle_profiles',JSON.stringify(state.vehicleProfiles));if(state.activeVehicleId)localStorage.setItem('ridez_active_vehicle_id',state.activeVehicleId);else localStorage.removeItem('ridez_active_vehicle_id')}
+function activeVehicle(){return state.vehicleProfiles.find(v=>v.id===state.activeVehicleId)||state.vehicleProfiles[0]||null}
+function vehicleDisplayName(v){if(!v)return 'Intet køretøj';const details=[v.make,v.model].filter(Boolean).join(' ');return details?`${v.name} · ${details}`:v.name}
+function createDefaultVehicle(type){const w=vehicleWords(type),v={id:'veh_'+token().slice(0,12),type:w.type,name:w.type==='car'?'Min bil':'Min motorcykel',make:'',model:'',year:null};state.vehicleProfiles.push(v);state.activeVehicleId=v.id;state.preferredVehicleType=v.type;localStorage.setItem('ridez_vehicle_type',v.type);persistVehicleProfiles();return v}
+function ensureActiveVehicle(){let v=activeVehicle();if(!v&&state.preferredVehicleType)v=createDefaultVehicle(state.preferredVehicleType);return v}
+function currentVehicleType(){const v=activeVehicle();return normalizeVehicleType(v?v.type:state.preferredVehicleType)}
+function setupComplete(){return !!state.userName&&['motorcycle','car'].includes(state.preferredVehicleType)&&!!ensureActiveVehicle()}
+function setDriverVehicleCopy(){
+  const w=vehicleWords(currentVehicleType());
+  const tag=$('brandTagline');if(tag)tag.textContent=`Din ${w.noun}. Din verden.`;
+  const notice=$('chatMovingNotice');if(notice)notice.textContent=`${w.definiteCap} er i bevægelse. Chatfunktionen er deaktiveret.`;
+  const copy=$('historyReplayCopy');if(copy)copy.textContent=`Følg ${w.definite} langs den gemte GPS-rute. Vælg selv afspilningshastighed.`;
+  const inst=$('calibrationInstruction');if(inst)inst.textContent=w.type==='car'?'Monter telefonen, som den skal sidde under kørsel, og sørg for, at bilen står stille på et plant underlag.':'Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.';
+  const hint=$('calibrationHint');if(hint)hint.textContent=w.type==='car'?'Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med bilen på et plant underlag, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.':'Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.';
+  syncChatSafetyUi();
+}
+function setViewerVehicleCopy(type){
+  state.viewerVehicleType=normalizeVehicleType(type);const w=vehicleWords(state.viewerVehicleType);
+  const tag=$('brandTagline');if(tag)tag.textContent=`Din ${w.noun}. Din verden.`;
+  const notice=$('viewerChatMovingNotice');if(notice)notice.textContent=`Modtageren kan ikke læse din besked lige nu, da ${w.definite} er i bevægelse. Beskeden bliver leveret, så snart ${w.definite} holder stille.`;
+}
+function syncVehicleUi(){
+  const list=$('vehicleList'),summary=$('activeVehicleSummary'),v=activeVehicle();
+  if(summary)summary.textContent=v?`Aktiv: ${vehicleWords(v.type).emoji} ${vehicleDisplayName(v)}`:'Intet køretøj valgt';
+  if(list){
+    if(!state.vehicleProfiles.length){list.innerHTML='<div class="empty">Ingen køretøjer endnu.</div>'}
+    else list.innerHTML=state.vehicleProfiles.map(x=>{const active=x.id===state.activeVehicleId,w=vehicleWords(x.type),year=x.year?` · ${escapeHtml(String(x.year))}`:'';return `<div class="vehicle-card ${active?'active':''}" data-vehicle-id="${escapeHtml(x.id)}"><div class="vehicle-card-main"><span class="vehicle-card-icon">${w.emoji}</span><div><strong>${escapeHtml(x.name)}</strong><span>${escapeHtml([x.make,x.model].filter(Boolean).join(' ')||w.title)}${year}</span></div></div><div class="vehicle-card-actions"><button class="secondary small-button vehicle-select-btn" type="button" ${active?'disabled':''}>${active?'Aktiv':'Vælg'}</button><button class="secondary small-button vehicle-edit-btn" type="button">Rediger</button><button class="danger small-button vehicle-delete-btn" type="button">Slet</button></div></div>`}).join('');
+  }
+  setDriverVehicleCopy();
+}
+function setActiveVehicle(id){const v=state.vehicleProfiles.find(x=>x.id===id);if(!v)return;if(state.rideId){alert('Afslut den aktive tur, før du skifter køretøj.');return}state.activeVehicleId=v.id;state.preferredVehicleType=v.type;localStorage.setItem('ridez_vehicle_type',v.type);persistVehicleProfiles();syncVehicleUi()}
+function openVehicleDialog(id=null){
+  const dlg=$('vehicleDialog'),v=id?state.vehicleProfiles.find(x=>x.id===id):null;if(state.rideId&&v&&v.id===state.activeVehicleId){alert('Afslut den aktive tur, før du ændrer det aktive køretøj.');return}state.editingVehicleId=v?v.id:null;
+  if($('vehicleDialogTitle'))$('vehicleDialogTitle').textContent=v?'Rediger køretøj':'Tilføj køretøj';
+  if($('vehicleNameInput'))$('vehicleNameInput').value=v?v.name:'';
+  if($('vehicleTypeInput'))$('vehicleTypeInput').value=v?v.type:(state.preferredVehicleType||'motorcycle');
+  if($('vehicleMakeInput'))$('vehicleMakeInput').value=v?v.make||'':'';
+  if($('vehicleModelInput'))$('vehicleModelInput').value=v?v.model||'':'';
+  if($('vehicleYearInput'))$('vehicleYearInput').value=v&&v.year?v.year:'';
+  if($('vehicleFeedback'))$('vehicleFeedback').textContent='';
+  if(dlg&&typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else if(dlg)dlg.setAttribute('open','');
+}
+function closeVehicleDialog(){const dlg=$('vehicleDialog');if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open');state.editingVehicleId=null}
+function saveVehicle(e){
+  if(e&&e.preventDefault)e.preventDefault();const name=($('vehicleNameInput')?.value||'').trim(),type=normalizeVehicleType($('vehicleTypeInput')?.value),make=($('vehicleMakeInput')?.value||'').trim(),model=($('vehicleModelInput')?.value||'').trim(),yearRaw=($('vehicleYearInput')?.value||'').trim(),fb=$('vehicleFeedback');
+  if(!name){if(fb)fb.textContent='Skriv et navn til køretøjet.';return}let year=null;if(yearRaw){year=Number(yearRaw);if(!Number.isInteger(year)||year<1900||year>2100){if(fb)fb.textContent='Årgangen skal være mellem 1900 og 2100.';return}}
+  if(state.editingVehicleId){const v=state.vehicleProfiles.find(x=>x.id===state.editingVehicleId);if(v)Object.assign(v,{name,type,make,model,year})}
+  else{const v={id:'veh_'+token().slice(0,12),name,type,make,model,year};state.vehicleProfiles.push(v);if(!state.activeVehicleId)state.activeVehicleId=v.id}
+  const active=activeVehicle();if(active){state.preferredVehicleType=active.type;localStorage.setItem('ridez_vehicle_type',active.type)}persistVehicleProfiles();closeVehicleDialog();syncVehicleUi();
+}
+function deleteVehicle(id){
+  const v=state.vehicleProfiles.find(x=>x.id===id);if(!v)return;if(state.rideId&&v.id===state.activeVehicleId){alert('Afslut den aktive tur, før du sletter det aktive køretøj.');return}if(state.vehicleProfiles.length<=1){alert('Du skal have mindst ét køretøj i RIDEZ. Rediger det i stedet.');return}if(!confirm(`Slet ${v.name}?`))return;
+  state.vehicleProfiles=state.vehicleProfiles.filter(x=>x.id!==id);if(state.activeVehicleId===id)state.activeVehicleId=state.vehicleProfiles[0]?.id||null;const active=activeVehicle();if(active){state.preferredVehicleType=active.type;localStorage.setItem('ridez_vehicle_type',active.type)}persistVehicleProfiles();syncVehicleUi();
+}
+function initVehicleSettings(){
+  loadVehicleProfiles();if(state.preferredVehicleType&&!state.vehicleProfiles.length)createDefaultVehicle(state.preferredVehicleType);syncVehicleUi();
+  const add=$('addVehicleBtn');if(add)add.onclick=()=>openVehicleDialog();const form=$('vehicleForm');if(form)form.addEventListener('submit',saveVehicle);const cancel=$('vehicleCancelBtn');if(cancel)cancel.onclick=closeVehicleDialog;
+  const list=$('vehicleList');if(list)list.addEventListener('click',e=>{const card=e.target.closest('.vehicle-card');if(!card)return;const id=card.dataset.vehicleId;if(e.target.closest('.vehicle-select-btn'))setActiveVehicle(id);else if(e.target.closest('.vehicle-edit-btn'))openVehicleDialog(id);else if(e.target.closest('.vehicle-delete-btn'))deleteVehicle(id)});
+}
+
 function hav(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
 function showViewerTopSpeed(ride){
   const value=$('viewerTopSpeed'),card=$('viewerTopSpeedCard');if(!value||!card)return;
@@ -366,9 +432,9 @@ function updateCalibrationLive(raw=state.lastRawRoll){
   if(dot)dot.className=`calibration-reading-dot ${level}`;
   if(statusEl){
     if(state.leanCalibration===null){
-      statusEl.textContent=level==='good'?'Telefonen står tæt på 0° – klar til kalibrering.':level==='warn'?'Telefonen står lidt skævt. Hold motorcyklen oprejst og kalibrér.':'Telefonen afviger tydeligt fra 0°. Det er netop denne vinkel, kalibreringen vil gemme som nulpunkt.';
+      {const w=vehicleWords(currentVehicleType());statusEl.textContent=level==='good'?'Telefonen står tæt på 0° – klar til kalibrering.':level==='warn'?(w.type==='car'?'Telefonen står lidt skævt. Sørg for at bilen står plant og kalibrér.':'Telefonen står lidt skævt. Hold motorcyklen oprejst og kalibrér.'):'Telefonen afviger tydeligt fra 0°. Det er netop denne vinkel, kalibreringen vil gemme som nulpunkt.';}
     }else{
-      statusEl.textContent=level==='good'?'Godt – korrigeret måling ligger tæt på 0°.':level==='warn'?'Lille afvigelse fra nulpunktet.':'Tydelig afvigelse fra nulpunktet – kontrollér at motorcyklen står oprejst eller kalibrér igen.';
+      {const w=vehicleWords(currentVehicleType());statusEl.textContent=level==='good'?'Godt – korrigeret måling ligger tæt på 0°.':level==='warn'?'Lille afvigelse fra nulpunktet.':(w.type==='car'?'Tydelig afvigelse fra nulpunktet – kontrollér at bilen står plant eller kalibrér igen.':'Tydelig afvigelse fra nulpunktet – kontrollér at motorcyklen står oprejst eller kalibrér igen.');}
     }
   }
 }
@@ -396,10 +462,10 @@ async function ensureOrientationPermission(){
   if(!state.orientationBound){window.addEventListener('deviceorientation',onDeviceOrientation,true);state.orientationBound=true;}
 }
 async function calibratePhone(){
-  if(state.moving){alert('Kalibrering kan kun udføres, når motorcyklen holder stille.');return}
+  if(state.moving){const w=vehicleWords(currentVehicleType());alert(`Kalibrering kan kun udføres, når ${w.definite} holder stille.`);return}
   const btn=$('calibrateBtn');if(btn){btn.disabled=true;btn.textContent='Kalibrerer…'}
   try{
-    await ensureOrientationPermission();state.calibrationSamples=[];state.calibrating=true;state.calibrationFailed=false;updateCalibrationStatus('Hold motorcyklen helt oprejst…');
+    await ensureOrientationPermission();state.calibrationSamples=[];state.calibrating=true;state.calibrationFailed=false;updateCalibrationStatus(currentVehicleType()==='car'?'Sørg for at bilen står stille på et plant underlag…':'Hold motorcyklen helt oprejst…');
     await new Promise(r=>setTimeout(r,2200));state.calibrating=false;
     const a=state.calibrationSamples.filter(Number.isFinite);if(a.length<4)throw new Error('Der kom ikke nok sensordata. Sørg for, at telefonens bevægelsessensor er tilladt, og prøv igen.');
     // Trim de yderste målinger, så et enkelt ryk ikke flytter nulpunktet.
@@ -444,8 +510,8 @@ function updateRideStats(now,speed){state.maxSpeedMs=Math.max(state.maxSpeedMs,M
 async function rpc(name,args){const{data,error}=await db.rpc(name,args);if(error)throw error;return data}
 function resetDriverTripDisplay({clearMarker=true}={}){resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.replyingMessageId=null;closeReplyDialog();clearActivePhotoMarkers();if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
 function setRideButtons(active){$('startBtn').classList.toggle('hidden',active);$('stopBtn').classList.toggle('hidden',!active);$('shareBtn').classList.toggle('hidden',!active);const photos=$('photoActions');if(photos)photos.classList.toggle('hidden',!active);$('demoBtn').disabled=active&&!state.demo;$('demoType').disabled=active;if(!active){const fb=$('photoFeedback');if(fb)fb.textContent=''}}
-async function createRide(title){state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();try{state.rideId=await rpc('ridez_create_ride_v16',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title})}catch(e){console.error(e);throw new Error('Historik v17 er ikke aktiveret i Supabase endnu. Kør først v16-migrationen og derefter supabase-historik-v17.sql én gang.')}setRideButtons(true);pollMessages()}
-async function startRide(){if(!state.userName){openUsernameDialog(true);throw new Error('Vælg først dit brugernavn.')}requestMessageNotificationPermission();if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
+async function createRide(title){const v=ensureActiveVehicle();if(!v)throw new Error('Vælg først et køretøj i Indstillinger.');state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();try{state.rideId=await rpc('ridez_create_ride_v80',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title,p_vehicle_type:v.type,p_vehicle_name:v.name||'',p_vehicle_make:v.make||'',p_vehicle_model:v.model||'',p_vehicle_year:v.year||null})}catch(e){console.error(e);throw new Error('Køretøjer v80 er ikke aktiveret i Supabase endnu. Kør supabase-koeretoejer-v80.sql én gang.')}setRideButtons(true);pollMessages()}
+async function startRide(){if(!setupComplete()){openUsernameDialog(true);throw new Error('Færdiggør først din RIDEZ-profil.')}requestMessageNotificationPermission();if(!navigator.geolocation){alert('GPS understøttes ikke på denne enhed.');return}stopDemoTimer();state.demo=false;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');resetDriverTripDisplay({clearMarker:true});resetSpeedDemoResults(false);await createRide('RIDEZ live-tur');$('rideStatus').textContent='Starter GPS…';state.watchId=navigator.geolocation.watchPosition(onPosition,onGeoError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
 function onGeoError(e){$('statusDetail').textContent=`GPS-fejl: ${e.message}`}
 async function processPosition(cur,speed,accuracy=5){const now=cur.t||Date.now();if(state.lastPos){const dist=hav(state.lastPos,cur);if(dist<1000&&accuracy<80)state.distanceM+=dist}speed=Math.max(0,speed||0);state.currentSpeedMs=speed;const newTop=speed>state.maxSpeedMs+0.05;updateRideStats(now,speed);updateAccelerationStats(now,speed);if(newTop)schedulePublicTopSpeed();if(speed>=C.MOVING_THRESHOLD_MS){state.stoppedSince=null;setMotion(true)}else if(speed<=C.STOPPED_THRESHOLD_MS){if(!state.stoppedSince)state.stoppedSince=now;if(now-state.stoppedSince>=C.STATIONARY_SECONDS*1000)setMotion(false)}state.lastPos=cur;$('speedValue').textContent=fmtSpeed(speed);applySpeedColor($('speedValue'),speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;updateMap(cur.lat,cur.lng,true);if(now-state.lastUpload>=C.LOCATION_UPLOAD_MS){state.lastUpload=now;try{await rpc('ridez_update_location',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:accuracy});await publishLiveStats()}catch(e){console.error(e)}}}
 async function onPosition(pos){const now=Date.now(),cur={lat:pos.coords.latitude,lng:pos.coords.longitude,t:now,accuracy:pos.coords.accuracy};let speed=Number.isFinite(pos.coords.speed)?Math.max(0,pos.coords.speed):null;if(state.lastPos&&speed===null){const dt=(now-state.lastPos.t)/1000;if(dt>0)speed=hav(state.lastPos,cur)/dt}await processPosition(cur,speed||0,cur.accuracy)}
@@ -649,12 +715,12 @@ function demoPointAt(route,meters){
   const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
   return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
 }
-async function startDemo(){if(!state.userName){openUsernameDialog(true);throw new Error('Vælg først dit brugernavn.')}
+async function startDemo(){if(!setupComplete()){openUsernameDialog(true);throw new Error('Færdiggør først din RIDEZ-profil.')}
   requestMessageNotificationPermission();
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v79';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v80';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
   $('statusDetail').textContent='Demo v76 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
@@ -750,7 +816,7 @@ async function stopRide(){
   }
   resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';await loadHistory()
 }
-async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':'Følg min motorcykeltur live på RIDEZ';if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Følgelink kopieret.')}
+async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;const w=vehicleWords(currentVehicleType());const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':`Følg min ${w.possessive} live på RIDEZ`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Følgelink kopieret.')}
 function requestMessageNotificationPermission(){
   try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{})}catch(e){}
 }
@@ -786,15 +852,15 @@ async function notifyNewDriverMessages(unseen){
   }catch(e){console.warn('Systemnotifikation kunne ikke vises',e)}
 }
 function updateReplyAvailability(){
-  document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?'Chatfunktionen er deaktiveret, mens motorcyklen er i bevægelse.':'Svar på beskeden')});
+  document.querySelectorAll('.message-reply-btn').forEach(btn=>{const canReply=btn.dataset.canReply==='1';btn.disabled=!!state.moving||!canReply;btn.title=!canReply?'Denne ældre besked kan ikke besvares direkte.':(state.moving?`Chatfunktionen er deaktiveret, mens ${vehicleWords(currentVehicleType()).definite} er i bevægelse.`:'Svar på beskeden')});
   const send=$('replySendBtn');if(send)send.disabled=!!state.moving;
-  const hint=$('replySafetyHint');if(hint)hint.textContent=state.moving?'Motorcyklen er i bevægelse. Chatfunktionen er deaktiveret.':'Motorcyklen holder stille – du kan sende svaret.';
+  const hint=$('replySafetyHint');if(hint){const w=vehicleWords(currentVehicleType());hint.textContent=state.moving?`${w.definiteCap} er i bevægelse. Chatfunktionen er deaktiveret.`:`${w.definiteCap} holder stille – du kan sende svaret.`;}
   const movingNotice=$('chatMovingNotice');if(movingNotice)movingNotice.classList.toggle('hidden',!state.moving);
   const messageList=$('messagesList');if(messageList)messageList.classList.toggle('chat-locked-content',!!state.moving);
   if(state.moving&&$('replyDialog')&&$('replyDialog').open)closeReplyDialog();
 }
 function openReplyDialog(messageId){
-  if(state.moving){alert('Du kan først svare, når motorcyklen har holdt stille i mindst 3 sekunder.');return}
+  if(state.moving){const w=vehicleWords(currentVehicleType());alert(`Du kan først svare, når ${w.definite} har holdt stille i mindst 3 sekunder.`);return}
   const msg=state.lastDriverMessages.find(r=>String(r.id)===String(messageId));if(!msg)return;
   state.replyingMessageId=msg.id;
   const to=$('replyToName'),quoted=$('replyQuotedMessage'),body=$('replyBody'),fb=$('replyFeedback'),dlg=$('replyDialog');
@@ -810,7 +876,7 @@ async function sendDriverReply(){
   try{
     await rpc('ridez_driver_reply_v79',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_sender_name:state.userName,p_body:text});
     if(fb)fb.textContent='✓ Svar sendt til følgeren.';if(body)body.value='';setTimeout(closeReplyDialog,650);
-  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?'Motorcyklen skal holde stille, før du kan svare.':'Svaret kunne ikke sendes. Kontroller at v79 SQL-opdateringen er kørt.'}
+  }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?`${vehicleWords(currentVehicleType()).definiteCap} skal holde stille, før du kan svare.`:'Svaret kunne ikke sendes. Kontroller at v79 SQL-opdateringen er kørt.'}
   finally{if(btn){btn.textContent='Send svar';btn.disabled=!!state.moving}}
 }
 async function pollMessages(){
@@ -930,19 +996,19 @@ async function loadHistory(){
   list.className='history-list';
   list.innerHTML='<div class="empty">Henter ture…</div>';
   try{
-    const rows=await rpc('ridez_history_v38',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
+    const rows=await rpc('ridez_history_v80',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
     const visibleRows=rows.filter(r=>!isEmptyRide(r));
     if(!visibleRows.length){list.className='history-list empty';list.textContent='Ingen afsluttede ture endnu.';state.selectedRideIds.clear();state.historySelectMode=false;updateHistorySelectionUi();return}
     list.innerHTML=visibleRows.map(r=>{
       const avgMoving=Number(r.avg_moving_speed_ms||0)*3.6,top=Number(r.max_speed_ms||0)*3.6;
-      return `<div class="history-item" data-ride-id="${r.ride_id}"><button class="history-swipe-delete" type="button" aria-label="Slet tur">Slet</button><div class="history-slide"><label class="history-select-wrap" aria-label="Vælg tur"><input class="history-select-check" type="checkbox"><span></span></label><button class="history-card" type="button"><div><strong>${fmtDate(r.created_at)}</strong><span>${escapeHtml(r.title||'RIDEZ tur')}</span></div><div class="history-summary"><b>${(Number(r.distance_m||0)/1000).toFixed(1).replace('.',',')} km</b><span>${fmtDuration(r.duration_s)}</span><span>Top ${top.toFixed(0)} km/t</span><span>Gns. ${avgMoving.toFixed(0)} km/t</span><span>📷 ${Number(r.photo_count||0)}</span></div></button></div></div>`
+      return `<div class="history-item" data-ride-id="${r.ride_id}"><button class="history-swipe-delete" type="button" aria-label="Slet tur">Slet</button><div class="history-slide"><label class="history-select-wrap" aria-label="Vælg tur"><input class="history-select-check" type="checkbox"><span></span></label><button class="history-card" type="button"><div><strong>${fmtDate(r.created_at)}</strong><span>${vehicleWords(r.vehicle_type).emoji} ${escapeHtml(r.vehicle_name||vehicleWords(r.vehicle_type).title)} · ${escapeHtml(r.title||'RIDEZ tur')}</span></div><div class="history-summary"><b>${(Number(r.distance_m||0)/1000).toFixed(1).replace('.',',')} km</b><span>${fmtDuration(r.duration_s)}</span><span>Top ${top.toFixed(0)} km/t</span><span>Gns. ${avgMoving.toFixed(0)} km/t</span><span>📷 ${Number(r.photo_count||0)}</span></div></button></div></div>`
     }).join('');
     list.querySelectorAll('.history-item').forEach(bindHistoryItem);
     updateHistorySelectionUi();
   }catch(e){console.error(e);list.className='history-list empty';list.textContent='Historik kunne ikke hentes. Kontroller at SQL-opdateringen til Lean & Sving v38 er kørt i Supabase.'}
 }
 // RIDEZ Replay v58
-function replayMotorcycleIcon(){return L.divIcon({className:'ridez-replay-marker-wrap',html:'<div class="ridez-replay-marker">🏍️</div>',iconSize:[44,44],iconAnchor:[22,22]})}
+function replayVehicleIcon(type=state.historyVehicleType){const w=vehicleWords(type);return L.divIcon({className:'ridez-replay-marker-wrap',html:`<div class="ridez-replay-marker">${w.emoji}</div>`,iconSize:[44,44],iconAnchor:[22,22]})}
 function replayPoliceIcon(speedKmh){
   const s=Math.max(0,Math.round(Number(speedKmh)||0));
   return L.divIcon({className:'ridez-rocket-marker-wrap',html:`<div class="ridez-rocket-marker"><span class="rocket-flame" aria-hidden="true">🔥</span><span class="rocket-body" aria-hidden="true">🚀</span><b>TOPFART ${s} km/t</b></div>`,iconSize:[118,70],iconAnchor:[59,35]});
@@ -952,24 +1018,28 @@ function syncUsernameUi(){
   const value=$('settingsUsernameValue');if(value)value.textContent=state.userName||'Ikke angivet';
 }
 function openUsernameDialog(required=false){
-  const dlg=$('usernameDialog'),input=$('usernameInput'),cancel=$('usernameCancelBtn'),title=$('usernameDialogTitle'),fb=$('usernameFeedback');if(!dlg)return;
-  state.usernameRequired=!!required;if(title)title.textContent=required?'Vælg dit brugernavn':'Rediger brugernavn';if(cancel)cancel.classList.toggle('hidden',!!required);if(input)input.value=state.userName||'';if(fb)fb.textContent='';
-  if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','');
-  setTimeout(()=>{if(input)input.focus()},50);
+  const dlg=$('usernameDialog'),input=$('usernameInput'),cancel=$('usernameCancelBtn'),title=$('usernameDialogTitle'),help=$('usernameDialogHelp'),choice=$('setupVehicleChoice'),fb=$('usernameFeedback'),save=$('usernameSaveBtn');if(!dlg)return;
+  state.usernameRequired=!!required;if(title)title.textContent=required?'Opsæt RIDEZ':'Rediger brugernavn';if(help)help.textContent=required?'Vælg dit brugernavn og om du bruger RIDEZ til motorcykel eller bil. Teksterne i appen tilpasses automatisk dit aktive køretøj.':'Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.';if(cancel)cancel.classList.toggle('hidden',!!required);if(choice)choice.classList.toggle('hidden',!required);if(save)save.textContent=required?'Gem og fortsæt':'Gem brugernavn';if(input)input.value=state.userName||'';if(fb)fb.textContent='';
+  if(required){const selected=state.preferredVehicleType||activeVehicle()?.type||'';document.querySelectorAll('input[name="setupVehicleType"]').forEach(r=>r.checked=r.value===selected)}
+  if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','');setTimeout(()=>{if(input)input.focus()},50);
 }
 function closeUsernameDialog(){
-  const dlg=$('usernameDialog');if(state.usernameRequired&&!state.userName)return;if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open','');state.usernameRequired=false;
+  const dlg=$('usernameDialog');if(state.usernameRequired&&!setupComplete())return;if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open','');state.usernameRequired=false;
 }
 function saveUsername(e){
   if(e&&e.preventDefault)e.preventDefault();const input=$('usernameInput'),fb=$('usernameFeedback');const name=(input?input.value:'').trim();
   if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
-  state.userName=name;localStorage.setItem('ridez_username',name);syncUsernameUi();state.usernameRequired=false;closeUsernameDialog();
+  let type=state.preferredVehicleType;
+  if(state.usernameRequired){const checked=document.querySelector('input[name="setupVehicleType"]:checked');if(!checked){if(fb)fb.textContent='Vælg Motorcykel eller Bil.';return}type=normalizeVehicleType(checked.value)}
+  state.userName=name;localStorage.setItem('ridez_username',name);
+  if(state.usernameRequired){state.preferredVehicleType=type;localStorage.setItem('ridez_vehicle_type',type);let v=activeVehicle();if(!v)v=createDefaultVehicle(type);else if(!state.activeVehicleId){state.activeVehicleId=v.id;persistVehicleProfiles()}if(v&&v.type!==type){const match=state.vehicleProfiles.find(x=>x.type===type);if(match)state.activeVehicleId=match.id;else createDefaultVehicle(type)}persistVehicleProfiles();}
+  syncUsernameUi();syncVehicleUi();state.usernameRequired=false;closeUsernameDialog();
 }
 function initUsernameSettings(){
   syncUsernameUi();const edit=$('editUsernameBtn'),form=$('usernameForm'),cancel=$('usernameCancelBtn'),dlg=$('usernameDialog');
   if(edit)edit.onclick=()=>openUsernameDialog(false);if(form)form.addEventListener('submit',saveUsername);if(cancel)cancel.onclick=closeUsernameDialog;
-  if(dlg)dlg.addEventListener('cancel',e=>{if(state.usernameRequired&&!state.userName){e.preventDefault();return}closeUsernameDialog()});
-  if(!state.userName)setTimeout(()=>openUsernameDialog(true),80);
+  if(dlg)dlg.addEventListener('cancel',e=>{if(state.usernameRequired&&!setupComplete()){e.preventDefault();return}closeUsernameDialog()});
+  if(!setupComplete())setTimeout(()=>openUsernameDialog(true),80);
 }
 function openViewerUsernameDialog(){
   const dlg=$('viewerUsernameDialog'),input=$('viewerUsernameInput'),fb=$('viewerUsernameFeedback');if(!dlg)return;
@@ -1077,7 +1147,7 @@ function triggerReplayPolice(p){
   const kmh=Math.max(0,Number(p.speed_ms||0)*3.6),latlng=replayPoliceTrailingLatLng(state.replayIndex,8)||[p.lat,p.lng];
   state.replayPoliceMarker=L.marker(latlng,{icon:replayPoliceIcon(kmh),zIndexOffset:2200,interactive:false}).addTo(state.historyMap);
   playReplayPoliceSound();
-  const status=$('historyReplayStatus');if(status)status.textContent=`🚀 Topfart ${Math.round(kmh)} km/t · raketten følger tæt bag motorcyklen`;
+  const status=$('historyReplayStatus');if(status)status.textContent=`🚀 Topfart ${Math.round(kmh)} km/t · raketten følger tæt bag ${vehicleWords(state.historyVehicleType).definite}`;
   state.replayPoliceTimer=setTimeout(()=>{if(state.historyMap&&state.replayPoliceMarker){try{state.historyMap.removeLayer(state.replayPoliceMarker)}catch(e){}}state.replayPoliceMarker=null;state.replayPoliceTimer=null;stopReplayPoliceSound()},9000);
 }
 function prepareReplayTrack(track){
@@ -1179,7 +1249,7 @@ function scheduleReplayNext(){
 function renderReplayFrame(){
   const p=state.historyTrack[state.replayIndex];if(!p||!state.historyMap)return;
   const latlng=[p.lat,p.lng];
-  if(!state.replayMarker)state.replayMarker=L.marker(latlng,{icon:replayMotorcycleIcon(),zIndexOffset:1000}).addTo(state.historyMap);else state.replayMarker.setLatLng(latlng);
+  if(!state.replayMarker)state.replayMarker=L.marker(latlng,{icon:replayVehicleIcon(),zIndexOffset:1000}).addTo(state.historyMap);else state.replayMarker.setLatLng(latlng);
   if(!state.replayProgressPoints.length)state.replayProgressPoints.push(latlng);else state.replayProgressPoints.push(latlng);
   if(!state.replayProgressLine)state.replayProgressLine=L.polyline(state.replayProgressPoints,{weight:6,color:'#f2b705',opacity:.95}).addTo(state.historyMap);else state.replayProgressLine.setLatLngs(state.replayProgressPoints);
   if(state.replayIndex===0)state.historyMap.setView(latlng,16);else state.historyMap.panTo(latlng,{animate:true,duration:.18});
@@ -1217,18 +1287,19 @@ async function openHistoryRide(rideId){
   $('historyPhotos').innerHTML='<div class="empty">Henter billeder…</div>';
   try{
     const [rows,track,photos]=await Promise.all([
-      rpc('ridez_history_v38',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken})),
+      rpc('ridez_history_v80',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken})),
       rpc('ridez_history_track',{p_owner_token:state.ownerToken,p_ride_id:rideId}),
       rpc('ridez_history_photos',{p_owner_token:state.ownerToken,p_ride_id:rideId})
     ]);
     const ride=rows.find(r=>r.ride_id===rideId);
     if(!ride)throw new Error('Turen findes ikke');
+    state.historyVehicleType=normalizeVehicleType(ride.vehicle_type);const replayCopy=$('historyReplayCopy');if(replayCopy)replayCopy.textContent=`Følg ${vehicleWords(state.historyVehicleType).definite} langs den gemte GPS-rute. Vælg selv afspilningshastighed.`;
     const avgMoving=Number(ride.avg_moving_speed_ms||0)*3.6,top=Number(ride.max_speed_ms||0)*3.6;
     $('historyDetailTitle').textContent=fmtDate(ride.created_at);
-    $('historyDetailMeta').textContent=`${(Number(ride.distance_m||0)/1000).toFixed(1).replace('.',',')} km · samlet ${fmtDuration(ride.duration_s)}`;
+    $('historyDetailMeta').textContent=`${vehicleWords(ride.vehicle_type).emoji} ${ride.vehicle_name||vehicleWords(ride.vehicle_type).title} · ${(Number(ride.distance_m||0)/1000).toFixed(1).replace('.',',')} km · samlet ${fmtDuration(ride.duration_s)}`;
     if($('historyStats'))$('historyStats').innerHTML=`<div><span>Topfart</span><strong>${top.toFixed(0)} km/t</strong></div><div><span>Gns. under kørsel</span><strong>${avgMoving.toFixed(0)} km/t</strong></div><div><span>Kørselstid</span><strong>${fmtDuration(ride.moving_s)}</strong></div><div><span>Stilstand</span><strong>${fmtDuration(ride.stopped_s)}</strong></div>`;
     const histAccel=$('historyAcceleration');if(histAccel){const bestMetric=Number.isFinite(Number(ride.accel_best_80_s))&&ride.accel_best_80_s!==null?{seconds:Number(ride.accel_best_80_s),startKmh:Number(ride.accel_best_80_start_kmh),endKmh:Number(ride.accel_best_80_end_kmh)}:null;const slowMetric=Number.isFinite(Number(ride.accel_slowest_80_s))&&ride.accel_slowest_80_s!==null?{seconds:Number(ride.accel_slowest_80_s),startKmh:Number(ride.accel_slowest_80_start_kmh),endKmh:Number(ride.accel_slowest_80_end_kmh)}:null;histAccel.innerHTML=`<div class="accel-card accel-fast"><div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(bestMetric)}</b></div></div></div><div class="accel-card accel-slow"><div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(slowMetric)}</b></div></div></div>`;}
-    const histLean=$('historyLean');if(histLean){histLean.innerHTML=`<div class="lean-card"><div class="lean-title"><span class="lean-icon">🏍️</span><div><span>LEAN & SVING</span><strong>Turens hældning</strong></div></div><div class="lean-grid"><div class="degree-metric"><span>Maks venstre</span><b>${Math.round(Number(ride.max_lean_left_deg||0))}°</b></div><div class="degree-metric"><span>Maks højre</span><b>${Math.round(Number(ride.max_lean_right_deg||0))}°</b></div><div><span>Venstresving</span><b>${Number(ride.turn_left_count||0)}</b></div><div><span>Højresving</span><b>${Number(ride.turn_right_count||0)}</b></div></div></div>`;}
+    const histLean=$('historyLean');if(histLean){histLean.innerHTML=`<div class="lean-card"><div class="lean-title"><span class="lean-icon">${vehicleWords(ride.vehicle_type).emoji}</span><div><span>LEAN & SVING</span><strong>Turens hældning</strong></div></div><div class="lean-grid"><div class="degree-metric"><span>Maks venstre</span><b>${Math.round(Number(ride.max_lean_left_deg||0))}°</b></div><div class="degree-metric"><span>Maks højre</span><b>${Math.round(Number(ride.max_lean_right_deg||0))}°</b></div><div><span>Venstresving</span><b>${Number(ride.turn_left_count||0)}</b></div><div><span>Højresving</span><b>${Number(ride.turn_right_count||0)}</b></div></div></div>`;}
     if(!state.historyMap){state.historyMap=initMap('historyMap')}else{clearHistoryPhotoMarkers();if(state.historyLine){state.historyMap.removeLayer(state.historyLine);state.historyLine=null}}
     state.historyTrack=prepareReplayTrack(track);
     const pts=state.historyTrack.map(p=>[p.lat,p.lng]);
@@ -1251,7 +1322,7 @@ async function deleteHistoryRide(){
   }catch(e){console.error(e);alert('Turen kunne ikke slettes. Kontroller at v17 SQL-opdateringen er kørt i Supabase.');}
   finally{btn.disabled=false;btn.textContent='Slet tur'}
 }
-function closeHistoryRide(){resetHistoryReplay({restorePhotos:false,fitRoute:false});clearHistoryPhotoMarkers();state.historyTrack=[];state.historyPhotosData=[];$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId=''}
+function closeHistoryRide(){resetHistoryReplay({restorePhotos:false,fitRoute:false});clearHistoryPhotoMarkers();state.historyTrack=[];state.historyPhotosData=[];$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId='';setDriverVehicleCopy()}
 
 function renderViewerConversation(rows){
   const el=$('viewerConversation');if(!el)return;
@@ -1280,18 +1351,19 @@ async function initViewer(){
       const resolvedToken=await resolveViewerRideToken();
       if(!resolvedToken){$('viewerStatus').textContent=demoChannelToken?'Venter på at en demo bliver startet.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
       if(viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide();const chat=$('viewerConversation');if(chat){chat.className='viewer-conversation empty';chat.textContent='Ingen svar fra føreren endnu.'}}
-      const rideResult=await rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken})
+      const rideResult=await rpc('ridez_public_ride_v80',{p_public_token:viewerRideToken})
+        .catch(()=>rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v19',{p_public_token:viewerRideToken}));
       const ride=Array.isArray(rideResult)?rideResult[0]:rideResult;
       if(!ride){$('viewerStatus').textContent=demoChannelToken?'Venter på næste demo.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
-      $('viewerTitle').textContent=ride.title||'RIDEZ live-tur';
+      state.viewerVehicleType=normalizeVehicleType(ride.vehicle_type);setViewerVehicleCopy(state.viewerVehicleType);$('viewerTitle').textContent=ride.title||'RIDEZ live-tur';
       $('viewerSpeed').textContent=fmtSpeed(ride.speed_ms);applySpeedColor($('viewerSpeed'),ride.speed_ms);
       showViewerTopSpeed(ride);
       renderViewerDashboard(ride);
       $('viewerUpdated').textContent=ride.updated_at?new Date(ride.updated_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}):'–';
-      $('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':'Motorcyklen holder stille'):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet');
+      {const w=vehicleWords(state.viewerVehicleType);$('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':`${w.definiteCap} holder stille`):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet');}
       const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;
       const viewerMovingNotice=$('viewerChatMovingNotice');if(viewerMovingNotice)viewerMovingNotice.classList.toggle('hidden',!(ride.active&&ride.moving));
       if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);
@@ -1309,11 +1381,11 @@ async function initViewer(){
       const tokenNow=await resolveViewerRideToken();
       if(!tokenNow){$('sendFeedback').textContent='Der er ingen aktiv demo at sende beskeden til endnu.';return}
       viewerRideToken=tokenNow;
-      let result;try{result=await rpc('ridez_send_message_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body})}catch(e){result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body})}$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?'✓ Beskeden er sat i kø og bliver leveret, så snart motorcyklen holder stille.':'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
+      let result;try{result=await rpc('ridez_send_message_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body})}catch(e){result=await rpc('ridez_send_message',{p_public_token:viewerRideToken,p_sender_name:name,p_body:body})}$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?`✓ Beskeden er sat i kø og bliver leveret, så snart ${vehicleWords(state.viewerVehicleType).definite} holder stille.`:'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();initUsernameSettings();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
+async function initDriver(){$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=()=>stopRide();$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();initVehicleSettings();initUsernameSettings();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;loadHistory()}
 document.addEventListener('click',e=>{
   const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
   if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
@@ -1321,6 +1393,6 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=79').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=80').catch(()=>{}));
 (publicRideToken||demoChannelToken)?initViewer():initDriver();
 })();

@@ -334,3 +334,29 @@
 
 /* RIDEZ v78 - brugernavn / foerstegangsopsaetning */
 .profile-setting-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.profile-setting-row>div{display:grid;gap:4px}.settings-inline-value{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.username-label{display:grid;gap:7px;margin:16px 0 6px;font-size:12px;font-weight:800;color:#d9dce1}.username-label input{width:100%;box-sizing:border-box;background:#1a1e24;color:#fff;border:1px solid #3b414a;border-radius:11px;padding:12px;font:inherit}.username-dialog .feedback{min-height:18px;margin:7px 0 0}.username-dialog .dialog-help{margin-bottom:0}
+
+
+/* v80 - koeretoejer og foerstegangsvalg */
+.setup-vehicle-choice{border:0;padding:0;margin:16px 0 4px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.setup-vehicle-choice.hidden{display:none}
+.setup-vehicle-choice legend{grid-column:1/-1;margin-bottom:8px;font-weight:800}
+.vehicle-type-choice{position:relative;cursor:pointer}
+.vehicle-type-choice input{position:absolute;opacity:0;pointer-events:none}
+.vehicle-type-choice span{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px 12px;border:1px solid #39414d;border-radius:14px;background:#12161b}
+.vehicle-type-choice input:checked+span{border-color:#f2b705;box-shadow:0 0 0 2px rgba(242,183,5,.2);background:#211c0c}
+.vehicle-settings-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.vehicle-settings-head>span{font-size:.92rem;color:#aab3bf}
+.vehicle-list{display:grid;gap:10px}
+.vehicle-card{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:12px;border:1px solid #303844;border-radius:14px;background:#11151a}
+.vehicle-card.active{border-color:#4aa564;box-shadow:inset 3px 0 0 #4aa564}
+.vehicle-card-main{display:flex;align-items:center;gap:10px;min-width:0}
+.vehicle-card-main>div{display:grid;gap:3px;min-width:0}
+.vehicle-card-main strong,.vehicle-card-main span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vehicle-card-main span{color:#aab3bf;font-size:.84rem}
+.vehicle-card-icon{font-size:1.55rem;flex:0 0 auto}
+.vehicle-card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.vehicle-dialog form{min-width:min(520px,calc(100vw - 36px))}
+.vehicle-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vehicle-form-grid label:last-child{grid-column:1/-1}
+.username-label select{width:100%;margin-top:7px;padding:12px;border-radius:12px;border:1px solid #39414d;background:#101419;color:#fff}
+@media(max-width:620px){.vehicle-card{align-items:flex-start;flex-direction:column}.vehicle-card-actions{width:100%;justify-content:flex-start}.vehicle-form-grid{grid-template-columns:1fr}.vehicle-form-grid label:last-child{grid-column:auto}}

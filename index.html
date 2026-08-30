@@ -12,7 +12,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><img src="assets/icon-192.png" alt="RIDEZ"><div><strong>RIDEZ</strong><span>Din motorcykel. Din verden.</span></div></div>
+  <div class="brand"><img src="assets/icon-192.png" alt="RIDEZ"><div><strong>RIDEZ</strong><span id="brandTagline">Din motorcykel. Din verden.</span></div></div>
   <span id="connectionBadge" class="badge">Klar</span>
 </header>
 <main>
@@ -133,7 +133,7 @@
     </details>
 
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v76</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v80</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
         <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
         <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
@@ -158,6 +158,17 @@
         </div>
       </details>
 
+      <details id="vehicleSettingsPanel" class="settings-fold">
+        <summary>
+          <span class="settings-fold-main"><span class="settings-fold-icon">🚘</span><strong>Køretøjer</strong></span>
+          <span class="settings-fold-chevron" aria-hidden="true">›</span>
+        </summary>
+        <div class="settings-fold-body">
+          <div class="vehicle-settings-head"><span id="activeVehicleSummary">Intet køretøj valgt</span><button id="addVehicleBtn" class="secondary small-button" type="button">+ Tilføj</button></div>
+          <div id="vehicleList" class="vehicle-list"></div>
+        </div>
+      </details>
+
       <details id="soundSettingsPanel" class="settings-fold">
         <summary>
           <span class="settings-fold-main"><span class="settings-fold-icon">🔊</span><strong>Lyde</strong></span>
@@ -179,7 +190,7 @@
         <div class="settings-fold-body calibration-fold-body">
           <div class="calibration-inline-status">Kalibrering: <strong id="calibrationStatus" class="setting-status">Ikke kalibreret</strong></div>
           <div class="setting-row calibration-setting-row">
-            <div class="calibration-copy"><p>Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p></div>
+            <div class="calibration-copy"><p id="calibrationInstruction">Monter telefonen, som den skal sidde under kørsel, og hold motorcyklen helt oprejst. Centralstøtteben er en god hjælp.</p></div>
             <button id="calibrateBtn" class="secondary" type="button">Kalibrer telefon</button>
           </div>
           <div class="calibration-live-panel" aria-live="polite">
@@ -189,7 +200,7 @@
               <div><span>Efter kalibrering</span><b id="calibrationCorrectedValue">–</b></div>
             </div>
             <div id="calibrationReadingStatus" class="calibration-reading-status">Venter på telefonens hældningssensor…</div>
-            <p class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
+            <p id="calibrationHint" class="calibration-hint">Rå måling viser telefonens aktuelle vinkel. Når du kalibrerer med motorcyklen oprejst, gemmer RIDEZ denne vinkel som nulpunkt, så den korrigerede måling bliver ca. 0°.</p>
           </div>
         </div>
       </details>
@@ -210,7 +221,7 @@
       </div>
       <div id="historyMap" class="map history-map"></div>
       <section id="historyReplayPanel" class="history-replay-panel" aria-label="Replay af tur">
-        <div class="history-replay-head"><div><span class="eyebrow">REPLAY</span><h3>Se turen igen</h3><p>Følg motorcyklen langs den gemte GPS-rute. Vælg selv afspilningshastighed.</p><div class="replay-rate" aria-label="Afspilningshastighed"><span>Hastighed</span><div class="replay-rate-buttons"><button class="replay-rate-button" type="button" data-replay-rate="1" aria-pressed="false">1×</button><button class="replay-rate-button active" type="button" data-replay-rate="2" aria-pressed="true">2×</button><button class="replay-rate-button" type="button" data-replay-rate="5" aria-pressed="false">5×</button><button class="replay-rate-button" type="button" data-replay-rate="10" aria-pressed="false">10×</button></div></div></div><div class="history-replay-actions"><button id="historyReplayStart" class="primary small-button" type="button">▶ Start Replay</button><button id="historyReplayPause" class="secondary small-button" type="button" disabled>⏸ Pause</button><button id="historyReplayStop" class="secondary small-button" type="button" disabled>■ Stop</button></div></div>
+        <div class="history-replay-head"><div><span class="eyebrow">REPLAY</span><h3>Se turen igen</h3><p id="historyReplayCopy">Følg motorcyklen langs den gemte GPS-rute. Vælg selv afspilningshastighed.</p><div class="replay-rate" aria-label="Afspilningshastighed"><span>Hastighed</span><div class="replay-rate-buttons"><button class="replay-rate-button" type="button" data-replay-rate="1" aria-pressed="false">1×</button><button class="replay-rate-button active" type="button" data-replay-rate="2" aria-pressed="true">2×</button><button class="replay-rate-button" type="button" data-replay-rate="5" aria-pressed="false">5×</button><button class="replay-rate-button" type="button" data-replay-rate="10" aria-pressed="false">10×</button></div></div></div><div class="history-replay-actions"><button id="historyReplayStart" class="primary small-button" type="button">▶ Start Replay</button><button id="historyReplayPause" class="secondary small-button" type="button" disabled>⏸ Pause</button><button id="historyReplayStop" class="secondary small-button" type="button" disabled>■ Stop</button></div></div>
         <div class="history-replay-live"><div><span>Aktuel hastighed</span><strong id="historyReplaySpeed" class="replay-speed speed-green">0 km/t</strong></div><div><span>Kørt i Replay</span><strong id="historyReplayDistance">0,0 km</strong></div><div><span>Turens forløbne tid</span><strong id="historyReplayElapsed">0 sek.</strong></div></div>
         <p id="historyReplayStatus" class="history-replay-status">Klar til Replay.</p>
       </section>
@@ -283,10 +294,31 @@
   <dialog id="usernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn i RIDEZ">
     <form id="usernameForm" method="dialog">
       <div class="dialog-head"><div><span class="eyebrow">RIDEZ PROFIL</span><h2 id="usernameDialogTitle">Vælg dit brugernavn</h2></div><button id="usernameCancelBtn" class="dialog-close" type="button" aria-label="Luk">×</button></div>
-      <p class="dialog-help">Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.</p>
+      <p id="usernameDialogHelp" class="dialog-help">Navnet gemmes på denne telefon og bruges automatisk, når du skriver i RIDEZ-chatten.</p>
       <label class="username-label">Brugernavn<input id="usernameInput" type="text" maxlength="40" autocomplete="name" required placeholder="F.eks. Henning"></label>
+      <fieldset id="setupVehicleChoice" class="setup-vehicle-choice hidden">
+        <legend>Hvad bruger du RIDEZ til?</legend>
+        <label class="vehicle-type-choice"><input type="radio" name="setupVehicleType" value="motorcycle"><span><b>🏍️ Motorcykel</b></span></label>
+        <label class="vehicle-type-choice"><input type="radio" name="setupVehicleType" value="car"><span><b>🚗 Bil</b></span></label>
+      </fieldset>
       <p id="usernameFeedback" class="feedback"></p>
-      <button class="primary dialog-save" type="submit">Gem brugernavn</button>
+      <button id="usernameSaveBtn" class="primary dialog-save" type="submit">Gem profil</button>
+    </form>
+  </dialog>
+
+
+  <dialog id="vehicleDialog" class="ridez-dialog vehicle-dialog" aria-label="Køretøj i RIDEZ">
+    <form id="vehicleForm" method="dialog">
+      <div class="dialog-head"><div><span class="eyebrow">RIDEZ KØRETØJ</span><h2 id="vehicleDialogTitle">Tilføj køretøj</h2></div><button id="vehicleCancelBtn" class="dialog-close" type="button" aria-label="Luk">×</button></div>
+      <label class="username-label">Navn<input id="vehicleNameInput" type="text" maxlength="40" required placeholder="F.eks. Min Tracer"></label>
+      <label class="username-label">Type<select id="vehicleTypeInput" required><option value="motorcycle">Motorcykel</option><option value="car">Bil</option></select></label>
+      <div class="vehicle-form-grid">
+        <label class="username-label">Mærke<input id="vehicleMakeInput" type="text" maxlength="40" placeholder="F.eks. Yamaha"></label>
+        <label class="username-label">Model<input id="vehicleModelInput" type="text" maxlength="40" placeholder="F.eks. Tracer 9"></label>
+        <label class="username-label">Årgang<input id="vehicleYearInput" type="number" min="1900" max="2100" inputmode="numeric" placeholder="2022"></label>
+      </div>
+      <p id="vehicleFeedback" class="feedback"></p>
+      <button class="primary dialog-save" type="submit">Gem køretøj</button>
     </form>
   </dialog>
 
@@ -318,6 +350,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=79"></script>
+<script src="app.js?v=80"></script>
 </body>
 </html>
