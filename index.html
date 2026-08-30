@@ -43,6 +43,18 @@
       <button id="demoBtn" class="demo-button">Start demo</button>
     </section>
 
+    <section class="demo-panel">
+      <div>
+        <strong>🧭 Kortretning</strong>
+        <p>Vælg hvordan kortet vender under kørsel. Valget gemmes på telefonen.</p>
+      </div>
+      <label for="mapOrientation">Kortvisning</label>
+      <select id="mapOrientation">
+        <option value="heading">Køreretning op (standard)</option>
+        <option value="north">Nord op</option>
+      </select>
+    </section>
+
     <div id="driverMap" class="map"></div>
     <div class="stats">
       <div><span>Hastighed</span><strong id="speedValue">0 km/t</strong></div>
@@ -73,6 +85,7 @@
   </section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/@tomickigrzegorz/leaflet-rotate@0.2.4/dist/leaflet-rotate.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
