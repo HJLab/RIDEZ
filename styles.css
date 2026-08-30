@@ -291,3 +291,23 @@
 .calibration-fold-body{border-top:1px solid #292d34}
 .calibration-fold-body .setting-row:first-child{border-top:0}
 .calibration-copy p{margin-top:0}
+
+
+/* RIDEZ v71 - compact settings sections */
+.settings-fold{border-top:1px solid #292d34;background:#12151a}
+.settings-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;cursor:pointer;list-style:none;user-select:none}
+.settings-fold>summary::-webkit-details-marker{display:none}
+.settings-fold-main{display:flex;align-items:center;gap:10px;min-width:0}
+.settings-fold-icon{font-size:20px;line-height:1}
+.settings-fold-main strong{font-size:14px;letter-spacing:.01em}
+.settings-fold-chevron{font-size:25px;line-height:1;color:var(--muted);transition:transform .18s ease}
+.settings-fold[open]>.settings-fold-body{display:block}
+.settings-fold[open]>summary .settings-fold-chevron{transform:rotate(90deg)}
+.settings-fold-body{border-top:1px solid #292d34}
+.settings-fold-body>.setting-row:first-child{border-top:0}
+.calibration-inline-status{padding:11px 14px 0;color:var(--muted);font-size:12px}
+.calibration-inline-status .setting-status{display:inline;font-size:12px;margin-left:4px}
+/* v71 uses the same compact fold shell for phone/sensors; remove the old nested calibration visual. */
+.calibration-fold{border-top:1px solid #292d34;background:#12151a}
+.calibration-fold>summary{padding:14px}
+.calibration-fold-body{border-top:1px solid #292d34}
