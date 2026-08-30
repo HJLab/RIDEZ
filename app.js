@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null};
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 const escapeHtml=s=>(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 function token(){const a=new Uint8Array(24);crypto.getRandomValues(a);return[...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -25,9 +25,40 @@ async function onPosition(pos){const now=Date.now(),cur={lat:pos.coords.latitude
 function stopDemoTimer(){if(state.demoTimer){clearTimeout(state.demoTimer);state.demoTimer=null}}
 function getDemoBase(){return new Promise(resolve=>{if(!navigator.geolocation){resolve({lat:55.6761,lng:12.5683});return}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),()=>resolve({lat:55.6761,lng:12.5683}),{enableHighAccuracy:true,timeout:5000,maximumAge:60000})})}
 function demoSpeed(type,i,total){if(type==='short'){if(i<4||i>total-5)return 0;if(i<10)return 4+(i-4)*1.8;if(i<22)return 14;if(i<27)return 0;if(i<38)return 20;if(i<43)return 4;return 12}if(type==='city'){const cycle=i%24;if(cycle<5)return 0;if(cycle<10)return 4+cycle;if(cycle<18)return 10;if(cycle<22)return 5;return 0}const phase=i%36;if(i<4||i>total-5)return 0;if(phase<8)return 8+phase*1.8;if(phase<28)return 22+6*Math.sin(i/4);return 10}
-function demoPoint(base,type,i){const scale=type==='country'?0.00022:type==='city'?0.00011:0.00014;const angle=i*0.18;const forward=i*scale*0.42;const weave=Math.sin(angle)*scale*4;const weave2=Math.sin(angle*0.55)*scale*2;return{lat:base.lat+forward+weave2,lng:base.lng+forward*0.55+weave,t:Date.now(),accuracy:4}}
-async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoProfile=$('demoType').value;state.demoBase=await getDemoBase();$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');await createRide(`RIDEZ demo · ${state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':'landevej'}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent='Simulerer GPS, hastighed, stop og sving.';const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total),cur=demoPoint(state.demoBase,state.demoProfile,i);await processPosition(cur,speed,4);if(i>=total){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
-async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;stopDemoTimer();try{if(state.driverToken)await rpc('ridez_end_ride',{p_driver_token:state.driverToken})}catch(e){console.error(e)}resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.'}
+function demoWaypoints(base,type){
+  const d=type==='country'?0.022:type==='city'?0.010:0.014;
+  return [
+    [base.lng,base.lat],
+    [base.lng+d*0.35,base.lat+d*0.55],
+    [base.lng+d,base.lat+d*0.45],
+    [base.lng+d*0.85,base.lat-d*0.15],
+    [base.lng+d*0.15,base.lat-d*0.30],
+    [base.lng,base.lat]
+  ];
+}
+async function buildRoadDemoRoute(base,type){
+  const coords=demoWaypoints(base,type).map(p=>p.join(',')).join(';');
+  const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok)throw new Error('Rutetjenesten svarede ikke.');
+  const json=await res.json();
+  const raw=json.routes&&json.routes[0]&&json.routes[0].geometry&&json.routes[0].geometry.coordinates;
+  if(!raw||raw.length<2)throw new Error('Kunne ikke finde en vej-rute til demoen.');
+  const pts=raw.map(([lng,lat])=>({lat,lng}));
+  const cum=[0];
+  for(let i=1;i<pts.length;i++)cum[i]=cum[i-1]+hav(pts[i-1],pts[i]);
+  return{pts,cum,total:cum[cum.length-1]};
+}
+function demoPointAt(route,meters){
+  if(!route||!route.pts.length)return null;
+  const m=Math.max(0,Math.min(meters,route.total));
+  let lo=0,hi=route.cum.length-1;
+  while(lo<hi){const mid=Math.floor((lo+hi)/2);if(route.cum[mid]<m)lo=mid+1;else hi=mid}
+  const i=Math.max(1,lo),a=route.pts[i-1],b=route.pts[i],seg=route.cum[i]-route.cum[i-1]||1,f=(m-route.cum[i-1])/seg;
+  return{lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,t:Date.now(),accuracy:4};
+}
+async function startDemo(){if(state.rideId){alert('Afslut den aktive tur først.');return}resetDriverTripDisplay({clearMarker:true});state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;state.demoBase=await getDemoBase();$('demoBadge').classList.remove('hidden');$('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');$('rideStatus').textContent='Finder vej-rute…';$('statusDetail').textContent='Demo Mode finder en rigtig rute på vejnettet.';try{state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile)}catch(e){state.demo=false;state.demoRoute=null;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Kunne ikke finde en vej-rute til demoen.';throw e}await createRide(`RIDEZ demo · ${state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':'landevej'}`);$('rideStatus').textContent='Demo starter…';$('statusDetail').textContent='Simulerer en tur på rigtige veje med hastighed og stop.';const total=state.demoProfile==='short'?60:state.demoProfile==='city'?90:90;async function tick(){if(!state.demo||!state.rideId)return;const i=state.demoIndex++,speed=demoSpeed(state.demoProfile,i,total);state.demoTravelM+=speed;const cur=demoPointAt(state.demoRoute,state.demoTravelM);if(!cur){await stopRide();return}await processPosition(cur,speed,4);if(i>=total||state.demoTravelM>=state.demoRoute.total-5){await stopRide();return}state.demoTimer=setTimeout(tick,1000)}await tick()}
+async function stopRide(){if(state.watchId!==null)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;stopDemoTimer();try{if(state.driverToken)await rpc('ridez_end_ride',{p_driver_token:state.driverToken})}catch(e){console.error(e)}resetDriverTripDisplay({clearMarker:true});state.rideId=null;state.publicToken=null;state.driverToken=null;localStorage.removeItem('ridez_driver_token');state.demo=false;state.demoIndex=0;state.demoBase=null;state.demoProfile=null;state.demoRoute=null;state.demoTravelM=0;$('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');setRideButtons(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.';setMotion(false);$('rideStatus').textContent='Ikke startet';$('statusDetail').textContent='Start en tur for at dele din position.'}
 async function shareRide(){const url=`${location.origin}${location.pathname}?ride=${encodeURIComponent(state.publicToken)}`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text:'Følg min motorcykeltur live på RIDEZ',url});return}catch(e){}}await navigator.clipboard.writeText(url);alert('Følgelink kopieret.')}
 async function pollMessages(){if(!state.driverToken||!state.rideId)return;try{const rows=await rpc('ridez_driver_messages',{p_driver_token:state.driverToken});$('messageCount').textContent=rows.length;const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));if(!state.moving&&unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([120,80,120])}else if(!state.moving)renderMessages(rows)}catch(e){console.error(e)}if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)}
 function renderMessages(rows){const el=$('messagesList');if(!rows.length){el.className='empty';el.textContent='Ingen beskeder endnu.';return}el.className='';el.innerHTML=rows.map(r=>`<div class="message"><div class="meta"><strong>${escapeHtml(r.sender_name)}</strong> · ${new Date(r.created_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</div><div>${escapeHtml(r.body)}</div></div>`).join('')}
