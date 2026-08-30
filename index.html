@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=59">
+  <link rel="stylesheet" href="styles.css?v=60">
 </head>
 <body>
 <header class="topbar">
@@ -124,7 +124,7 @@
     </details>
 
     <section id="speedDemoResults" class="speed-demo-results hidden">
-      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v59</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
+      <div class="speed-demo-heading"><div><span class="eyebrow">SPEED DEMO · v60</span><h2>Acceleration 0–80 km/t / 0–100 km/t</h2><p class="speed-demo-note">3 forsøg på ca. 18 sekunder. Resultater kommer frem med det samme.</p></div><strong id="speedDemoLive">Klar til første acceleration</strong></div>
       <div class="speed-demo-summary">
         <div><span>Bedste 0–80 km/t</span><strong id="speedBest80">–</strong></div>
         <div><span>Bedste 0–100 km/t</span><strong id="speedBest100">–</strong></div>
@@ -169,7 +169,7 @@
       </div>
       <div id="historyMap" class="map history-map"></div>
       <section id="historyReplayPanel" class="history-replay-panel" aria-label="Replay af tur">
-        <div class="history-replay-head"><div><span class="eyebrow">REPLAY</span><h3>Se turen igen</h3><p>Følg motorcyklen langs den gemte GPS-rute. Replay afspilles 20× hurtigere end turens virkelige tid.</p></div><div class="history-replay-actions"><button id="historyReplayStart" class="primary small-button" type="button">▶ Start Replay</button><button id="historyReplayPause" class="secondary small-button" type="button" disabled>⏸ Pause</button><button id="historyReplayStop" class="secondary small-button" type="button" disabled>■ Stop</button><label class="replay-sound-toggle"><input id="historyReplayPoliceSound" type="checkbox" checked> 🔊 Politilyd</label></div></div>
+        <div class="history-replay-head"><div><span class="eyebrow">REPLAY</span><h3>Se turen igen</h3><p>Følg motorcyklen langs den gemte GPS-rute. Vælg selv afspilningshastighed.</p><div class="replay-rate" aria-label="Afspilningshastighed"><span>Hastighed</span><div class="replay-rate-buttons"><button class="replay-rate-button" type="button" data-replay-rate="1" aria-pressed="false">1×</button><button class="replay-rate-button active" type="button" data-replay-rate="2" aria-pressed="true">2×</button><button class="replay-rate-button" type="button" data-replay-rate="5" aria-pressed="false">5×</button><button class="replay-rate-button" type="button" data-replay-rate="10" aria-pressed="false">10×</button></div></div></div><div class="history-replay-actions"><button id="historyReplayStart" class="primary small-button" type="button">▶ Start Replay</button><button id="historyReplayPause" class="secondary small-button" type="button" disabled>⏸ Pause</button><button id="historyReplayStop" class="secondary small-button" type="button" disabled>■ Stop</button><label class="replay-sound-toggle"><input id="historyReplayPoliceSound" type="checkbox" checked> 🔊 Politilyd</label></div></div>
         <div class="history-replay-live"><div><span>Aktuel hastighed</span><strong id="historyReplaySpeed" class="replay-speed speed-green">0 km/t</strong></div><div><span>Kørt i Replay</span><strong id="historyReplayDistance">0,0 km</strong></div><div><span>Turens forløbne tid</span><strong id="historyReplayElapsed">0 sek.</strong></div></div>
         <p id="historyReplayStatus" class="history-replay-status">Klar til Replay.</p>
       </section>
@@ -241,6 +241,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=59"></script>
+<script src="app.js?v=60"></script>
 </body>
 </html>
