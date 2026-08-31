@@ -1,0 +1,17 @@
+RIDEZ Forbrug & Hoejde v97 - kontrol
+=====================================
+
+Kontrolleret 31-08-2026:
+- app.js og sw.js bestaar Node syntakskontrol.
+- index.html, app.js og service worker bruger v97.
+- Ingen duplikerede HTML-id'er.
+- Nye felter findes for teoretisk forbrug, Blyfri 95-pris, estimeret pris, hoejeste punkt og under havniveau.
+- Koeretoejsprofil kan gemme teoretisk forbrug i l/100 km.
+- Supabase SQL har matchende returkolonner/select-kolonner for ridez_resume_ride_v97 og ridez_history_v97.
+- Ho.ejde batch'es og gemmes som turens maks/min via ridez_update_elevation_v97.
+- Under-havniveau-feltet er skjult, medmindre min_elevation_m < 0.
+- Dagspris-funktionen bruger OK's offentlige fuel-prices API og medianen af aktuelle Blyfri 95-priser.
+- Ho.ejde-funktionen bruger Open-Meteo Elevation API / Copernicus DEM og sender koordinater i batches.
+
+Bemærkning:
+Direkte browserkald til eksterne API'er kan foerst ende-to-end-testes paa den rigtige GitHub Pages-side/telefon. Hvis en udbyder senere aendrer CORS eller API-format, skal kaldet evt. flyttes til en server/Edge Function.
