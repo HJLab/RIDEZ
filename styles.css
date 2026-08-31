@@ -388,3 +388,5 @@
 .settings-panel.calibration-working>summary .settings-calibration-dot{display:none}
 .settings-panel.calibration-missing>summary .settings-summary-label{color:#e11d24;animation:ridezCalibrationAlert 1.35s ease-in-out infinite}
 .settings-panel.calibration-missing>summary .settings-calibration-dot{display:inline-block;background:#e11d24;box-shadow:0 0 0 3px rgba(225,29,36,.16);animation:ridezCalibrationDot 1.35s ease-in-out infinite}
+
+/* RIDEZ v92 - feltstabilitet: manuel kortstyring respekteres i 15 sekunder; GPS-hop filtreres i app.js. */
