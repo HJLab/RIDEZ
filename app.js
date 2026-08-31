@@ -6,8 +6,8 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const APP_VERSION='95';
-const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle',tripLength:(['day','weekend','7days','14days'].includes(localStorage.getItem('ridez_trip_length'))?localStorage.getItem('ridez_trip_length'):'day'),profileReady:false,mapFollowHoldUntil:0,lastSessionPersist:0,gpsRejectCount:0,resumingRide:false,gpsMode:'high',lastLowMapPoint:0};
+const APP_VERSION='96';
+const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle',tripLength:(['day','weekend','7days','14days'].includes(localStorage.getItem('ridez_trip_length'))?localStorage.getItem('ridez_trip_length'):'day'),profileReady:false,mapFollowHoldUntil:0,lastSessionPersist:0,gpsRejectCount:0,resumingRide:false,gpsMode:'high',lastLowMapPoint:0,tripDayNumber:1,tripSegmentNumber:1,segmentUploadCount:0,tripStartLocalDate:null,lastAcceptedAt:0,lastMovementAt:0,historyDays:[],historySelectedDay:0,historySelectedRide:null,historyAllPhotos:[],historyLines:[],viewerDayNumber:0,activeRouteLines:[],activeSegmentKey:null,viewerRouteLines:[]};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 function applySpeedColor(el,speedMs){
   if(!el)return;
@@ -245,11 +245,16 @@ function initMap(id){
   }
   return m;
 }
+function clearActiveRouteLines(){if(!state.map)return;(state.activeRouteLines||[]).forEach(line=>{try{state.map.removeLayer(line)}catch(e){}});state.activeRouteLines=[];state.line=null;state.points=[];state.activeSegmentKey=null}
 function updateMap(lat,lng,follow=true,appendPoint=true){
-  if(!state.map)return;
-  const p=[lat,lng];
+  if(!state.map)return;const p=[lat,lng];
   if(!state.marker)state.marker=L.circleMarker(p,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(p);
-  if(appendPoint){state.points.push(p);if(!state.line)state.line=L.polyline(state.points,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.map);else state.line.setLatLngs(state.points)}
+  if(appendPoint){
+    const partitioned=!!state.rideId&&!publicRideToken&&!demoChannelToken;
+    if(partitioned){const key=`${state.tripDayNumber}:${state.tripSegmentNumber}`;if(state.activeSegmentKey!==key){state.activeSegmentKey=key;state.points=[];state.line=null}}
+    state.points.push(p);
+    if(!state.line){state.line=L.polyline(state.points,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.map);if(partitioned)state.activeRouteLines.push(state.line)}else state.line.setLatLngs(state.points)
+  }
   if(follow&&Date.now()>=state.mapFollowHoldUntil)state.map.setView(p,16,{animate:true});
 }
 function photoMarkerIcon(){return L.divIcon({className:'ridez-photo-marker-wrap',html:'<div class="ridez-photo-marker"><span>📷</span></div>',iconSize:[38,38],iconAnchor:[19,34],popupAnchor:[0,-30]})}
@@ -296,7 +301,7 @@ async function handleRidePhoto(file,source){
     const path=`v55/${state.rideId}/${token()}.jpg`;
     const {error:uploadError}=await db.storage.from('ridez-photos').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000',upsert:false});
     if(uploadError)throw uploadError;
-    try{await rpc('ridez_register_photo_v55',{p_driver_token:state.driverToken,p_storage_path:path,p_lat:pos.lat,p_lng:pos.lng,p_captured_at:capturedAt.toISOString()})}
+    try{await rpc('ridez_register_photo_v96',{p_driver_token:state.driverToken,p_storage_path:path,p_lat:pos.lat,p_lng:pos.lng,p_captured_at:capturedAt.toISOString(),p_day_number:state.tripDayNumber})}
     catch(e){try{await db.storage.from('ridez-photos').remove([path])}catch(ignore){};throw e}
     const url=photoPublicUrl(path);addActivePhotoMarker(pos.lat,pos.lng,url,capturedAt.toISOString());
     setPhotoBusy(false,'✓ Billedet er gemt på turen.');
@@ -590,13 +595,24 @@ function demoLean(type,t,total,speedMs){
   if(type==='city')return 24*Math.sin(t*0.62);
   return 24*Math.sin(t*0.48);
 }
-function updateRideStats(now,speed){state.maxSpeedMs=Math.max(state.maxSpeedMs,Math.max(0,speed||0));if(state.statsLastT!==null){const dt=Math.max(0,Math.min(now-state.statsLastT,15000));if(speed>C.STOPPED_THRESHOLD_MS)state.movingMs+=dt;else state.stoppedMs+=dt}state.statsLastT=now;const top=$('topSpeedValue'),moving=$('movingTimeValue'),stopped=$('stoppedTimeValue');if(top)top.textContent=fmtSpeed(state.maxSpeedMs);if(moving)moving.textContent=fmtDuration(state.movingMs/1000);if(stopped)stopped.textContent=fmtDuration(state.stoppedMs/1000)}
+function updateRideStats(now,speed){state.maxSpeedMs=Math.max(state.maxSpeedMs,Math.max(0,speed||0));if(state.statsLastT!==null){const maxGap=state.gpsMode==='low'?90000:30000;const dt=Math.max(0,Math.min(now-state.statsLastT,maxGap));if(speed>C.STOPPED_THRESHOLD_MS)state.movingMs+=dt;else state.stoppedMs+=dt}state.statsLastT=now;const top=$('topSpeedValue'),moving=$('movingTimeValue'),stopped=$('stoppedTimeValue');if(top)top.textContent=fmtSpeed(state.maxSpeedMs);if(moving)moving.textContent=fmtDuration(state.movingMs/1000);if(stopped)stopped.textContent=fmtDuration(state.stoppedMs/1000)}
 async function rpc(name,args){const{data,error}=await db.rpc(name,args);if(error)throw error;return data}
+async function fetchTrackPages(name,baseArgs,{pageSize=1000,maxPages=40,afterId=0}={}){
+  const all=[];let cursor=Math.max(0,Number(afterId)||0);
+  for(let page=0;page<maxPages;page++){
+    const rows=await rpc(name,{...baseArgs,p_after_id:cursor,p_limit:pageSize});
+    const list=Array.isArray(rows)?rows:[];if(!list.length)break;
+    all.push(...list);
+    const ids=list.map(r=>Number(r.point_id)).filter(Number.isFinite);const next=ids.length?Math.max(...ids):cursor;
+    if(next<=cursor||list.length<pageSize)break;cursor=next;
+  }
+  return all;
+}
 const ACTIVE_RIDE_SESSION_KEY='ridez_active_ride_v92';
 function persistActiveRideSession(force=false){
   if(state.demo||!state.driverToken||!state.publicToken||!state.rideId)return;
   const now=Date.now();if(!force&&now-state.lastSessionPersist<1500)return;state.lastSessionPersist=now;
-  const payload={rideId:state.rideId,driverToken:state.driverToken,publicToken:state.publicToken,startedAt:state.rideStartedAt,ownerToken:ensureOwnerToken(),vehicleId:state.activeVehicleId,distanceM:state.distanceM,maxSpeedMs:state.maxSpeedMs,movingMs:state.movingMs,stoppedMs:state.stoppedMs,maxLeanLeftDeg:state.maxLeanLeftDeg,maxLeanRightDeg:state.maxLeanRightDeg,leftTurnCount:state.leftTurnCount,rightTurnCount:state.rightTurnCount,savedAt:now};
+  const payload={rideId:state.rideId,driverToken:state.driverToken,publicToken:state.publicToken,startedAt:state.rideStartedAt,ownerToken:ensureOwnerToken(),vehicleId:state.activeVehicleId,distanceM:state.distanceM,maxSpeedMs:state.maxSpeedMs,movingMs:state.movingMs,stoppedMs:state.stoppedMs,maxLeanLeftDeg:state.maxLeanLeftDeg,maxLeanRightDeg:state.maxLeanRightDeg,leftTurnCount:state.leftTurnCount,rightTurnCount:state.rightTurnCount,tripLength:state.tripLength,tripDayNumber:state.tripDayNumber,tripSegmentNumber:state.tripSegmentNumber,segmentUploadCount:state.segmentUploadCount,tripStartLocalDate:state.tripStartLocalDate,savedAt:now};
   try{localStorage.setItem(ACTIVE_RIDE_SESSION_KEY,JSON.stringify(payload))}catch(e){console.warn('Aktiv tur kunne ikke sikkerhedsgemmes lokalt',e)}
 }
 function readActiveRideSession(){
@@ -607,15 +623,21 @@ function clearActiveRideSession(){try{localStorage.removeItem(ACTIVE_RIDE_SESSIO
 async function loadExistingActiveTrack(){
   if(!state.publicToken||!state.map)return;
   try{
-    const rows=await rpc('ridez_public_track',{p_public_token:state.publicToken});
-    const pts=(Array.isArray(rows)?rows:[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))).map(p=>[Number(p.lat),Number(p.lng)]);
-    if(!pts.length)return;
-    state.points=pts;
-    if(state.line)state.map.removeLayer(state.line);
-    state.line=L.polyline(state.points,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.map);
-    const last=pts[pts.length-1];
-    if(!state.marker)state.marker=L.circleMarker(last,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(last);
-    state.map.setView(last,16,{animate:false});
+    let rows;
+    try{rows=await fetchTrackPages('ridez_public_track_v96',{p_public_token:state.publicToken,p_day_number:state.tripDayNumber},{pageSize:1000,maxPages:30})}
+    catch(e){rows=await rpc('ridez_public_track',{p_public_token:state.publicToken})}
+    const list=(Array.isArray(rows)?rows:[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)));
+    if(!list.length)return;
+    clearActiveRouteLines();let currentKey='',currentPoints=[],currentLine=null;
+    for(const row of list){
+      const key=`${Number(row.day_number)||state.tripDayNumber}:${Number(row.segment_number)||1}`;
+      if(key!==currentKey){currentKey=key;currentPoints=[];currentLine=L.polyline(currentPoints,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.map);state.activeRouteLines.push(currentLine)}
+      currentPoints.push([Number(row.lat),Number(row.lng)]);currentLine.setLatLngs(currentPoints);
+    }
+    state.activeSegmentKey=currentKey;state.points=currentPoints;state.line=currentLine;
+    const last=list[list.length-1],lastPos=[Number(last.lat),Number(last.lng)];
+    if(!state.marker)state.marker=L.circleMarker(lastPos,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(lastPos);
+    state.map.setView(lastPos,16,{animate:false});
   }catch(e){console.warn('Eksisterende rute kunne ikke genindlæses',e)}
 }
 async function resumeInterruptedRide(){
@@ -623,22 +645,42 @@ async function resumeInterruptedRide(){
   const saved=readActiveRideSession();if(!saved)return false;
   state.resumingRide=true;
   try{
-    const data=await rpc('ridez_resume_ride_v92',{p_owner_token:ensureOwnerToken(),p_driver_token:saved.driverToken});
+    let data;try{data=await rpc('ridez_resume_ride_v96',{p_owner_token:ensureOwnerToken(),p_driver_token:saved.driverToken})}catch(e){data=await rpc('ridez_resume_ride_v92',{p_owner_token:ensureOwnerToken(),p_driver_token:saved.driverToken})}
     const ride=Array.isArray(data)?data[0]:data;
     if(!ride){clearActiveRideSession();localStorage.removeItem('ridez_driver_token');return false}
     state.rideId=ride.ride_id||saved.rideId;state.driverToken=saved.driverToken;state.publicToken=ride.public_token||saved.publicToken;state.rideStartedAt=Number(saved.startedAt)||new Date(ride.created_at).getTime()||Date.now();
     state.distanceM=Math.max(Number(saved.distanceM)||0,Number(ride.distance_m)||0);state.maxSpeedMs=Math.max(Number(saved.maxSpeedMs)||0,Number(ride.max_speed_ms)||0);state.movingMs=Math.max(Number(saved.movingMs)||0,(Number(ride.moving_s)||0)*1000);state.stoppedMs=Math.max(Number(saved.stoppedMs)||0,(Number(ride.stopped_s)||0)*1000);
     state.maxLeanLeftDeg=Math.max(Number(saved.maxLeanLeftDeg)||0,Number(ride.max_lean_left_deg)||0);state.maxLeanRightDeg=Math.max(Number(saved.maxLeanRightDeg)||0,Number(ride.max_lean_right_deg)||0);state.leftTurnCount=Math.max(Number(saved.leftTurnCount)||0,Number(ride.turn_left_count)||0);state.rightTurnCount=Math.max(Number(saved.rightTurnCount)||0,Number(ride.turn_right_count)||0);
-    state.lastPos=null;state.lastUpload=0;state.statsLastT=Date.now();state.demo=false;localStorage.setItem('ridez_driver_token',state.driverToken);setRideButtons(true);$('rideStatus').textContent='Tur fortsætter';$('statusDetail').textContent='RIDEZ har genfundet den aktive tur efter genåbning.';
-    await loadExistingActiveTrack();
-    if(navigator.geolocation)startGpsWatch('high');
-    persistActiveRideSession(true);return true;
+    const bestSec=Number(ride.accel_best_80_s),bestStart=Number(ride.accel_best_80_start_kmh),bestEnd=Number(ride.accel_best_80_end_kmh);if(Number.isFinite(bestSec)&&bestSec>0&&Number.isFinite(bestStart)&&Number.isFinite(bestEnd))state.accelBest80={seconds:bestSec,startKmh:bestStart,endKmh:bestEnd};
+    const slowSec=Number(ride.accel_slowest_80_s),slowStart=Number(ride.accel_slowest_80_start_kmh),slowEnd=Number(ride.accel_slowest_80_end_kmh);if(Number.isFinite(slowSec)&&slowSec>0&&Number.isFinite(slowStart)&&Number.isFinite(slowEnd))state.accelSlow80={seconds:slowSec,startKmh:slowStart,endKmh:slowEnd};
+    if(ride.accel_0_80_s!==null&&Number.isFinite(Number(ride.accel_0_80_s)))state.accelBest080=Number(ride.accel_0_80_s);if(ride.accel_0_100_s!==null&&Number.isFinite(Number(ride.accel_0_100_s)))state.accelBest0100=Number(ride.accel_0_100_s);
+    state.tripLength=['day','weekend','7days','14days'].includes(ride.trip_length_code)?ride.trip_length_code:(saved.tripLength||state.tripLength);
+    const dbDay=Math.max(1,Number(ride.current_day_number)||Number(saved.tripDayNumber)||1),calculatedDay=calculateTripDayNumber(Date.now());
+    state.tripDayNumber=Math.max(calculatedDay,dbDay);
+    state.tripSegmentNumber=state.tripDayNumber>dbDay?1:Math.max(1,Number(ride.current_segment_number)||Number(saved.tripSegmentNumber)||1);
+    const lastPointAt=ride.last_point_at?new Date(ride.last_point_at).getTime():0;
+    if(state.tripDayNumber===dbDay&&lastPointAt&&Date.now()-lastPointAt>=MULTIDAY_SEGMENT_STOP_MS)state.tripSegmentNumber++;
+    state.segmentUploadCount=state.tripDayNumber===dbDay&&state.tripSegmentNumber===Number(ride.current_segment_number)?Math.max(0,Number(saved.segmentUploadCount)||0,Number(ride.current_segment_point_count)||0):0;
+    state.tripStartLocalDate=saved.tripStartLocalDate||localDateKey(state.rideStartedAt);localStorage.setItem('ridez_trip_length',state.tripLength);updateTripProgressBadge(true);
+    state.lastPos=null;state.lastUpload=0;state.statsLastT=Date.now();state.demo=false;localStorage.setItem('ridez_driver_token',state.driverToken);setRideButtons(true);$('rideStatus').textContent='Tur fortsætter';$('statusDetail').textContent=`RIDEZ har genfundet ${tripLengthLabel(state.tripLength).toLowerCase()}en · dag ${state.tripDayNumber}.`;
+    $('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;if($('topSpeedValue'))$('topSpeedValue').textContent=fmtSpeed(state.maxSpeedMs);if($('movingTimeValue'))$('movingTimeValue').textContent=fmtDuration(state.movingMs/1000);if($('stoppedTimeValue'))$('stoppedTimeValue').textContent=fmtDuration(state.stoppedMs/1000);renderAccelerationSummary();renderLeanSummary();
+    await loadExistingActiveTrack();if(navigator.geolocation)startGpsWatch('high');persistActiveRideSession(true);return true;
   }catch(e){console.warn('Aktiv tur kunne ikke genoptages',e);return false}
   finally{state.resumingRide=false}
 }
-function resetDriverTripDisplay({clearMarker=true}={}){resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.gpsMode='high';state.lastLowMapPoint=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.replyingMessageId=null;closeReplyDialog();clearActivePhotoMarkers();if(state.line&&state.map){state.map.removeLayer(state.line);state.line=null}if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
+function resetDriverTripDisplay({clearMarker=true}={}){updateTripProgressBadge(false);resetAccelerationStats();resetLeanStats();state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.gpsMode='high';state.lastLowMapPoint=0;state.tripDayNumber=1;state.tripSegmentNumber=1;state.segmentUploadCount=0;state.tripStartLocalDate=null;state.lastAcceptedAt=0;state.lastMovementAt=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.replyingMessageId=null;closeReplyDialog();clearActivePhotoMarkers();clearActiveRouteLines();if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}}
 function setRideButtons(active){$('startBtn').classList.toggle('hidden',active);$('stopBtn').classList.toggle('hidden',!active);$('shareBtn').classList.toggle('hidden',!active);const photos=$('photoActions');if(photos)photos.classList.toggle('hidden',!active);$('demoBtn').disabled=active&&!state.demo;$('demoType').disabled=active;if(!active){const fb=$('photoFeedback');if(fb)fb.textContent=''}}
-async function createRide(title){const v=ensureActiveVehicle();if(!v)throw new Error('Vælg først et køretøj i Indstillinger.');state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();try{state.rideId=await rpc('ridez_create_ride_v80',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title,p_vehicle_type:v.type,p_vehicle_name:v.name||'',p_vehicle_make:v.make||'',p_vehicle_model:v.model||'',p_vehicle_year:v.year||null})}catch(e){console.error(e);throw new Error('Køretøjer v80 er ikke aktiveret i Supabase endnu. Kør supabase-koeretoejer-v80.sql én gang.')}setRideButtons(true);persistActiveRideSession(true);pollMessages()}
+async function createRide(title){
+  const v=ensureActiveVehicle();if(!v)throw new Error('Vælg først et køretøj i Indstillinger.');
+  state.driverToken=token();state.publicToken=token();state.rideStartedAt=Date.now();state.tripDayNumber=1;state.tripSegmentNumber=1;state.segmentUploadCount=0;state.tripStartLocalDate=localDateKey(state.rideStartedAt);localStorage.setItem('ridez_driver_token',state.driverToken);ensureOwnerToken();
+  try{
+    state.rideId=await rpc('ridez_create_ride_v96',{p_owner_token:state.ownerToken,p_driver_token:state.driverToken,p_public_token:state.publicToken,p_title:title,p_vehicle_type:v.type,p_vehicle_name:v.name||'',p_vehicle_make:v.make||'',p_vehicle_model:v.model||'',p_vehicle_year:v.year||null,p_trip_length_code:state.tripLength});
+  }catch(e){
+    console.error(e);state.rideId=null;state.publicToken=null;state.driverToken=null;state.rideStartedAt=null;localStorage.removeItem('ridez_driver_token');updateTripProgressBadge(false);
+    throw new Error('Flerdagsture v96 er ikke aktiveret i Supabase endnu. Kør supabase-flerdagsture-v96.sql én gang.');
+  }
+  updateTripProgressBadge(true);setRideButtons(true);persistActiveRideSession(true);pollMessages();
+}
 const GPS_IDLE_AFTER_MS=5*60*1000;
 const GPS_LOW_UPLOAD_MS=60000;
 function clearGpsWatch(){
@@ -690,22 +732,15 @@ function gpsPointAcceptable(cur,accuracy,speed){
 }
 async function processPosition(cur,speed,accuracy=5){
   const now=cur.t||Date.now();accuracy=Number.isFinite(Number(accuracy))?Number(accuracy):999;cur.accuracy=accuracy;
-  if(!gpsPointAcceptable(cur,accuracy,speed)){
-    state.gpsRejectCount++;if(state.gpsRejectCount===1||state.gpsRejectCount%5===0)$('statusDetail').textContent=`GPS-punkt ignoreret pga. lav præcision (${Math.round(accuracy)} m). RIDEZ fortsætter automatisk.`;
-    return;
-  }
-  state.gpsRejectCount=0;
-  const previousPos=state.lastPos;
-  speed=Math.max(0,Number(speed)||0);
+  if(!gpsPointAcceptable(cur,accuracy,speed)){state.gpsRejectCount++;if(state.gpsRejectCount===1||state.gpsRejectCount%5===0)$('statusDetail').textContent=`GPS-punkt ignoreret pga. lav præcision (${Math.round(accuracy)} m). RIDEZ fortsætter automatisk.`;return}
+  state.gpsRejectCount=0;const previousPos=state.lastPos;speed=Math.max(0,Number(speed)||0);syncTripPartition(now,speed);
   if(previousPos){const dist=hav(previousPos,cur);const lowPowerStationary=state.gpsMode==='low'&&speed<=C.STOPPED_THRESHOLD_MS;if(dist<1000&&!lowPowerStationary)state.distanceM+=dist}
   state.currentSpeedMs=speed;const newTop=speed>state.maxSpeedMs+0.05;updateRideStats(now,speed);updateAccelerationStats(now,speed);if(newTop)schedulePublicTopSpeed();
   if(speed>=C.MOVING_THRESHOLD_MS){state.stoppedSince=null;setMotion(true)}else if(speed<=C.STOPPED_THRESHOLD_MS){if(!state.stoppedSince)state.stoppedSince=now;if(now-state.stoppedSince>=C.STATIONARY_SECONDS*1000)setMotion(false)}
-  maybeAdjustGpsMode(now,speed,cur,previousPos);
-  state.lastPos=cur;$('speedValue').textContent=fmtSpeed(speed);applySpeedColor($('speedValue'),speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;
-  const appendLowPoint=state.gpsMode!=='low'||now-state.lastLowMapPoint>=GPS_LOW_UPLOAD_MS;
-  updateMap(cur.lat,cur.lng,true,appendLowPoint);if(state.gpsMode==='low'&&appendLowPoint)state.lastLowMapPoint=now;persistActiveRideSession();
+  maybeAdjustGpsMode(now,speed,cur,previousPos);state.lastPos=cur;state.lastAcceptedAt=now;$('speedValue').textContent=fmtSpeed(speed);applySpeedColor($('speedValue'),speed);$('distanceValue').textContent=`${(state.distanceM/1000).toFixed(1).replace('.',',')} km`;
+  const appendLowPoint=state.gpsMode!=='low'||now-state.lastLowMapPoint>=GPS_LOW_UPLOAD_MS;updateMap(cur.lat,cur.lng,true,appendLowPoint);if(state.gpsMode==='low'&&appendLowPoint)state.lastLowMapPoint=now;persistActiveRideSession();
   const uploadInterval=state.gpsMode==='low'?GPS_LOW_UPLOAD_MS:C.LOCATION_UPLOAD_MS;
-  if(now-state.lastUpload>=uploadInterval){state.lastUpload=now;try{await rpc('ridez_update_location',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:accuracy});await publishLiveStats();persistActiveRideSession(true)}catch(e){console.error(e)}}
+  if(now-state.lastUpload>=uploadInterval){state.lastUpload=now;try{await rpc('ridez_update_location_v96',{p_driver_token:state.driverToken,p_lat:cur.lat,p_lng:cur.lng,p_speed_ms:speed,p_moving:state.moving,p_accuracy_m:accuracy,p_recorded_at:new Date(now).toISOString(),p_day_number:state.tripDayNumber,p_segment_number:state.tripSegmentNumber});state.segmentUploadCount++;await publishLiveStats();persistActiveRideSession(true)}catch(e){console.error(e);$('statusDetail').textContent='GPS-punktet kunne ikke gemmes i Supabase. RIDEZ prøver igen automatisk.'}}
 }
 async function onPosition(pos){
   const now=Date.now(),cur={lat:Number(pos.coords.latitude),lng:Number(pos.coords.longitude),t:now,accuracy:Number(pos.coords.accuracy)};
@@ -918,10 +953,10 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  $('demoBadge').textContent='DEMO v95';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v96';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v95 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v96 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -988,6 +1023,7 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
 async function endRideReliable(payload){
   let lastError=null;
   const calls=[
+    ['ridez_end_ride_v96',payload],
     ['ridez_end_ride_v92',payload],
     ['ridez_end_ride_v38',payload],
     ['ridez_end_ride_v36',{p_driver_token:payload.p_driver_token,p_distance_m:payload.p_distance_m,p_duration_s:payload.p_duration_s,p_max_speed_ms:payload.p_max_speed_ms,p_moving_s:payload.p_moving_s,p_stopped_s:payload.p_stopped_s,p_accel_0_80_s:payload.p_accel_0_80_s,p_accel_0_100_s:payload.p_accel_0_100_s,p_accel_best_80_s:payload.p_accel_best_80_s,p_accel_best_80_start_kmh:payload.p_accel_best_80_start_kmh,p_accel_best_80_end_kmh:payload.p_accel_best_80_end_kmh,p_accel_slowest_80_s:payload.p_accel_slowest_80_s,p_accel_slowest_80_start_kmh:payload.p_accel_slowest_80_start_kmh,p_accel_slowest_80_end_kmh:payload.p_accel_slowest_80_end_kmh}],
@@ -1213,12 +1249,12 @@ async function loadHistory(){
   list.className='history-list';
   list.innerHTML='<div class="empty">Henter ture…</div>';
   try{
-    const rows=await rpc('ridez_history_v80',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
+    const rows=await rpc('ridez_history_v96',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
     const visibleRows=rows.filter(r=>!isEmptyRide(r));
     if(!visibleRows.length){list.className='history-list empty';list.textContent='Ingen afsluttede ture endnu.';state.selectedRideIds.clear();state.historySelectMode=false;updateHistorySelectionUi();return}
     list.innerHTML=visibleRows.map(r=>{
       const avgMoving=Number(r.avg_moving_speed_ms||0)*3.6,top=Number(r.max_speed_ms||0)*3.6;
-      return `<div class="history-item" data-ride-id="${r.ride_id}"><button class="history-swipe-delete" type="button" aria-label="Slet tur">Slet</button><div class="history-slide"><label class="history-select-wrap" aria-label="Vælg tur"><input class="history-select-check" type="checkbox"><span></span></label><button class="history-card" type="button"><div><strong>${fmtDate(r.created_at)}</strong><span>${vehicleWords(r.vehicle_type).emoji} ${escapeHtml(r.vehicle_name||vehicleWords(r.vehicle_type).title)} · ${escapeHtml(r.title||'RIDEZ tur')}</span></div><div class="history-summary"><b>${(Number(r.distance_m||0)/1000).toFixed(1).replace('.',',')} km</b><span>${fmtDuration(r.duration_s)}</span><span>Top ${top.toFixed(0)} km/t</span><span>Gns. ${avgMoving.toFixed(0)} km/t</span><span>📷 ${Number(r.photo_count||0)}</span></div></button></div></div>`
+      return `<div class="history-item" data-ride-id="${r.ride_id}"><button class="history-swipe-delete" type="button" aria-label="Slet tur">Slet</button><div class="history-slide"><label class="history-select-wrap" aria-label="Vælg tur"><input class="history-select-check" type="checkbox"><span></span></label><button class="history-card" type="button"><div><strong>${fmtDate(r.created_at)}</strong><span>${vehicleWords(r.vehicle_type).emoji} ${escapeHtml(r.vehicle_name||vehicleWords(r.vehicle_type).title)} · ${escapeHtml(r.title||'RIDEZ tur')} · ${tripLengthLabel(r.trip_length_code||'day')}${Number(r.day_count||1)>1?` · ${Number(r.day_count)} dage`:''}</span></div><div class="history-summary"><b>${(Number(r.distance_m||0)/1000).toFixed(1).replace('.',',')} km</b><span>${fmtDuration(r.duration_s)}</span><span>Top ${top.toFixed(0)} km/t</span><span>Gns. ${avgMoving.toFixed(0)} km/t</span><span>📷 ${Number(r.photo_count||0)}</span></div></button></div></div>`
     }).join('');
     list.querySelectorAll('.history-item').forEach(bindHistoryItem);
     updateHistorySelectionUi();
@@ -1316,7 +1352,47 @@ function initViewerUsernameSettings(){
   if(!state.viewerUserName)setTimeout(openViewerUsernameDialog,180);
 }
 function tripLengthLabel(value){return ({day:'Dagstur',weekend:'Weekendtur','7days':'7-dages tur','14days':'14-dages tur'})[value]||'Dagstur'}
+function updateTripProgressBadge(active=!!state.rideId){const badge=$('tripProgressBadge');if(!badge)return;badge.classList.toggle('hidden',!active);if(active)badge.textContent=`${tripLengthLabel(state.tripLength)} · Dag ${Math.max(1,Number(state.tripDayNumber)||1)}`}
+function localCalendarStamp(ts){const d=new Date(Number(ts)||Date.now());return Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())}
+function localDateKey(ts){const d=new Date(Number(ts)||Date.now());return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function calculateTripDayNumber(ts){if(!state.rideStartedAt)return 1;return Math.max(1,Math.floor((localCalendarStamp(ts)-localCalendarStamp(state.rideStartedAt))/86400000)+1)}
+const MULTIDAY_SEGMENT_STOP_MS=15*60*1000;
+const MULTIDAY_SEGMENT_POINT_LIMIT=1200;
+function syncTripPartition(now,speed){
+  const nextDay=calculateTripDayNumber(now);
+  if(nextDay!==state.tripDayNumber){state.tripDayNumber=nextDay;state.tripSegmentNumber=1;state.segmentUploadCount=0;state.tripStartLocalDate=state.tripStartLocalDate||localDateKey(state.rideStartedAt);clearActiveRouteLines();updateTripProgressBadge(true);persistActiveRideSession(true);return}
+  const movingNow=Number(speed)>=Number(C.MOVING_THRESHOLD_MS||2.5);
+  if(movingNow&&state.stoppedSince&&now-state.stoppedSince>=MULTIDAY_SEGMENT_STOP_MS){state.tripSegmentNumber++;state.segmentUploadCount=0;state.activeSegmentKey=null;state.stoppedSince=null;persistActiveRideSession(true)}
+  if(state.segmentUploadCount>=MULTIDAY_SEGMENT_POINT_LIMIT){state.tripSegmentNumber++;state.segmentUploadCount=0;state.activeSegmentKey=null;persistActiveRideSession(true)}
+  if(movingNow)state.lastMovementAt=now;
+}
+function clearHistoryRouteLines(){
+  if(!state.historyMap)return;
+  (state.historyLines||[]).forEach(line=>{try{state.historyMap.removeLayer(line)}catch(e){}});
+  state.historyLines=[];state.historyLine=null;
+}
+function historyTrackDistance(track){
+  let total=0,prev=null,prevKey='';
+  for(const p of track||[]){const key=`${Number(p.day_number)||1}:${Number(p.segment_number)||1}`;if(prev&&key===prevKey){const d=hav(prev,p);if(Number.isFinite(d)&&d<1000)total+=d}prev=p;prevKey=key}
+  return total;
+}
+function drawHistoryTrack(track){
+  clearHistoryRouteLines();if(!state.historyMap)return;
+  const groups=new Map();
+  for(const p of track||[]){if(!Number.isFinite(Number(p.lat))||!Number.isFinite(Number(p.lng)))continue;const key=`${Number(p.day_number)||1}:${Number(p.segment_number)||1}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push([Number(p.lat),Number(p.lng)])}
+  for(const pts of groups.values()){if(!pts.length)continue;const line=L.polyline(pts,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.historyMap);state.historyLines.push(line)}
+  state.historyLine=state.historyLines[0]||null;
+  if(state.historyLines.length){try{const fg=L.featureGroup(state.historyLines);state.historyMap.fitBounds(fg.getBounds(),{padding:[20,20]})}catch(e){}}
+}
+function updateReplayForDaySelection(){
+  const start=$('historyReplayStart'),status=$('historyReplayStatus');
+  const whole=state.historySelectedDay===0&&state.historyDays.length>1;
+  if(start)start.disabled=whole||state.historyTrack.length<2;
+  if(whole&&status)status.textContent='Vælg en bestemt dag for at afspille Replay på en flerdagstur.';
+}
+
 function openTripLengthDialog(){
+  if(state.rideId){alert('Turens længde kan ændres, når den aktuelle tur er afsluttet. Valget gælder den næste tur.');return}
   const dlg=$('tripLengthDialog');if(!dlg)return;
   const current=state.tripLength||'day';
   document.querySelectorAll('input[name="tripLength"]').forEach(input=>{input.checked=input.value===current});
@@ -1361,7 +1437,7 @@ async function armReplayPoliceAudio(){
     if(!state.replayAudioCtx)state.replayAudioCtx=new AC();
     if(state.replayAudioCtx.state==='suspended')await state.replayAudioCtx.resume().catch(()=>{});
     if(!state.replayPoliceAudioBuffer){
-      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=93',{cache:'force-cache'});
+      const res=await fetch('./RIDEZ_Sportsbike_4-8sek.wav?v=96',{cache:'force-cache'});
       if(!res.ok)throw new Error('Kunne ikke hente motorcykellyden');
       const raw=await res.arrayBuffer();
       state.replayPoliceAudioBuffer=await state.replayAudioCtx.decodeAudioData(raw.slice(0));
@@ -1426,18 +1502,15 @@ function triggerReplayPolice(p){
   state.replayPoliceTimer=setTimeout(()=>{if(state.historyMap&&state.replayPoliceMarker){try{state.historyMap.removeLayer(state.replayPoliceMarker)}catch(e){}}state.replayPoliceMarker=null;state.replayPoliceTimer=null;stopReplayPoliceSound()},9000);
 }
 function prepareReplayTrack(track){
-  const clean=[];let prev=null;
+  const clean=[];let prev=null,prevKey='';
   for(const p of (track||[])){
-    const lat=Number(p.lat),lng=Number(p.lng),ts=new Date(p.created_at).getTime();
-    if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+    const lat=Number(p.lat),lng=Number(p.lng),ts=new Date(p.created_at).getTime(),key=`${Number(p.day_number)||1}:${Number(p.segment_number)||1}`;
+    if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;if(key!==prevKey)prev=null;
     if(prev&&Number.isFinite(ts)&&Number.isFinite(prev.ts)){const dt=Math.max(.05,(ts-prev.ts)/1000),dist=hav(prev,{lat,lng});if(dist/dt>95)continue}
-    clean.push({...p,lat,lng,_ts:Number.isFinite(ts)?ts:null});prev={lat,lng,ts:Number.isFinite(ts)?ts:null};
+    clean.push({...p,lat,lng,_ts:Number.isFinite(ts)?ts:null,_segmentKey:key});prev={lat,lng,ts:Number.isFinite(ts)?ts:null};prevKey=key;
   }
-  let cum=0,firstTs=null,last=null;
-  return clean.map((p,i)=>{
-    const ts=p._ts!==null?p._ts:(firstTs===null?Date.now():firstTs+i*3000);if(firstTs===null)firstTs=ts;
-    if(last)cum+=hav(last,p);last=p;const out={...p,replayTs:ts,replayElapsedS:Math.max(0,(ts-firstTs)/1000),replayDistanceM:cum};delete out._ts;return out;
-  });
+  let cum=0,firstTs=null,last=null,lastKey='';
+  return clean.map((p,i)=>{const ts=p._ts!==null?p._ts:(firstTs===null?Date.now():firstTs+i*3000);if(firstTs===null)firstTs=ts;if(last&&p._segmentKey===lastKey)cum+=hav(last,p);last=p;lastKey=p._segmentKey;const out={...p,replayTs:ts,replayElapsedS:Math.max(0,(ts-firstTs)/1000),replayDistanceM:cum};delete out._ts;delete out._segmentKey;return out});
 }
 function setReplayControls(mode='ready'){
   const start=$('historyReplayStart'),pause=$('historyReplayPause'),stop=$('historyReplayStop');
@@ -1503,9 +1576,9 @@ function clearReplayLayers(){
 }
 function resetHistoryReplay({restorePhotos=true,fitRoute=true}={}){
   clearReplayLayers();state.replayRunning=false;state.replayPaused=false;state.replayIndex=0;state.replayPhotoShown=new Set();state.replayPoliceTriggered=false;state.replayPoliceIndex=-1;
-  if(state.historyLine)state.historyLine.setStyle({weight:5,color:'#e11d24',opacity:1});
+  (state.historyLines.length?state.historyLines:[state.historyLine]).filter(Boolean).forEach(line=>line.setStyle({weight:5,color:'#e11d24',opacity:1}));
   if(restorePhotos)restoreHistoryPhotoMarkers();
-  if(fitRoute&&state.historyMap&&state.historyLine){try{state.historyMap.fitBounds(state.historyLine.getBounds(),{padding:[20,20]})}catch(e){}}
+  if(fitRoute&&state.historyMap&&state.historyLines.length){try{state.historyMap.fitBounds(L.featureGroup(state.historyLines).getBounds(),{padding:[20,20]})}catch(e){}}
   const speed=$('historyReplaySpeed'),distance=$('historyReplayDistance'),elapsed=$('historyReplayElapsed'),status=$('historyReplayStatus');
   if(speed){speed.textContent='0 km/t';applySpeedColor(speed,0)}if(distance)distance.textContent='0,0 km';if(elapsed)elapsed.textContent='0 sek.';if(status)status.textContent=state.historyTrack.length>1?`Klar · afspilles ${state.replaySpeedFactor}× hurtigere end turen`:'Der er ikke nok GPS-punkter til Replay.';
   setReplayControls('ready');
@@ -1535,9 +1608,10 @@ function renderReplayFrame(){
   revealReplayPhotos(p.replayTs);updateReplayLive(p,state.replayIndex);if(!state.replayPoliceTriggered&&state.replayPoliceIndex>=0&&state.replayIndex>=state.replayPoliceIndex)triggerReplayPolice(p);if(state.replayPoliceMarker)updateReplayPolicePosition();
 }
 function startHistoryReplay(){
+  if(state.historySelectedDay===0&&state.historyDays.length>1){alert('Vælg først en bestemt dag for Replay. Hele flerdagsturen vises som samlet oversigt.');return}
   if(state.historyTrack.length<2){alert('Der er ikke nok GPS-punkter på denne tur til Replay.');return}
   clearReplayLayers();clearHistoryPhotoMarkers();state.replayPhotoShown=new Set();state.replayIndex=0;state.replayRunning=true;state.replayPaused=false;prepareReplayPoliceTrigger();armReplayPoliceAudio();
-  if(state.historyLine)state.historyLine.setStyle({weight:4,color:'#5b616b',opacity:.65});
+  (state.historyLines.length?state.historyLines:[state.historyLine]).filter(Boolean).forEach(line=>line.setStyle({weight:4,color:'#5b616b',opacity:.65}));
   renderReplayFrame();setReplayControls('running');scheduleReplayNext();
 }
 function toggleHistoryReplayPause(){
@@ -1557,35 +1631,43 @@ function renderHistoryPhotos(photos){
   items.forEach(p=>addHistoryPhotoMarkerForItem(p));
   grid.querySelectorAll('.photo-card').forEach(btn=>btn.addEventListener('click',()=>{const p=items[Number(btn.dataset.photoIndex)];if(!p)return;let marker=state.historyPhotoMarkers[p.index];if(!marker&&state.historyMap)marker=addHistoryPhotoMarkerForItem(p);if(marker&&state.historyMap){state.historyMap.setView(marker.getLatLng(),17);marker.openPopup();$('historyMap').scrollIntoView({behavior:'smooth',block:'center'})}else if(p.url)window.open(p.url,'_blank','noopener')}));
 }
-async function openHistoryRide(rideId){
-  resetHistoryReplay({restorePhotos:false,fitRoute:false});state.historyTrack=[];state.historyPhotosData=[];
-  const detail=$('historyDetail');
-  detail.classList.remove('hidden');
-  detail.dataset.rideId=rideId;
-  $('historyDetailMeta').textContent='Henter tur…';
-  $('historyPhotos').innerHTML='<div class="empty">Henter billeder…</div>';
+function renderHistoryDaySelector(){
+  const wrap=$('historyDaySelector'),buttons=$('historyDayButtons'),summary=$('historyDaySummary');if(!wrap||!buttons)return;
+  const days=state.historyDays||[];wrap.classList.toggle('hidden',days.length<=1);
+  buttons.innerHTML=[`<button class="history-day-button active" type="button" data-history-day="0">Hele turen</button>`,...days.map(d=>`<button class="history-day-button" type="button" data-history-day="${d.day_number}">Dag ${d.day_number}</button>`)].join('');
+  buttons.querySelectorAll('.history-day-button').forEach(btn=>btn.addEventListener('click',()=>selectHistoryDay(Number(btn.dataset.historyDay)||0)));
+  if(summary)summary.textContent=days.length>1?`${days.length} registrerede dage · vælg hele turen eller en enkelt dag.`:'';
+}
+async function selectHistoryDay(dayNumber){
+  const ride=state.historySelectedRide,rideId=ride&&ride.ride_id;if(!rideId)return;
+  state.historySelectedDay=Math.max(0,Number(dayNumber)||0);resetHistoryReplay({restorePhotos:false,fitRoute:false});
+  document.querySelectorAll('.history-day-button').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.historyDay)===state.historySelectedDay));
+  const summary=$('historyDaySummary');if(summary)summary.textContent='Henter ruten…';
   try{
-    const [rows,track,photos]=await Promise.all([
-      rpc('ridez_history_v80',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken})),
-      rpc('ridez_history_track',{p_owner_token:state.ownerToken,p_ride_id:rideId}),
-      rpc('ridez_history_photos',{p_owner_token:state.ownerToken,p_ride_id:rideId})
+    let track;try{track=await fetchTrackPages('ridez_history_track_v96',{p_owner_token:state.ownerToken,p_ride_id:rideId,p_day_number:state.historySelectedDay},{pageSize:1000,maxPages:30})}catch(e){track=await rpc('ridez_history_track',{p_owner_token:state.ownerToken,p_ride_id:rideId})}
+    state.historyTrack=prepareReplayTrack(Array.isArray(track)?track:[]);drawHistoryTrack(state.historyTrack);
+    const photos=state.historySelectedDay===0?state.historyAllPhotos:state.historyAllPhotos.filter(p=>Number(p.day_number||1)===state.historySelectedDay);renderHistoryPhotos(photos);
+    const d=state.historyDays.find(x=>Number(x.day_number)===state.historySelectedDay);
+    if(summary){if(state.historySelectedDay===0)summary.textContent=`Hele turen · ${state.historyDays.length||1} dag${state.historyDays.length===1?'':'e'} · oversigtsruten er automatisk komprimeret ved meget lange ture.`;else summary.textContent=`Dag ${state.historySelectedDay} · ${d?`${(Number(d.distance_m||0)/1000).toFixed(1).replace('.',',')} km · top ${Math.round(Number(d.max_speed_ms||0)*3.6)} km/t · ${Number(d.segment_count||0)} segment${Number(d.segment_count||0)===1?'':'er'}`:'rute'}`}
+    setTimeout(()=>state.historyMap&&state.historyMap.invalidateSize(),50);resetHistoryReplay({restorePhotos:true,fitRoute:false});updateReplayForDaySelection();
+  }catch(e){console.error(e);if(summary)summary.textContent='Ruten kunne ikke hentes.'}
+}
+async function openHistoryRide(rideId){
+  resetHistoryReplay({restorePhotos:false,fitRoute:false});state.historyTrack=[];state.historyPhotosData=[];state.historyAllPhotos=[];state.historyDays=[];state.historySelectedDay=0;
+  const detail=$('historyDetail');detail.classList.remove('hidden');detail.dataset.rideId=rideId;$('historyDetailMeta').textContent='Henter tur…';$('historyPhotos').innerHTML='<div class="empty">Henter billeder…</div>';
+  try{
+    const [rows,days,photos]=await Promise.all([
+      rpc('ridez_history_v96',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})),
+      rpc('ridez_history_days_v96',{p_owner_token:state.ownerToken,p_ride_id:rideId}).catch(()=>[]),
+      rpc('ridez_history_photos_v96',{p_owner_token:state.ownerToken,p_ride_id:rideId}).catch(()=>rpc('ridez_history_photos',{p_owner_token:state.ownerToken,p_ride_id:rideId}))
     ]);
-    const ride=rows.find(r=>r.ride_id===rideId);
-    if(!ride)throw new Error('Turen findes ikke');
-    state.historyVehicleType=normalizeVehicleType(ride.vehicle_type);const replayCopy=$('historyReplayCopy');if(replayCopy)replayCopy.textContent=`Følg ${vehicleWords(state.historyVehicleType).definite} langs den gemte GPS-rute. Vælg selv afspilningshastighed.`;
-    const avgMoving=Number(ride.avg_moving_speed_ms||0)*3.6,top=Number(ride.max_speed_ms||0)*3.6;
-    $('historyDetailTitle').textContent=fmtDate(ride.created_at);
-    $('historyDetailMeta').textContent=`${vehicleWords(ride.vehicle_type).emoji} ${ride.vehicle_name||vehicleWords(ride.vehicle_type).title} · ${(Number(ride.distance_m||0)/1000).toFixed(1).replace('.',',')} km · samlet ${fmtDuration(ride.duration_s)}`;
+    const ride=rows.find(r=>r.ride_id===rideId);if(!ride)throw new Error('Turen findes ikke');state.historySelectedRide=ride;state.historyDays=Array.isArray(days)&&days.length?days:[{day_number:1,distance_m:ride.distance_m,max_speed_ms:ride.max_speed_ms,segment_count:1}];state.historyAllPhotos=Array.isArray(photos)?photos:[];
+    state.historyVehicleType=normalizeVehicleType(ride.vehicle_type);const replayCopy=$('historyReplayCopy');if(replayCopy)replayCopy.textContent=`Følg ${vehicleWords(state.historyVehicleType).definite} langs den valgte dags GPS-rute. Vælg selv afspilningshastighed.`;
+    const avgMoving=Number(ride.avg_moving_speed_ms||0)*3.6,top=Number(ride.max_speed_ms||0)*3.6;$('historyDetailTitle').textContent=fmtDate(ride.created_at);$('historyDetailMeta').textContent=`${vehicleWords(ride.vehicle_type).emoji} ${ride.vehicle_name||vehicleWords(ride.vehicle_type).title} · ${tripLengthLabel(ride.trip_length_code||'day')} · ${state.historyDays.length} dag${state.historyDays.length===1?'':'e'} · ${(Number(ride.distance_m||0)/1000).toFixed(1).replace('.',',')} km · samlet ${fmtDuration(ride.duration_s)}`;
     if($('historyStats'))$('historyStats').innerHTML=`<div><span>Topfart</span><strong>${top.toFixed(0)} km/t</strong></div><div><span>Gns. under kørsel</span><strong>${avgMoving.toFixed(0)} km/t</strong></div><div><span>Kørselstid</span><strong>${fmtDuration(ride.moving_s)}</strong></div><div><span>Stilstand</span><strong>${fmtDuration(ride.stopped_s)}</strong></div>`;
-    const histAccel=$('historyAcceleration');if(histAccel){const bestMetric=Number.isFinite(Number(ride.accel_best_80_s))&&ride.accel_best_80_s!==null?{seconds:Number(ride.accel_best_80_s),startKmh:Number(ride.accel_best_80_start_kmh),endKmh:Number(ride.accel_best_80_end_kmh)}:null;const slowMetric=Number.isFinite(Number(ride.accel_slowest_80_s))&&ride.accel_slowest_80_s!==null?{seconds:Number(ride.accel_slowest_80_s),startKmh:Number(ride.accel_slowest_80_start_kmh),endKmh:Number(ride.accel_slowest_80_end_kmh)}:null;histAccel.innerHTML=`<div class="accel-card accel-fast"><div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(bestMetric)}</b></div></div></div><div class="accel-card accel-slow"><div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(slowMetric)}</b></div></div></div>`;}
-    const histLean=$('historyLean');if(histLean){histLean.innerHTML=`<div class="lean-card"><div class="lean-title"><span class="lean-icon">${vehicleWords(ride.vehicle_type).emoji}</span><div><span>LEAN & SVING</span><strong>Turens hældning</strong></div></div><div class="lean-grid"><div class="degree-metric"><span>Maks venstre</span><b>${Math.round(Number(ride.max_lean_left_deg||0))}°</b></div><div class="degree-metric"><span>Maks højre</span><b>${Math.round(Number(ride.max_lean_right_deg||0))}°</b></div><div><span>Venstresving</span><b>${Number(ride.turn_left_count||0)}</b></div><div><span>Højresving</span><b>${Number(ride.turn_right_count||0)}</b></div></div></div>`;}
-    if(!state.historyMap){state.historyMap=initMap('historyMap')}else{clearHistoryPhotoMarkers();if(state.historyLine){state.historyMap.removeLayer(state.historyLine);state.historyLine=null}}
-    state.historyTrack=prepareReplayTrack(track);
-    const pts=state.historyTrack.map(p=>[p.lat,p.lng]);
-    if(pts.length){state.historyLine=L.polyline(pts,{weight:5,color:'#e11d24',smoothFactor:.2}).addTo(state.historyMap);state.historyMap.fitBounds(state.historyLine.getBounds(),{padding:[20,20]})}
-    setTimeout(()=>state.historyMap&&state.historyMap.invalidateSize(),50);
-    renderHistoryPhotos(photos);resetHistoryReplay({restorePhotos:true,fitRoute:false})
-    detail.scrollIntoView({behavior:'smooth',block:'start'});
+    const histAccel=$('historyAcceleration');if(histAccel){const bestMetric=Number.isFinite(Number(ride.accel_best_80_s))&&ride.accel_best_80_s!==null?{seconds:Number(ride.accel_best_80_s),startKmh:Number(ride.accel_best_80_start_kmh),endKmh:Number(ride.accel_best_80_end_kmh)}:null;const slowMetric=Number.isFinite(Number(ride.accel_slowest_80_s))&&ride.accel_slowest_80_s!==null?{seconds:Number(ride.accel_slowest_80_s),startKmh:Number(ride.accel_slowest_80_start_kmh),endKmh:Number(ride.accel_slowest_80_end_kmh)}:null;histAccel.innerHTML=`<div class="accel-card accel-fast"><div class="accel-title"><span class="accel-icon">🚀</span><div><span>HURTIGSTE ACCELERATION</span><strong>Turens bedste måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(bestMetric)}</b></div></div></div><div class="accel-card accel-slow"><div class="accel-title"><span class="accel-icon">🐢</span><div><span>LANGSOMSTE ACCELERATION</span><strong>Turens langsomste gyldige måling</strong></div></div><div class="accel-metrics accel-metrics-single"><div class="wide"><span>Målt interval</span><b>${formatAccelerationRange(slowMetric)}</b></div></div></div>`}
+    const histLean=$('historyLean');if(histLean)histLean.innerHTML=`<div class="lean-card"><div class="lean-title"><span class="lean-icon">${vehicleWords(ride.vehicle_type).emoji}</span><div><span>LEAN & SVING</span><strong>Turens hældning</strong></div></div><div class="lean-grid"><div class="degree-metric"><span>Maks venstre</span><b>${Math.round(Number(ride.max_lean_left_deg||0))}°</b></div><div class="degree-metric"><span>Maks højre</span><b>${Math.round(Number(ride.max_lean_right_deg||0))}°</b></div><div><span>Venstresving</span><b>${Number(ride.turn_left_count||0)}</b></div><div><span>Højresving</span><b>${Number(ride.turn_right_count||0)}</b></div></div></div>`;
+    if(!state.historyMap)state.historyMap=initMap('historyMap');else{clearHistoryPhotoMarkers();clearHistoryRouteLines()}renderHistoryDaySelector();await selectHistoryDay(0);detail.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){console.error(e);$('historyDetailMeta').textContent='Kunne ikke åbne turen.'}
 }
 async function deleteHistoryRide(){
@@ -1601,7 +1683,7 @@ async function deleteHistoryRide(){
   }catch(e){console.error(e);alert('Turen kunne ikke slettes. Kontroller at v17 SQL-opdateringen er kørt i Supabase.');}
   finally{btn.disabled=false;btn.textContent='Slet tur'}
 }
-function closeHistoryRide(){resetHistoryReplay({restorePhotos:false,fitRoute:false});clearHistoryPhotoMarkers();state.historyTrack=[];state.historyPhotosData=[];$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId='';setDriverVehicleCopy()}
+function closeHistoryRide(){resetHistoryReplay({restorePhotos:false,fitRoute:false});clearHistoryPhotoMarkers();clearHistoryRouteLines();state.historyTrack=[];state.historyPhotosData=[];state.historyAllPhotos=[];state.historyDays=[];state.historySelectedRide=null;state.historySelectedDay=0;$('historyDetail').classList.add('hidden');$('historyDetail').dataset.rideId='';setDriverVehicleCopy()}
 
 function renderViewerConversation(rows){
   const el=$('viewerConversation');if(!el)return;
@@ -1613,16 +1695,26 @@ function renderViewerConversation(rows){
 async function initViewer(){
   $('viewerView').classList.remove('hidden');initViewerUsernameSettings();
   state.map=initMap('viewerMap');
-  let lastTrackCount=0,viewerRideToken=publicRideToken||null;const viewerToken=ensureViewerToken();
+  let lastTrackPointId=0,viewerSegmentKey='',viewerSegmentPoints=[],viewerRideToken=publicRideToken||null;const viewerToken=ensureViewerToken();
   async function resolveViewerRideToken(){
     if(!demoChannelToken)return publicRideToken;
     const result=await rpc('ridez_resolve_demo_channel_v50',{p_channel_token:demoChannelToken});
     const row=Array.isArray(result)?result[0]:result;
     return row&&row.public_token?row.public_token:null;
   }
+  function clearViewerRouteLines(){(state.viewerRouteLines||[]).forEach(line=>{try{state.map.removeLayer(line)}catch(e){}});state.viewerRouteLines=[];state.line=null;state.points=[];viewerSegmentKey='';viewerSegmentPoints=[]}
+  function appendViewerTrack(rows,currentDay){
+    for(const row of (rows||[])){
+      const lat=Number(row.lat),lng=Number(row.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+      const key=`${Number(row.day_number)||currentDay}:${Number(row.segment_number)||1}`;
+      if(key!==viewerSegmentKey){viewerSegmentKey=key;viewerSegmentPoints=[];const line=L.polyline(viewerSegmentPoints,{weight:5,color:'#e11d24',smoothFactor:.2,noClip:false}).addTo(state.map);state.viewerRouteLines.push(line)}
+      viewerSegmentPoints.push([lat,lng]);state.viewerRouteLines[state.viewerRouteLines.length-1].setLatLngs(viewerSegmentPoints);
+      const id=Number(row.point_id||row.id);if(Number.isFinite(id))lastTrackPointId=Math.max(lastTrackPointId,id);
+    }
+    state.line=state.viewerRouteLines[state.viewerRouteLines.length-1]||null;state.points=viewerSegmentPoints.slice();
+  }
   function resetViewerForNewRide(){
-    lastTrackCount=0;state.points=[];
-    if(state.line){state.map.removeLayer(state.line);state.line=null}
+    lastTrackPointId=0;state.viewerDayNumber=0;clearViewerRouteLines();
     if(state.marker){state.map.removeLayer(state.marker);state.marker=null}
   }
   async function refresh(){
@@ -1630,7 +1722,8 @@ async function initViewer(){
       const resolvedToken=await resolveViewerRideToken();
       if(!resolvedToken){$('viewerStatus').textContent=demoChannelToken?'Venter på at en demo bliver startet.':'Turen findes ikke eller er udløbet.';setTimeout(refresh,3000);return}
       if(viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide();const chat=$('viewerConversation');if(chat){chat.className='viewer-conversation empty';chat.textContent='Ingen svar fra føreren endnu.'}}
-      const rideResult=await rpc('ridez_public_ride_v80',{p_public_token:viewerRideToken})
+      const rideResult=await rpc('ridez_public_ride_v96',{p_public_token:viewerRideToken})
+        .catch(()=>rpc('ridez_public_ride_v80',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken}))
         .catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken}))
@@ -1645,9 +1738,10 @@ async function initViewer(){
       {const w=vehicleWords(state.viewerVehicleType);$('viewerStatus').textContent=ride.active?(ride.moving?'Føreren er på farten':`${w.definiteCap} holder stille`):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet');}
       const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;
       const viewerMovingNotice=$('viewerChatMovingNotice');if(viewerMovingNotice)viewerMovingNotice.classList.toggle('hidden',!(ride.active&&ride.moving));
-      if(ride.lat!=null)updateMap(ride.lat,ride.lng,true);
-      const pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});
-      if(pts.length!==lastTrackCount){lastTrackCount=pts.length;state.points=pts.map(x=>[x.lat,x.lng]);if(state.line)state.line.setLatLngs(state.points);else if(state.points.length)state.line=L.polyline(state.points,{weight:5,color:'#e11d24',smoothFactor:.2}).addTo(state.map)}
+      if(ride.lat!=null)updateMap(ride.lat,ride.lng,true,false);
+      const currentDay=Math.max(1,Number(ride.current_day_number)||1);if(state.viewerDayNumber!==currentDay){state.viewerDayNumber=currentDay;lastTrackPointId=0;clearViewerRouteLines()}
+      let pts;try{pts=await fetchTrackPages('ridez_public_track_v96',{p_public_token:viewerRideToken,p_day_number:currentDay},{pageSize:1000,maxPages:30,afterId:lastTrackPointId})}catch(e){pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});lastTrackPointId=0;clearViewerRouteLines()}
+      if(Array.isArray(pts)&&pts.length)appendViewerTrack(pts,currentDay);
       try{const chatRows=await rpc('ridez_public_conversation_v73',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(chatErr){console.debug('v73 chat endnu ikke aktiv',chatErr)}
     }catch(e){console.error(e);$('viewerStatus').textContent='Kunne ikke hente live-data.'}
     setTimeout(refresh,3000)
@@ -1673,7 +1767,7 @@ document.addEventListener('click',e=>{
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
 {const versionEl=$('appVersion');if(versionEl){versionEl.textContent='v'+APP_VERSION;versionEl.classList.add('runtime-ok');versionEl.title='RIDEZ app.js v'+APP_VERSION+' er indlæst';}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=95').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=96').catch(()=>{}));
 function handleInitFailure(error){
   console.error('RIDEZ kunne ikke starte korrekt',error);
   const versionEl=$('appVersion');

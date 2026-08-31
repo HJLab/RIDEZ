@@ -1,0 +1,16 @@
+RIDEZ Flerdagsture v96
+
+Kontrolleret før pakning:
+- JavaScript-syntaks godkendt med Node.
+- Alle aktive versionshenvisninger peger på v96.
+- Ingen dublerede HTML-id'er.
+- V96 RPC-parametre i app.js matcher SQL-funktionerne.
+- Kalenderdagsskift testet, inklusive dansk sommer-/vintertid.
+- Lange GPS-spor hentes pagineret i maks. 1.000 punkter pr. kald.
+- Hele turen kan vises samlet; enkelte dage kan vælges separat.
+- Replay på flerdagsture kræver valg af en bestemt dag.
+
+Installation:
+1. Koer supabase-flerdagsture-v96.sql EN GANG i Supabase SQL Editor.
+2. Upload/erstat app.js, index.html, styles.css og sw.js i GitHub.
+3. TESTET_v96.txt skal ikke uploades.
