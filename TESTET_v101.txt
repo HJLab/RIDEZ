@@ -1,0 +1,9 @@
+RIDEZ v101 kontrolleret:
+- app.js syntaks kontrolleres med node --check
+- index/app/sw/cache peger alle på v101
+- brændstoftest 100 km er bevaret
+- gammel ridez_driver_token uden struktureret aktiv-tur-session kan ikke længere låse Demo Mode
+- højdedata er flyttet fra Turens forbrug til Turens hældning / sving & højde
+- Turens højeste punkt vises altid
+- Turens laveste punkt vises kun ved negativ højde
+- Historik følger samme opdeling mellem forbrug og højde
