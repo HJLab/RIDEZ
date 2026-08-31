@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search),publicRideToken=params.get('ride'),demoChannelToken=params.get('demo');
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
-const APP_VERSION='99';
+const APP_VERSION='100';
 const state={rideId:null,publicToken:null,driverToken:localStorage.getItem('ridez_driver_token')||null,ownerToken:localStorage.getItem('ridez_owner_token')||null,demoChannelToken:localStorage.getItem('ridez_demo_channel_token')||null,rideStartedAt:null,watchId:null,lastPos:null,lastUpload:0,distanceM:0,moving:false,stoppedSince:null,messagesSeen:new Set(),map:null,marker:null,line:null,points:[],demo:false,demoTimer:null,demoIndex:0,demoBase:null,demoProfile:null,demoRoute:null,demoTravelM:0,historyMap:null,historyLine:null,maxSpeedMs:0,movingMs:0,stoppedMs:0,statsLastT:null,topSpeedUpdateTimer:null,historySelectMode:false,selectedRideIds:new Set(),activePhotoMarkers:[],historyPhotoMarkers:[],photoBusy:false,demoPrevSpeedMs:0,demoPrevTimeS:0,speedDemoAttempt:null,speedDemoAttempts:[],accelSamples:[],accelZeroStartMs:null,accelZeroActive:false,accelBest080:null,accelBest0100:null,accelBest80:null,accelSlow80:null,accelFastRule:null,accelSlowRule:null,accelEditorKind:null,currentSpeedMs:0,leanCalibration:(localStorage.getItem('ridez_lean_calibration')===null?null:Number(localStorage.getItem('ridez_lean_calibration'))),leanFilteredDeg:0,leanLiveDeg:0,maxLeanLeftDeg:0,maxLeanRightDeg:0,leftTurnCount:0,rightTurnCount:0,turnActive:null,turnArmed:true,turnNeutralSince:null,lastRawRoll:null,orientationBound:false,calibrating:false,calibrationFailed:false,calibrationSamples:[],historyTrack:[],historyPhotosData:[],replayTimer:null,replayMarker:null,replayProgressLine:null,replayProgressPoints:[],replayIndex:0,replayPaused:false,replayRunning:false,replaySpeedFactor:([1,2,5,10].includes(Number(localStorage.getItem('ridez_replay_speed')))?Number(localStorage.getItem('ridez_replay_speed')):2),replayPhotoShown:new Set(),replayPoliceTriggered:false,replayPoliceIndex:-1,replayPoliceMarker:null,replayPoliceTimer:null,replayAudioCtx:null,replayPoliceAudioBuffer:null,replayPoliceAudioSource:null,soundsEnabled:(localStorage.getItem('ridez_sounds_enabled')===null?true:localStorage.getItem('ridez_sounds_enabled')==='1'),userName:(localStorage.getItem('ridez_username')||'').trim(),usernameRequired:false,lastDriverMessages:[],replyingMessageId:null,viewerUserName:(localStorage.getItem('ridez_viewer_username')||'').trim(),viewerToken:localStorage.getItem('ridez_viewer_token')||null,vehicleProfiles:[],activeVehicleId:localStorage.getItem('ridez_active_vehicle_id')||null,preferredVehicleType:localStorage.getItem('ridez_vehicle_type')||'',editingVehicleId:null,historyVehicleType:'motorcycle',viewerVehicleType:'motorcycle',tripLength:(['day','weekend','7days','14days'].includes(localStorage.getItem('ridez_trip_length'))?localStorage.getItem('ridez_trip_length'):'day'),profileReady:false,mapFollowHoldUntil:0,lastSessionPersist:0,gpsRejectCount:0,resumingRide:false,gpsMode:'high',lastLowMapPoint:0,tripDayNumber:1,tripSegmentNumber:1,segmentUploadCount:0,tripStartLocalDate:null,lastAcceptedAt:0,lastMovementAt:0,historyDays:[],historySelectedDay:0,historySelectedRide:null,historyAllPhotos:[],historyLines:[],viewerDayNumber:0,activeRouteLines:[],activeSegmentKey:null,viewerRouteLines:[],rideConsumptionL100:null,elevationMaxM:null,elevationMinM:null,elevationQueue:[],elevationLastQueuedAt:0,elevationLastQueuedPos:null,elevationFlushTimer:null,elevationBusy:false,fuel95Price:null,fuel95UpdatedAt:null,fuel95StationCount:0,fuel95Source:'',fuel95Busy:false};
 const fmtSpeed=ms=>`${Math.max(0,Math.round((ms||0)*3.6))} km/t`;
 const fmtKm=m=>`${(Math.max(0,Number(m)||0)/1000).toFixed(1).replace('.',',')} km`;
@@ -1014,16 +1014,25 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
   if(state.demoProfile==='fuel100'&&!currentRideConsumption()){state.demo=false;alert('Angiv først køretøjets teoretiske forbrug under Indstillinger → Køretøjer. Derefter kan 100 km-brændstoftesten beregne liter og pris.');return;}
-  $('demoBadge').textContent='DEMO v99';$('demoBadge').classList.remove('hidden');
+  $('demoBadge').textContent='DEMO v100';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v99 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v100 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
-    const gpsBase=await getDemoBase();
-    state.demoBase=await snapDemoBaseToRoad(gpsBase);
-    $('rideStatus').textContent='Finder vej-rute…';
-    $('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;
-    state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile);
+    if(state.demoProfile==='fuel100'){
+      // v100: Brændstoftesten er en ren beregningstest. Den må ikke være afhængig
+      // af telefon-GPS eller en ekstern rutetjeneste for at kunne starte.
+      state.demoBase={lat:55.6761,lng:12.5683,name:'Brændstoftest'};
+      const a={lat:55.6761,lng:12.5683},b={lat:55.6767,lng:12.5693};
+      const d=hav(a,b);
+      state.demoRoute={pts:[a,b],cum:[0,d],total:d};
+    }else{
+      const gpsBase=await getDemoBase();
+      state.demoBase=await snapDemoBaseToRoad(gpsBase);
+      $('rideStatus').textContent='Finder vej-rute…';
+      $('statusDetail').textContent=`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og følger vejnettet.`;
+      state.demoRoute=await buildRoadDemoRoute(state.demoBase,state.demoProfile);
+    }
   }catch(e){
     state.demo=false;state.demoBase=null;state.demoRoute=null;
     $('demoBadge').classList.add('hidden');$('demoBtn').textContent='Start demo';$('demoBtn').classList.remove('active');
@@ -1836,16 +1845,82 @@ async function initViewer(){
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){loadFuel95Cache();renderTripExtraSummary();const extraPanel=$('tripExtraPanel');if(extraPanel)extraPanel.addEventListener('toggle',()=>{if(extraPanel.open){renderTripExtraSummary();fetchFuel95Price(false).catch(()=>{});if(state.elevationQueue.length)flushElevationQueue().catch(()=>{})}});$('driverView').classList.remove('hidden');ensureOwnerToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=openEndRideDialog;$('shareBtn').onclick=shareRide;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();initVehicleSettings();initTripLengthSettings();initUsernameSettings();initEndRideDialog();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;await loadHistory();await resumeInterruptedRide()}
-document.addEventListener('click',e=>{
-  const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
-  if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
-  if(e.target&&e.target.id==='photoViewerDialog')closePhotoViewer();
-},true);
+
+function closeStaleDriverDialogs(){
+  document.querySelectorAll('dialog[open]').forEach(d=>{try{if(typeof d.close==='function')d.close();else d.removeAttribute('open')}catch(e){d.removeAttribute('open')}});
+}
+function bindPrimaryDriverControls(){
+  const start=$('startBtn'),stop=$('stopBtn'),share=$('shareBtn'),demo=$('demoBtn');
+  if(start)start.onclick=()=>startRide().catch(e=>{console.error(e);alert('Kunne ikke starte turen: '+(e&&e.message?e.message:e))});
+  if(stop)stop.onclick=openEndRideDialog;
+  if(share)share.onclick=shareRide;
+  if(demo)demo.onclick=async()=>{
+    try{
+      // If an optional startup step failed earlier, retry the map here rather than leaving Demo inert.
+      if(!state.map){try{state.map=initMap('driverMap')}catch(mapErr){throw new Error('Kortet kunne ikke startes: '+(mapErr&&mapErr.message?mapErr.message:mapErr))}}
+      if(state.demo)await stopRide();else await startDemo();
+    }catch(e){console.error('Demo startfejl',e);alert('Kunne ikke starte demo: '+(e&&e.message?e.message:e))}
+  };
+}
+function safeDriverInit(label,fn){try{return fn()}catch(e){console.error('RIDEZ '+label+' kunne ikke initialiseres',e);return null}}
+async function initDriver(){
+  loadFuel95Cache();
+  renderTripExtraSummary();
+  $('driverView').classList.remove('hidden');
+  closeStaleDriverDialogs();
+  bindPrimaryDriverControls();
+  ensureOwnerToken();
+
+  // Core map is attempted immediately. A failure must not make the whole page inert.
+  safeDriverInit('kort',()=>{state.map=initMap('driverMap')});
+  safeDriverInit('lean-sensor',initLeanSensor);
+
+  const extraPanel=$('tripExtraPanel');
+  if(extraPanel)extraPanel.addEventListener('toggle',()=>{if(extraPanel.open){renderTripExtraSummary();fetchFuel95Price(false).catch(()=>{});if(state.elevationQueue.length)flushElevationQueue().catch(()=>{})}});
+  const settingsPanel=$('settingsPanel');
+  if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});
+  const calibrationPanel=$('calibrationPanel');
+  if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});
+
+  safeDriverInit('acceleration',renderAccelerationSummary);
+  document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));
+  if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);
+  if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);
+  if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});
+  if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;
+  if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();
+  if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();
+  if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});
+  if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});
+
+  if($('historyCloseBtn'))$('historyCloseBtn').onclick=closeHistoryRide;
+  if($('historyDeleteBtn'))$('historyDeleteBtn').onclick=deleteHistoryRide;
+  if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;
+  if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;
+  if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;
+  document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));
+  safeDriverInit('Replay-hastighed',syncReplaySpeedButtons);
+  safeDriverInit('lydindstillinger',initSoundSettings);
+  safeDriverInit('køretøjer',initVehicleSettings);
+  safeDriverInit('turlængde',initTripLengthSettings);
+  safeDriverInit('profil',initUsernameSettings);
+  safeDriverInit('afslut-tur-dialog',initEndRideDialog);
+
+  if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;
+  if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;
+  if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});
+  if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};
+  if($('historySelectBtn'))$('historySelectBtn').onclick=toggleHistorySelectMode;
+  if($('historyBulkDeleteBtn'))$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;
+
+  try{await loadHistory()}catch(e){console.error('Historik kunne ikke indlæses ved start',e)}
+  try{await resumeInterruptedRide()}catch(e){console.error('Aktiv tur kunne ikke genoptages ved start',e)}
+}
+
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
 {const versionEl=$('appVersion');if(versionEl){versionEl.textContent='v'+APP_VERSION;versionEl.classList.add('runtime-ok');versionEl.title='RIDEZ app.js v'+APP_VERSION+' er indlæst';}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=99').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=100').catch(()=>{}));
 function handleInitFailure(error){
   console.error('RIDEZ kunne ikke starte korrekt',error);
   const versionEl=$('appVersion');

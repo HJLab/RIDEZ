@@ -1,0 +1,10 @@
+RIDEZ v100 - stabilitetstest
+
+Rettet:
+- Demo-knappen bindes nu tidligt, før valgfrie moduler initialiseres.
+- En fejl i en sekundær funktion må ikke længere gøre hele Demo Mode inaktiv.
+- 100 km brændstoftesten er ikke længere afhængig af GPS/OSRM-rutetjenesten.
+- Alle versionsreferencer er v100.
+- Synlig FEJL-markering ved JavaScript-startfejl.
+
+Kontrolleret med node --check og browser-harness.
