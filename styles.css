@@ -396,7 +396,7 @@
 .settings-menu-button:hover{background:#15191f}.settings-menu-button:focus-visible{outline:2px solid #f2b705;outline-offset:-2px}.settings-menu-button .settings-fold-chevron{transform:none}
 .trip-length-options{display:grid;gap:9px;margin:15px 0 18px}.trip-length-choice{display:block;cursor:pointer}.trip-length-choice input{position:absolute;opacity:0;pointer-events:none}.trip-length-choice span{display:flex;align-items:center;min-height:48px;border:1px solid #3a414b;border-radius:12px;background:#15191f;padding:11px 13px;transition:border-color .15s ease,background .15s ease}.trip-length-choice input:checked+span{border-color:#56c578;background:#153021;box-shadow:inset 3px 0 0 #56c578}.trip-length-choice input:focus-visible+span{outline:2px solid #f2b705;outline-offset:2px}.trip-length-choice b{font-size:14px}
 
-/* v94: turlaengde-info og sikker 3-sekunders afslutning */
+/* v95: turlaengde-info og sikker 3-sekunders afslutning */
 .trip-length-note{margin:10px 0 4px;padding:11px 12px;border-radius:12px;background:#161a20;border:1px solid #303641;color:#c9cdd4;font-size:12px;line-height:1.45}
 .end-ride-dialog{width:min(94vw,560px);border:3px solid #e11d24;border-radius:24px;background:#101216;color:#fff;padding:0;box-shadow:0 28px 100px rgba(0,0,0,.85),0 0 0 4px rgba(225,29,36,.12)}
 .end-ride-dialog::backdrop{background:rgba(0,0,0,.82);backdrop-filter:blur(4px)}
@@ -405,6 +405,7 @@
 .end-ride-warning-icon::after{content:'!';font-size:34px;font-weight:1000;line-height:1}
 .end-ride-card h2{margin:7px 0 8px;font-size:32px;letter-spacing:.8px;color:#fff}
 .end-ride-card>p{margin:0 auto 20px;max-width:420px;color:#e6e7ea;font-size:16px;line-height:1.45}
+.end-ride-card>.end-ride-instruction{color:#ff6b70;font-weight:800}
 .end-ride-hold{--hold-progress:0%;position:relative;isolation:isolate;width:100%;min-height:74px;border:2px solid #ff5b61;border-radius:18px;overflow:hidden;background:#71151a;color:#fff;font-size:18px;font-weight:1000;letter-spacing:.4px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 10px 28px rgba(225,29,36,.18)}
 .end-ride-hold::before{content:'';position:absolute;z-index:-1;inset:0 auto 0 0;width:var(--hold-progress);background:#e11d24;transition:width .04s linear}
 .end-ride-hold.holding{transform:scale(.99);border-color:#ff8589}
