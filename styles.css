@@ -429,6 +429,6 @@
 .trip-progress-badge::before{content:'🗓️';font-size:.95rem}
 
 
-/* RIDEZ Forbrug & Hoejde v98 */
+/* RIDEZ Forbrug & Hoejde v99 */
 .trip-extra-summary{display:grid;gap:10px}.trip-extra-card{border:1px solid #343a44;border-radius:16px;background:#15191f;padding:14px;display:grid;gap:12px}.trip-extra-title{display:flex;gap:11px;align-items:center}.trip-extra-icon{font-size:25px}.trip-extra-title>div{display:grid;gap:2px}.trip-extra-title span:not(.trip-extra-icon){font-size:10px;letter-spacing:.08em;color:#9ca7b7}.trip-extra-title strong{font-size:15px}.trip-extra-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.trip-extra-grid>div{border:1px solid #303640;border-radius:12px;background:#101419;padding:10px;display:grid;gap:4px}.trip-extra-grid>div.wide{grid-column:1/-1}.trip-extra-grid span{font-size:11px;color:#9ca7b7}.trip-extra-grid b{font-size:17px;line-height:1.15}.trip-extra-note{margin:0;color:#8f99a8;font-size:11px;line-height:1.45}.history-trip-extra{margin:14px 0}.vehicle-input-help{display:block;margin-top:4px;font-size:11px;color:#8f99a8}
 @media(max-width:520px){.trip-extra-grid{grid-template-columns:1fr 1fr}.trip-extra-grid b{font-size:15px}}

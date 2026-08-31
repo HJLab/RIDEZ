@@ -1,0 +1,13 @@
+RIDEZ v99 kontrol
+
+Rettet:
+- Brændstoftest havde kald til fmtKm uden definition. fmtKm er nu defineret.
+- APP_VERSION var fejlagtigt 97 i app.js i v98. Er nu 99.
+- index.html viser v99 og henter styles.css?v=99 samt app.js?v=99.
+- app.js registrerer sw.js?v=99.
+- sw.js bruger cache ridez-fuel-height-v99 og v99-referencer.
+
+Kontrolleret:
+- node --check app.js: OK
+- node --check sw.js: OK
+- ingen aktive v98-referencer i app.js/index.html/styles.css/sw.js.
