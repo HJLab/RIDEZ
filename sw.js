@@ -1,5 +1,5 @@
-const CACHE='ridez-fuel-height-v97';
-const CORE=['./','./index.html','./styles.css?v=97','./app.js?v=97','./RIDEZ_Sportsbike_4-8sek.wav?v=97','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE='ridez-fuel-height-v98';
+const CORE=['./','./index.html','./styles.css?v=98','./app.js?v=98','./RIDEZ_Sportsbike_4-8sek.wav?v=98','./config.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(url=>c.add(url)))));
