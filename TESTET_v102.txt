@@ -5,7 +5,8 @@ RIDEZ v102 kontrol
 - Turens pris, prisdato, liter og estimerede pris gemmes på selve turen.
 - Historik bruger den gemte pris fra turens afslutning og ændrer derfor ikke gamle ture, når dagsprisen ændres.
 - Ved manglende v102 SQL forsøger appen v100-prisfunktionen og derefter direkte API som reserve.
-- app.js/index.html/sw.js/cache peger alle på v102.
+- APP_VERSION, index.html, service worker-registreringen, cache-navnet og alle versionsmærkede runtime-filhenvisninger peger på v102.
+- Ikonhenvisningerne i index.html, manifest.webmanifest og sw.js peger på ikonfilerne i projektets rod.
 
 VIGTIGT
 Koer supabase-braendstof-historik-v102.sql én gang i Supabase SQL Editor, før testen køres.
