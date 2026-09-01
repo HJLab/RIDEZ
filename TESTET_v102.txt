@@ -1,0 +1,11 @@
+RIDEZ v102 kontrol
+- Brændstofdemoen viser 123 km og varer ca. 5 sekunder.
+- 5,0 l/100 km giver 6,2 l på 123 km (6,15 l afrundet til én decimal).
+- Blyfri 95 hentes server-side og caches i 30 minutter.
+- Turens pris, prisdato, liter og estimerede pris gemmes på selve turen.
+- Historik bruger den gemte pris fra turens afslutning og ændrer derfor ikke gamle ture, når dagsprisen ændres.
+- Ved manglende v102 SQL forsøger appen v100-prisfunktionen og derefter direkte API som reserve.
+- app.js/index.html/sw.js/cache peger alle på v102.
+
+VIGTIGT
+Koer supabase-braendstof-historik-v102.sql én gang i Supabase SQL Editor, før testen køres.

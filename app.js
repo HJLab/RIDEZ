@@ -161,7 +161,7 @@ function initVehicleSettings(){
   const list=$('vehicleList');if(list)list.addEventListener('click',e=>{const card=e.target.closest('.vehicle-card');if(!card)return;const id=card.dataset.vehicleId;if(e.target.closest('.vehicle-add-inline-btn'))openVehicleDialog();else if(e.target.closest('.vehicle-select-btn'))setActiveVehicle(id);else if(e.target.closest('.vehicle-edit-btn'))openVehicleDialog(id);else if(e.target.closest('.vehicle-delete-btn'))deleteVehicle(id)});
 }
 
-const FUEL_95_CACHE_KEY='ridez_fuel95_cache_v97';
+const FUEL_95_CACHE_KEY='ridez_fuel95_cache_v102';
 function fmtLiters(v){return Number.isFinite(Number(v))?`${Number(v).toFixed(1).replace('.',',')} l`:'–'}
 function hasNumber(v){return v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))}
 function fmtDkk(v){return hasNumber(v)?`${Number(v).toLocaleString('da-DK',{minimumFractionDigits:2,maximumFractionDigits:2})} kr.`:'–'}
@@ -171,24 +171,36 @@ function loadFuel95Cache(){
 function median(values){const a=values.filter(Number.isFinite).sort((a,b)=>a-b);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
 async function fetchFuel95Price(force=false){
   loadFuel95Cache();const now=Date.now(),age=state.fuel95UpdatedAt?now-new Date(state.fuel95UpdatedAt).getTime():Infinity;
-  if(state.fuel95Price&&!force&&age<15*60*1000){renderTripExtraSummary();return state.fuel95Price}
+  if(state.fuel95Price&&!force&&age<30*60*1000){renderTripExtraSummary();return state.fuel95Price}
   if(state.fuel95Busy)return state.fuel95Price;state.fuel95Busy=true;
-  const ctrl=new AbortController(),timeout=setTimeout(()=>ctrl.abort(),8000);
   try{
-    const res=await fetch('https://mobility-prices.ok.dk/api/v1/fuel-prices',{headers:{Accept:'application/json'},cache:'no-store',signal:ctrl.signal});if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json(),prices=[];for(const item of (data.items||[])){for(const p of (item.prices||[])){if(String(p.product_name||'').toLowerCase().includes('blyfri 95')){const n=Number(p.price);if(Number.isFinite(n)&&n>5&&n<40)prices.push(n)}}}
-    const price=median(prices);if(!Number.isFinite(price))throw new Error('Ingen Blyfri 95-priser');
-    state.fuel95Price=Math.round(price*100)/100;state.fuel95UpdatedAt=new Date().toISOString();state.fuel95StationCount=prices.length;state.fuel95Source='OK';
+    let data;
+    try{data=await rpc('ridez_fuel95_price_v102',{})}
+    catch(v102Error){console.warn('v102-prisfunktionen kunne ikke bruges; prøver v100',v102Error);data=await rpc('ridez_fuel95_price_v100',{})}
+    const row=Array.isArray(data)?data[0]:data,price=Number(row&&row.price);
+    if(!Number.isFinite(price)||price<5||price>40)throw new Error('Ugyldig Blyfri 95-pris fra serveren');
+    state.fuel95Price=Math.round(price*100)/100;state.fuel95UpdatedAt=(row&&row.updated_at)||new Date().toISOString();state.fuel95StationCount=Number(row&&row.station_count)||0;state.fuel95Source=(row&&row.source)||'OK';
     localStorage.setItem(FUEL_95_CACHE_KEY,JSON.stringify({price:state.fuel95Price,updatedAt:state.fuel95UpdatedAt,stationCount:state.fuel95StationCount,source:state.fuel95Source}));
-  }catch(e){console.warn('Blyfri 95 dagspris kunne ikke hentes',e)}finally{clearTimeout(timeout);state.fuel95Busy=false;renderTripExtraSummary()}
+  }catch(serverError){
+    console.warn('Serveren kunne ikke hente Blyfri 95-prisen; prøver direkte som reserve',serverError);
+    const ctrl=new AbortController(),timeout=setTimeout(()=>ctrl.abort(),8000);
+    try{
+      const res=await fetch('https://mobility-prices.ok.dk/api/v1/fuel-prices',{headers:{Accept:'application/json'},cache:'no-store',signal:ctrl.signal});if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json(),prices=[];for(const item of (data.items||[])){for(const p of (item.prices||[])){if(String(p.product_name||'').toLowerCase().includes('blyfri 95')){const n=Number(p.price);if(Number.isFinite(n)&&n>5&&n<40)prices.push(n)}}}
+      const price=median(prices);if(!Number.isFinite(price))throw new Error('Ingen Blyfri 95-priser');
+      state.fuel95Price=Math.round(price*100)/100;state.fuel95UpdatedAt=new Date().toISOString();state.fuel95StationCount=prices.length;state.fuel95Source='OK';
+      localStorage.setItem(FUEL_95_CACHE_KEY,JSON.stringify({price:state.fuel95Price,updatedAt:state.fuel95UpdatedAt,stationCount:state.fuel95StationCount,source:state.fuel95Source}));
+    }catch(directError){console.warn('Blyfri 95 dagspris kunne ikke hentes',directError)}finally{clearTimeout(timeout)}
+  }finally{state.fuel95Busy=false;renderTripExtraSummary()}
   return state.fuel95Price;
 }
 function currentRideConsumption(){const n=Number(state.rideConsumptionL100);if(Number.isFinite(n)&&n>0)return n;const v=activeVehicle(),x=Number(v&&v.consumptionL100);return Number.isFinite(x)&&x>0?x:null}
-function fuelPriceSourceText(){
-  if(!hasNumber(state.fuel95Price))return 'Dagsprisen på Blyfri 95 kunne ikke hentes endnu.';
-  const when=state.fuel95UpdatedAt?new Date(state.fuel95UpdatedAt).toLocaleString('da-DK',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-  return `Aktuel Blyfri 95-pris: median af ${state.fuel95StationCount||'de'} OK-stationer${when?` · hentet ${when}`:''}.`;
+function fuelPriceSourceText(price=state.fuel95Price,updatedAt=state.fuel95UpdatedAt,stationCount=state.fuel95StationCount,source=state.fuel95Source){
+  if(!hasNumber(price))return 'Dagsprisen på Blyfri 95 kunne ikke hentes endnu.';
+  const when=updatedAt?new Date(updatedAt).toLocaleString('da-DK',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  return `${source||'OK'} Blyfri 95-pris${stationCount?` · median af ${stationCount} stationer`:''}${when?` · hentet ${when}`:''}.`;
 }
+function calculateFuel(distanceM,consumption,price){const km=Math.max(0,Number(distanceM||0))/1000,c=Number(consumption),p=Number(price),liters=Number.isFinite(c)&&c>0?km*c/100:null,cost=liters!==null&&Number.isFinite(p)&&p>0?liters*p:null;return{liters,cost}}
 function renderTripExtraSummary(){
   const consumption=currentRideConsumption(),km=Math.max(0,Number(state.distanceM||0))/1000,liters=consumption?km*consumption/100:null,cost=hasNumber(state.fuel95Price)&&liters!==null?liters*Number(state.fuel95Price):null;
   const set=(id,val)=>{const el=$(id);if(el)el.textContent=val};
@@ -197,8 +209,17 @@ function renderTripExtraSummary(){
   set('tripFuelPriceSource',consumption?fuelPriceSourceText():'Angiv køretøjets teoretiske forbrug under Indstillinger → Køretøjer for at få beregningen.');
 }
 function renderHistoryTripExtra(ride){
-  const wrap=$('historyTripExtra');if(!wrap||!ride)return;const consumption=hasNumber(ride.vehicle_consumption_l100)?Number(ride.vehicle_consumption_l100):null,km=Math.max(0,Number(ride.distance_m||0))/1000,liters=consumption!==null&&consumption>0?km*consumption/100:null,cost=liters!==null&&hasNumber(state.fuel95Price)?liters*Number(state.fuel95Price):null,maxElev=hasNumber(ride.max_elevation_m)?Number(ride.max_elevation_m):null,minElev=hasNumber(ride.min_elevation_m)?Number(ride.min_elevation_m):null,hasBelow=minElev!==null&&minElev<0;
-  wrap.innerHTML=`<div class="trip-extra-card"><div class="trip-extra-title"><span class="trip-extra-icon">⛽</span><div><span>TEORETISK FORBRUG</span><strong>Turens teoretiske beregning</strong></div></div><div class="trip-extra-grid"><div><span>Teoretisk forbrug</span><b>${liters!==null?fmtLiters(liters):'Ikke angivet'}</b></div><div><span>Blyfri 95 dagspris</span><b>${hasNumber(state.fuel95Price)?`${Number(state.fuel95Price).toFixed(2).replace('.',',')} kr./l`:'–'}</b></div><div class="wide"><span>Estimeret brændstofpris</span><b>${cost!==null?fmtDkk(cost):'–'}</b></div></div><p class="trip-extra-note">${liters!==null?fuelPriceSourceText():'Køretøjet havde ikke et teoretisk forbrug angivet på denne tur.'}</p><p class="trip-extra-note">Brændstofforbrug og pris er estimater.</p></div>`;
+  const wrap=$('historyTripExtra');if(!wrap||!ride)return;
+  const consumption=hasNumber(ride.vehicle_consumption_l100)?Number(ride.vehicle_consumption_l100):null,savedPrice=hasNumber(ride.fuel95_price_dkk_l)?Number(ride.fuel95_price_dkk_l):null,price=savedPrice!==null?savedPrice:(hasNumber(state.fuel95Price)?Number(state.fuel95Price):null),calculated=calculateFuel(ride.distance_m,consumption,price),liters=hasNumber(ride.estimated_fuel_liters)?Number(ride.estimated_fuel_liters):calculated.liters,cost=hasNumber(ride.estimated_fuel_cost_dkk)?Number(ride.estimated_fuel_cost_dkk):calculated.cost;
+  const source=savedPrice!==null?fuelPriceSourceText(savedPrice,ride.fuel95_price_updated_at,ride.fuel95_station_count,ride.fuel95_source):fuelPriceSourceText();
+  wrap.innerHTML=`<div class="trip-extra-card"><div class="trip-extra-title"><span class="trip-extra-icon">⛽</span><div><span>TEORETISK FORBRUG</span><strong>Turens teoretiske beregning</strong></div></div><div class="trip-extra-grid"><div><span>Teoretisk forbrug</span><b>${liters!==null?fmtLiters(liters):'Ikke angivet'}</b></div><div><span>Blyfri 95 dagspris</span><b>${price!==null?`${price.toFixed(2).replace('.',',')} kr./l`:'–'}</b></div><div class="wide"><span>Estimeret brændstofpris</span><b>${cost!==null?fmtDkk(cost):'–'}</b></div></div><p class="trip-extra-note">${liters!==null?source:'Køretøjet havde ikke et teoretisk forbrug angivet på denne tur.'}</p><p class="trip-extra-note">Brændstofforbrug og pris er estimater.</p></div>`;
+}
+async function storeFuelSnapshot(distanceM){
+  const consumption=currentRideConsumption();if(!state.driverToken||!hasNumber(consumption))return false;
+  if(!hasNumber(state.fuel95Price))await fetchFuel95Price(true);
+  if(!hasNumber(state.fuel95Price))return false;
+  const values=calculateFuel(distanceM,consumption,state.fuel95Price);
+  await rpc('ridez_store_fuel_snapshot_v102',{p_driver_token:state.driverToken,p_price_dkk_l:Number(state.fuel95Price),p_price_updated_at:state.fuel95UpdatedAt||new Date().toISOString(),p_station_count:Number(state.fuel95StationCount)||0,p_source:state.fuel95Source||'OK',p_estimated_liters:values.liters,p_estimated_cost_dkk:values.cost});return true;
 }
 const ELEVATION_SAMPLE_MS=45000,ELEVATION_SAMPLE_M=500,ELEVATION_BATCH_MAX=25,ELEVATION_FLUSH_MS=8*60*1000;
 function resetElevationState(){if(state.elevationFlushTimer){clearTimeout(state.elevationFlushTimer);state.elevationFlushTimer=null}state.elevationQueue=[];state.elevationMaxM=null;state.elevationMinM=null;state.elevationLastQueuedAt=0;state.elevationLastQueuedPos=null;state.elevationBusy=false;renderTripExtraSummary()}
@@ -642,7 +663,7 @@ function demoLean(type,t,total,speedMs){
     const p=(x-0.45)/1.55;
     return 38*Math.sin(Math.PI*Math.max(0,Math.min(1,p)));
   }
-  if(type==='fuel100')return 0;
+  if(type==='fuel123')return 0;
   if(type==='speed')return 4*Math.sin(t*1.4);
   if(type==='twisty'){
     // Hold motorcyklen omtrent lige under de to accelerationstests; derefter simuleres sving normalt.
@@ -905,7 +926,7 @@ function updateSpeedDemoAttempt(t,speedMs){
   renderSpeedDemoResults(speedMs);
 }
 function demoSpeed(type,i,total){
-  if(type==='fuel100'){return i>=total?0:80/3.6;}
+  if(type==='fuel123'){return i>=total?0:80/3.6;}
   if(type==='messagetest'){
     // v76: Beskedtest. 10 s koersel -> 30 s stille -> 10 s koersel -> 30 s stille.
     // De lange stop giver tid til at modtage en ventende besked efter 3 s og sende et svar.
@@ -981,7 +1002,7 @@ function demoWaypoints(base,type){
   if(type==='speedcolors') return [start,bognaes,kattinge,brewery,start];
   if(type==='policereplay') return [start,bognaes,kattinge,brewery,start];
   if(type==='messagetest') return [start,brewery,bognaes,start];
-  if(type==='fuel100') return [start,brewery,bognaes,start];
+  if(type==='fuel123') return [start,brewery,bognaes,start];
   if(type==='turntest') return [start,brewery,bognaes,start];
   if(type==='city') return [start,brewery,kattinge,start];
   if(type==='twisty') return [start,gevninge,kattinge,boserup,svogerslev,kattinge,brewery,start];
@@ -1020,11 +1041,11 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   if(state.rideId){alert('Afslut den aktive tur først.');return}
   resetDriverTripDisplay({clearMarker:true});
   state.demo=true;state.demoIndex=0;state.demoTravelM=0;state.demoProfile=$('demoType').value;
-  if(state.demoProfile==='fuel100'&&!currentRideConsumption()){state.demo=false;alert('Angiv først køretøjets teoretiske forbrug under Indstillinger → Køretøjer. Derefter kan 100 km-brændstoftesten beregne liter og pris.');return;}
-  $('demoBadge').textContent='DEMO v101';$('demoBadge').classList.remove('hidden');
+  if(state.demoProfile==='fuel123'&&!currentRideConsumption()){state.demo=false;alert('Angiv først køretøjets teoretiske forbrug under Indstillinger → Køretøjer. Derefter kan 123 km-brændstoftesten beregne liter og pris.');return;}
+  $('demoBadge').textContent='DEMO v102';$('demoBadge').classList.remove('hidden');
   $('demoBtn').textContent='Stop demo';$('demoBtn').classList.add('active');
   $('rideStatus').textContent='Klargør demo…';
-  $('statusDetail').textContent='Demo v101 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
+  $('statusDetail').textContent='Demo v102 henter din GPS-position og låser rutestarten til en vej højst 120 m væk.';
   try{
     const gpsBase=await getDemoBase();
     state.demoBase=await snapDemoBaseToRoad(gpsBase);
@@ -1037,7 +1058,7 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
     $('rideStatus').textContent='Ikke startet';$('statusDetail').textContent=e.message||'Kunne ikke finde en vej-rute til demoen.';
     throw e;
   }
-  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':state.demoProfile==='policereplay'?'raket Replay-test':state.demoProfile==='messagetest'?'beskedtest':state.demoProfile==='fuel100'?'brændstoftest 100 km':'landevej';
+  const demoName=state.demoProfile==='short'?'kort test':state.demoProfile==='city'?'bykørsel':state.demoProfile==='twisty'?'snoet tur':state.demoProfile==='speed'?'speed':state.demoProfile==='speedcolors'?'hastighedsfarver':state.demoProfile==='turntest'?'svingtest':state.demoProfile==='rightturntest'?'5 højresving':state.demoProfile==='policereplay'?'raket Replay-test':state.demoProfile==='messagetest'?'beskedtest':state.demoProfile==='fuel123'?'brændstoftest 123 km':'landevej';
   await createRide(`RIDEZ demo · ${demoName}`);
   await publishDemoChannel();
   $('rideStatus').textContent='Demo starter…';
@@ -1047,7 +1068,7 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
   const isRightTurnTest=state.demoProfile==='rightturntest';
   const isPoliceReplay=state.demoProfile==='policereplay';
   const isMessageTest=state.demoProfile==='messagetest';
-  const isFuel100=state.demoProfile==='fuel100';
+  const isFuel123=state.demoProfile==='fuel123';
   $('statusDetail').textContent=isSpeed
     ?'Speed-demo: 3 accelerationer gennemføres på ca. 18 sekunder.'
     :isSpeedColors
@@ -1060,20 +1081,20 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
             ?'Raket Replay-test: 10 sek. op til 135 km/t, 20 sek. ved 135 km/t og derefter rolig nedbremsning. Åbn turen i Historik og start Replay bagefter.'
             :isMessageTest
               ?'Beskedtest: 10 sek. kørsel, 30 sek. stille, 10 sek. kørsel og 30 sek. stille. Brug følgelinket til at teste beskeder og svar.'
-              :isFuel100
-                ?'Brændstoftest: simulerer 100 km på ca. 5 sekunder og beregner teoretisk forbrug samt Blyfri 95-pris.'
+              :isFuel123
+                ?'Brændstoftest: simulerer 123 km på ca. 5 sekunder og beregner teoretisk forbrug samt Blyfri 95-pris.'
                 :`Starter på ${state.demoBase.name||'Toftevej, Herslev'} og simulerer hastighed og stop.`;
-  const total=isFuel100?5:isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:isPoliceReplay?40:isMessageTest?80:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
-  const tickMs=isFuel100?500:isSpeed?200:(isTurnTest||isRightTurnTest)?250:1000;
+  const total=isFuel123?5:isSpeed?18:isSpeedColors?80:isTurnTest?22:isRightTurnTest?20:isPoliceReplay?40:isMessageTest?80:state.demoProfile==='short'?60:state.demoProfile==='city'?90:state.demoProfile==='twisty'?110:90;
+  const tickMs=isFuel123?500:isSpeed?200:(isTurnTest||isRightTurnTest)?250:1000;
   const stepS=tickMs/1000;
   if(isSpeed)resetSpeedDemoResults(true);else resetSpeedDemoResults(false);
   async function tick(){
     if(!state.demo||!state.rideId)return;
     const step=state.demoIndex++;
-    const t=(isFuel100||isSpeed||isTurnTest||isRightTurnTest)?step*stepS:step;
+    const t=(isFuel123||isSpeed||isTurnTest||isRightTurnTest)?step*stepS:step;
     const speed=demoSpeed(state.demoProfile,t,total);
     if(isSpeed)updateSpeedDemoAttempt(t,speed);
-    if(isFuel100){
+    if(isFuel123){
       const mapSpan=Math.min(Math.max(40,state.demoRoute.total*0.12),500);
       state.demoTravelM=Math.min(mapSpan,mapSpan*Math.min(1,t/total));
     }else state.demoTravelM+=speed*((isSpeed||isTurnTest||isRightTurnTest)?stepS:1);
@@ -1082,17 +1103,17 @@ async function startDemo(){if(!setupComplete()){openUsernameDialog(true);return}
     updateLeanStats(demoLean(state.demoProfile,t,total,speed),cur.t,speed,{demo:true});
     if(isSpeed){processPosition(cur,speed,4).catch(e=>console.error(e));}
     else await processPosition(cur,speed,4);
-    if(isFuel100){
-      state.distanceM=Math.min(100000,100000*Math.min(1,t/total));
+    if(isFuel123){
+      state.distanceM=Math.min(123000,123000*Math.min(1,t/total));
       $('distanceValue').textContent=fmtKm(state.distanceM);
       renderTripExtraSummary();
     }
-    if(t>=total||(!isFuel100&&state.demoTravelM>=state.demoRoute.total-5)){
-      if(isFuel100){
-        state.distanceM=100000;$('distanceValue').textContent=fmtKm(state.distanceM);renderTripExtraSummary();
-        await fetchFuel95Price(false);
-        const c=currentRideConsumption(),liters=c?c:null,cost=c&&hasNumber(state.fuel95Price)?c*Number(state.fuel95Price):null;
-        alert(`100 km-brændstoftest færdig.\n\nTeoretisk forbrug: ${c?fmtLiters(liters):'ikke angivet'}\nBlyfri 95: ${hasNumber(state.fuel95Price)?Number(state.fuel95Price).toFixed(2).replace('.',',')+' kr./l':'kunne ikke hentes'}\nEstimeret pris: ${cost!==null?fmtDkk(cost):'–'}\n\nTuren gemmes også i Historik.`);
+    if(t>=total||(!isFuel123&&state.demoTravelM>=state.demoRoute.total-5)){
+      if(isFuel123){
+        state.distanceM=123000;$('distanceValue').textContent=fmtKm(state.distanceM);renderTripExtraSummary();
+        await fetchFuel95Price(true);
+        const c=currentRideConsumption(),values=calculateFuel(state.distanceM,c,state.fuel95Price);
+        alert(`123 km-brændstoftest færdig.\n\nTeoretisk forbrug: ${values.liters!==null?fmtLiters(values.liters):'ikke angivet'}\nBlyfri 95: ${hasNumber(state.fuel95Price)?Number(state.fuel95Price).toFixed(2).replace('.',',')+' kr./l':'kunne ikke hentes'}\nEstimeret pris: ${values.cost!==null?fmtDkk(values.cost):'–'}\n\nTuren gemmes også i Historik.`);
       }
       // If the final stop just completed, preserve the third attempt before ending.
       if(isSpeed&&state.speedDemoAttempt){
@@ -1128,6 +1149,7 @@ async function stopRide(){
   const payload={p_driver_token:state.driverToken,p_distance_m:finishedDistance,p_duration_s:finishedDuration,p_max_speed_ms:finishedMaxSpeed,p_moving_s:finishedMoving,p_stopped_s:finishedStopped,p_accel_0_80_s:state.accelBest080,p_accel_0_100_s:state.accelBest0100,p_accel_best_80_s:best80?best80.seconds:null,p_accel_best_80_start_kmh:best80?best80.startKmh:null,p_accel_best_80_end_kmh:best80?best80.endKmh:null,p_accel_slowest_80_s:slow80?slow80.seconds:null,p_accel_slowest_80_start_kmh:slow80?slow80.startKmh:null,p_accel_slowest_80_end_kmh:slow80?slow80.endKmh:null,p_max_lean_left_deg:finishedLeanLeft,p_max_lean_right_deg:finishedLeanRight,p_turn_left_count:finishedTurnsLeft,p_turn_right_count:finishedTurnsRight};
   if(state.driverToken){
     persistActiveRideSession(true);
+    try{await storeFuelSnapshot(finishedDistance)}catch(e){console.warn('Turens brændstofpris kunne ikke gemmes',e)}
     try{await endRideReliable(payload)}catch(e){console.error(e);if(!state.demo){$('rideStatus').textContent='Turen er ikke afsluttet';$('statusDetail').textContent='RIDEZ kunne ikke gemme afslutningen. Turen er bevaret og kan forsøges afsluttet igen.';setRideButtons(true);if(navigator.geolocation)startGpsWatch('high');alert('Turen kunne ikke gemmes som afsluttet. RIDEZ har derfor IKKE slettet turen lokalt. Kontrollér forbindelsen og tryk Stop tur igen.');return}}
   }
   clearActiveRideSession();
@@ -1334,7 +1356,7 @@ async function loadHistory(){
   list.className='history-list';
   list.innerHTML='<div class="empty">Henter ture…</div>';
   try{
-    const rows=await rpc('ridez_history_v97',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v96',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
+    const rows=await rpc('ridez_history_v102',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v97',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v96',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v36',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v18',{p_owner_token:state.ownerToken}));
     const visibleRows=rows.filter(r=>!isEmptyRide(r));
     if(!visibleRows.length){list.className='history-list empty';list.textContent='Ingen afsluttede ture endnu.';state.selectedRideIds.clear();state.historySelectMode=false;updateHistorySelectionUi();return}
     list.innerHTML=visibleRows.map(r=>{
@@ -1742,7 +1764,7 @@ async function openHistoryRide(rideId){
   const detail=$('historyDetail');detail.classList.remove('hidden');detail.dataset.rideId=rideId;$('historyDetailMeta').textContent='Henter tur…';$('historyPhotos').innerHTML='<div class="empty">Henter billeder…</div>';
   try{
     const [rows,days,photos]=await Promise.all([
-      rpc('ridez_history_v97',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v96',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})),
+      rpc('ridez_history_v102',{p_owner_token:state.ownerToken}).catch(()=>rpc('ridez_history_v97',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v96',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v80',{p_owner_token:state.ownerToken})).catch(()=>rpc('ridez_history_v38',{p_owner_token:state.ownerToken})),
       rpc('ridez_history_days_v96',{p_owner_token:state.ownerToken,p_ride_id:rideId}).catch(()=>[]),
       rpc('ridez_history_photos_v96',{p_owner_token:state.ownerToken,p_ride_id:rideId}).catch(()=>rpc('ridez_history_photos',{p_owner_token:state.ownerToken,p_ride_id:rideId}))
     ]);
