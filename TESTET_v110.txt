@@ -1,0 +1,23 @@
+RIDEZ v110 – GPS-kvalitetsfilter
+
+Årsag fundet i v109
+- Første GPS-punkt blev accepteret, før hastighedsgrænsen blev kontrolleret.
+- Hastighedsgrænsen var 95 m/s (342 km/t), så en falsk måling på 286 km/t kunne blive gemt.
+
+v110
+- En rigtig tur starter med mindst 5 sekunders GPS-stabilisering.
+- Der kræves mindst 3 præcise og sammenhængende GPS-punkter.
+- Opstartspunkter ændrer ikke topfart, acceleration eller distance.
+- GPS-hastighed kontrolleres mod flyttet afstand og tidsforskel.
+- Hastighed uden reel bevægelse afvises.
+- Hastigheder over 270 km/t afvises altid som umulige GPS-målinger.
+- Hastigheder over 130 km/t skal bekræftes af mindst 2 sammenhængende målinger.
+- Efter et langt hul i GPS-data starter kvalitetskontrollen forfra.
+- Strømbesparende GPS kan fortsat registrere bevægelse og skifte tilbage til normal GPS.
+- Demo Mode påvirkes ikke af opstartsfilteret.
+
+Automatiske scenarier
+[OK] Stillestående telefon + enkelt måling på 286 km/t => topfart 0 km/t.
+[OK] Stabil bevægelse på 100 km/t => 100 km/t accepteres.
+[OK] To sammenhængende troværdige målinger på 150 km/t => 150 km/t accepteres.
+[OK] JavaScript syntakskontrol.
