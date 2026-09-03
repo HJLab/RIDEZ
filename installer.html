@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0c0e">
+  <title>Installer RIDEZ</title>
+  <link rel="icon" href="icon-192.png">
+  <style>
+    :root{color-scheme:dark;--yellow:#f2b705;--red:#e11d24;--green:#22c55e;--muted:#a8afb9;--panel:#181b20;--line:#30343b}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#252930 0,#101216 48%,#090a0c 100%);color:#f7f7f8;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    main{width:min(920px,100%);margin:auto;padding:24px 16px 42px}
+    .brand{display:flex;align-items:center;justify-content:center;gap:13px;margin:8px 0 12px}
+    .brand img{width:62px;height:62px;border-radius:16px}
+    .brand strong{display:block;color:#f23838;font-size:30px;letter-spacing:1.5px}
+    .brand span{display:block;color:var(--muted);font-size:13px}
+    h1{text-align:center;margin:24px 0 8px;font-size:clamp(27px,5vw,42px)}
+    .intro{text-align:center;max-width:680px;margin:0 auto 25px;color:#c9ced6;line-height:1.55}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .choice{position:relative;display:flex;flex-direction:column;padding:22px;border:1px solid var(--line);border-radius:22px;background:rgba(24,27,32,.96);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+    .choice.recommended{border-color:var(--green);box-shadow:0 0 0 2px rgba(34,197,94,.13),0 18px 50px rgba(0,0,0,.28)}
+    .device{font-size:43px;line-height:1}
+    h2{margin:13px 0 6px;font-size:23px}
+    .subtitle{margin:0 0 16px;color:var(--muted);min-height:42px;line-height:1.45}
+    .tag{display:none;position:absolute;right:15px;top:15px;padding:6px 9px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.45);color:#86efac;font-size:11px;font-weight:900}
+    .recommended .tag{display:block}
+    .button{display:flex;align-items:center;justify-content:center;min-height:54px;margin:2px 0 18px;padding:13px 16px;border-radius:15px;background:var(--yellow);color:#111;text-decoration:none;text-align:center;font-size:16px;font-weight:900}
+    .ios .button{background:#f3f4f6}
+    ol{margin:auto 0 0;padding-left:22px;color:#d2d6dc;line-height:1.52}
+    li+li{margin-top:7px}
+    .notice{margin-top:17px;padding:12px 13px;border-radius:13px;background:#111419;border:1px solid #2e333b;color:#bbc1ca;font-size:12px;line-height:1.45}
+    .notice strong{color:#f7c84a}
+    .privacy{margin:22px 0 0;padding:16px;border-radius:16px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);color:#c7ded0;text-align:center;font-size:13px;line-height:1.5}
+    .viewer{margin:18px 0 0;text-align:center;color:var(--muted);font-size:13px}
+    .viewer a{color:#f4c327}
+    footer{text-align:center;margin-top:25px;color:#747d89;font-size:11px}
+    @media(max-width:700px){main{padding:18px 12px 32px}.choices{grid-template-columns:1fr}.subtitle{min-height:0}.choice{padding:19px}.brand strong{font-size:26px}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="icon-192.png" alt="RIDEZ"><div><strong>RIDEZ</strong><span>Din motorcykel. Din verden.</span></div></div>
+  <h1>Vælg din telefon</h1>
+  <p class="intro">Tryk på den rigtige mulighed herunder. Du får din egen RIDEZ-profil og kan registrere dine egne ture.</p>
+
+  <section class="choices" aria-label="Vælg installation">
+    <article id="androidChoice" class="choice android">
+      <span class="tag">DENNE TELEFON</span>
+      <div class="device" aria-hidden="true">🤖</div>
+      <h2>Android</h2>
+      <p class="subtitle">Samsung, Google Pixel, OnePlus og andre Android-telefoner.</p>
+      <a class="button" href="https://github.com/HJLab/RIDEZ/releases/download/android-v108/RIDEZ-v108.apk">Download RIDEZ til Android</a>
+      <ol>
+        <li>Tryk på downloadknappen.</li>
+        <li>Vælg <strong>Download alligevel</strong>, hvis telefonen spørger.</li>
+        <li>Åbn filen <strong>RIDEZ-v108.apk</strong>.</li>
+        <li>Tillad installation fra browseren, og tryk <strong>Installer</strong>.</li>
+      </ol>
+      <div class="notice"><strong>Rigtig Android-app:</strong> Kan fortsætte GPS-registreringen, når en navigationsapp er fremme eller skærmen er slukket.</div>
+    </article>
+
+    <article id="iosChoice" class="choice ios">
+      <span class="tag">DENNE TELEFON</span>
+      <div class="device" aria-hidden="true">🍎</div>
+      <h2>iPhone</h2>
+      <p class="subtitle">Den nuværende iPhone-udgave installeres som en webapp gennem Safari.</p>
+      <a class="button" href="./">Åbn RIDEZ til iPhone</a>
+      <ol>
+        <li>Åbn siden i <strong>Safari</strong>.</li>
+        <li>Tryk på Safaris <strong>Del-knap</strong>.</li>
+        <li>Vælg <strong>Føj til hjemmeskærm</strong>.</li>
+        <li>Tryk <strong>Tilføj</strong>, og åbn derefter RIDEZ-ikonet.</li>
+      </ol>
+      <div class="notice"><strong>Vigtigt:</strong> iPhone-udgaven er foreløbig en webapp. GPS-sporing kan stoppe, hvis skærmen slukkes eller en anden app åbnes. En rigtig TestFlight-udgave er endnu ikke tilgængelig.</div>
+    </article>
+  </section>
+
+  <p class="privacy">Kun billeder taget med kameraet inde i RIDEZ kan vises gennem et følgelink. Billeder valgt fra telefonens galleri forbliver private.</p>
+  <p class="viewer">Har du kun fået et link til at følge en tur? Så skal du ikke installere noget – åbn blot følgelinket i din browser.</p>
+  <footer>RIDEZ installationsside</footer>
+</main>
+<script>
+  (()=>{const ua=navigator.userAgent||'',ios=/iPhone|iPad|iPod/i.test(ua),android=/Android/i.test(ua);if(android)document.getElementById('androidChoice').classList.add('recommended');if(ios)document.getElementById('iosChoice').classList.add('recommended')})();
+</script>
+</body>
+</html>
