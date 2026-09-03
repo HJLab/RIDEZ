@@ -20,6 +20,11 @@ final class RidezJavascriptBridge {
     }
 
     @JavascriptInterface
+    public void showNotification(String title, String body) {
+        activity.runOnUiThread(() -> activity.showNativeMessageNotification(title, body));
+    }
+
+    @JavascriptInterface
     public boolean isTracking() {
         return RideLocationService.wasTracking(activity.getApplicationContext());
     }

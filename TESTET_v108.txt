@@ -1,0 +1,10 @@
+RIDEZ v108 – kontrol
+
+[OK] JavaScript syntakskontrolleret.
+[OK] Web-app, cache og service worker opdateret til v108.
+[OK] Kamera og galleri bruger fortsat hver sin sikre photo_origin.
+[OK] Delingslinkets galleri-filter fra v107 er bevaret.
+[OK] Chat bruger kun v108-funktionerne uden gammel fallback.
+[OK] Live-foelgere er anonyme sessions med 15 sekunders udloeb.
+[OK] Foelgertal skjules ved nul.
+[AFVENTER GITHUB ACTIONS] Android-kompilering og APK.
