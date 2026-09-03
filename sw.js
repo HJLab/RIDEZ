@@ -1,4 +1,4 @@
-const CACHE='ridez-fuel-history-v108';
+const CACHE='ridez-fuel-history-v109';
 const CORE=['./','./index.html','./styles.css?v=108','./app.js?v=108','./RIDEZ_Sportsbike_4-8sek.wav?v=108','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
