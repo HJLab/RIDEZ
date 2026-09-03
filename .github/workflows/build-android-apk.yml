@@ -5,12 +5,13 @@ on:
   push:
     branches:
       - codex/android-background-gps-v104
+      - codex/publish-android-v104-apk
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -41,3 +42,15 @@ jobs:
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Udgiv direkte APK-download
+        if: github.ref == 'refs/heads/codex/publish-android-v104-apk'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk RIDEZ-v104-test.apk
+          if gh release view android-v104-test >/dev/null 2>&1; then
+            gh release upload android-v104-test RIDEZ-v104-test.apk --clobber
+          else
+            gh release create android-v104-test RIDEZ-v104-test.apk --title "RIDEZ Android v104 – test" --notes "Første Android-testversion med baggrunds-GPS. Tillad notifikationer og præcis placering ved første start."
+          fi
