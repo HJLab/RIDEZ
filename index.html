@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=108">
+  <link rel="stylesheet" href="styles.css?v=109">
 </head>
 <body>
 <header class="topbar">
@@ -310,6 +310,11 @@
       <button class="primary" type="submit">Send besked</button>
       <p id="sendFeedback" class="feedback"></p>
     </form>
+
+    <details id="viewerPhotoPanel" class="viewer-photo-panel">
+      <summary><span><strong>📷 Billeder fra turen</strong><small id="viewerPhotoGalleryCount">0 billeder</small></span><span id="viewerPhotoToggleText" class="viewer-photo-toggle">Vis billeder</span></summary>
+      <div id="viewerPhotoGallery" class="viewer-photo-gallery"><div class="empty">Ingen kamerabilleder delt fra turen endnu.</div></div>
+    </details>
   </section>
 
   <dialog id="viewerUsernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn til RIDEZ-chat">
@@ -407,6 +412,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=108"></script>
+<script src="app.js?v=109"></script>
 </body>
 </html>
