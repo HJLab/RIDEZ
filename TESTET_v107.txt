@@ -1,0 +1,9 @@
+RIDEZ v107 – kontrol
+
+[OK] JavaScript kan syntakskontrolleres.
+[OK] App-version, HTML, service worker og cache er v107.
+[OK] Kamera og galleri registreres med forskellige photo_origin-vaerdier.
+[OK] Offentlig RPC returnerer kun photo_origin = camera.
+[OK] Gamle billeder er private som standard.
+[OK] Delingslinket viser kamerabilleder som kameraikoner paa kortet.
+[OK] Ejerens Historik bevarer alle billeder.
