@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/android-background-gps-v104
+      - codex/fix-camera-chat-followers-v108
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
