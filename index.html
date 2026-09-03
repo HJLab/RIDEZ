@@ -256,6 +256,7 @@
       </section>
       <div id="historyStats" class="history-stats"></div>
       <div id="historyTripExtra" class="trip-extra-summary history-trip-extra"></div>
+      <details id="historyFunFactsPanel" class="fun-facts-panel"><summary><span><strong>✨ Fun Facts</strong><small>De valgte sjove fakta om turen</small></span><span class="fun-facts-toggle">Åbn / luk</span></summary><div id="historyFunFacts" class="fun-facts-body"><div class="empty">Fun Facts måles på næste tur.</div></div></details>
       <div id="historyAcceleration" class="acceleration-summary history-acceleration"></div>
       <div id="historyLean" class="lean-summary history-lean"></div>
       <div class="photo-section"><h3>Billeder fra turen</h3><div id="historyPhotos" class="photo-grid"><div class="empty">Ingen billeder endnu.</div></div></div>
@@ -297,6 +298,8 @@
         </div>
       </article>
     </section>
+
+    <details id="viewerFunFactsPanel" class="fun-facts-panel viewer-fun-facts"><summary><span><strong>✨ Fun Facts</strong><small>Sjove fakta fra turens målinger</small></span><span class="fun-facts-toggle">Åbn / luk</span></summary><div id="viewerFunFacts" class="fun-facts-body"><div class="empty">Fun Facts kommer frem, når turen har nok målinger.</div></div></details>
 
     <section class="viewer-chat-panel" aria-label="Samtale med føreren">
       <h2>Samtale med føreren</h2>
@@ -353,6 +356,7 @@
         <label class="username-label">Model<input id="vehicleModelInput" type="text" maxlength="40" placeholder="F.eks. Tracer 9"></label>
         <label class="username-label">Årgang<input id="vehicleYearInput" type="number" min="1900" max="2100" inputmode="numeric" placeholder="2022"></label>
         <label class="username-label">Teoretisk forbrug<input id="vehicleConsumptionInput" type="text" inputmode="decimal" maxlength="6" placeholder="F.eks. 5,0"><span class="vehicle-input-help">liter/100 km</span></label>
+        <label class="username-label">Tankstørrelse<input id="vehicleTankInput" type="text" inputmode="decimal" maxlength="6" placeholder="F.eks. 19,0"><span class="vehicle-input-help">liter · bruges kun til Fun Facts</span></label>
       </div>
       <p id="vehicleFeedback" class="feedback"></p>
       <button class="primary dialog-save" type="submit">Gem køretøj</button>
