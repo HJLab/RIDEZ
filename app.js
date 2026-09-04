@@ -752,7 +752,7 @@ function demoLean(type,t,total,speedMs){
   if(type==='city')return 24*Math.sin(t*0.62);
   return 24*Math.sin(t*0.48);
 }
-function updateRideStats(now,speed,intervalMs=null){state.maxSpeedMs=Math.max(state.maxSpeedMs,Math.max(0,speed||0));const fallback=state.statsLastT===null?0:Math.max(0,Math.min(now-state.statsLastT,state.gpsMode==='low'?90000:15000)),dt=intervalMs===null?fallback:Math.max(0,Number(intervalMs)||0);if(speed>C.STOPPED_THRESHOLD_MS)state.movingMs+=dt;else state.stoppedMs+=dt;state.statsLastT=now;const top=$('topSpeedValue'),moving=$('movingTimeValue'),stopped=$('stoppedTimeValue');if(top)top.textContent=fmtSpeed(state.maxSpeedMs);if(moving)moving.textContent=fmtDuration(state.movingMs/1000);if(stopped)stopped.textContent=fmtDuration(state.stoppedMs/1000)}
+function updateRideStats(now,speed,intervalMs=null){state.maxSpeedMs=Math.max(state.maxSpeedMs,Math.max(0,speed||0));const fallback=state.statsLastT===null?0:Math.max(0,Math.min(now-state.statsLastT,state.gpsMode==='low'?90000:15000)),dt=intervalMs===null?fallback:Math.max(0,Number(intervalMs)||0);if(speed>=Number(C.MOVING_THRESHOLD_MS||2.5))state.movingMs+=dt;else state.stoppedMs+=dt;state.statsLastT=now;const top=$('topSpeedValue'),moving=$('movingTimeValue'),stopped=$('stoppedTimeValue');if(top)top.textContent=fmtSpeed(state.maxSpeedMs);if(moving)moving.textContent=fmtDuration(state.movingMs/1000);if(stopped)stopped.textContent=fmtDuration(state.stoppedMs/1000)}
 async function rpc(name,args){const{data,error}=await db.rpc(name,args);if(error)throw error;return data}
 async function fetchTrackPages(name,baseArgs,{pageSize=1000,maxPages=40,afterId=0}={}){
   const all=[];let cursor=Math.max(0,Number(afterId)||0);

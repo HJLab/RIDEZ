@@ -42,9 +42,9 @@ test('one accepted distance feeds track, total, country and fuel', () => {
   assert.match(app, /calculateFuel\(state\.distanceM/);
   assert.match(sql, /p_step_distance_m/);
   assert.match(sql, /sum\(step_distance_m\)/);
+  assert.match(app, /if\(speed>=Number\(C\.MOVING_THRESHOLD_MS\|\|2\.5\)\)state\.movingMs\+=dt/);
 });
 
 test('driver chat safety text remains exact', () => {
   assert.match(read('index.html'), /Motorcyklen er i bevægelse\. Chatfunktionen er deaktiveret\./);
 });
-
