@@ -7,8 +7,8 @@ const params=new URLSearchParams(location.search),publicRideToken=params.get('ri
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
 const Core=window.RIDEZ_CORE||{};
-const APP_VERSION='114';
-// v114 emergency navigation-safe mode: the installed Android shell's foreground
+const APP_VERSION='115';
+// v115 navigation-safe mode: the installed Android shell's foreground
 // GPS service is disabled while we verify the reported Kurviger conflict. The
 // web app remains usable for history, settings, photos and follower access.
 const ANDROID_NAVIGATION_SAFE_MODE=!!window.RidezAndroid;
@@ -472,7 +472,7 @@ function updateFollowerCount(count){
   const n=Math.max(0,Number(count)||0),badge=$('followerCountBadge'),value=$('followerCountValue');
   state.followerCount=n;if(value)value.textContent=String(n);if(badge)badge.classList.remove('hidden');
 }
-function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?(state.demo?'Demo kører':'På farten'):(state.demo?'Demo holder stille':'Holder stille');$('statusDetail').textContent=moving?'Beskeder og følgeranmodninger holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder og anmodninger.';if(moving)hideFollowRequestNotification();else renderFollowRequestNotification();updateReplyAvailability()}
+function setMotion(moving){state.moving=moving;const el=$('motionLight');el.textContent=moving?'KØRER':'STILLE';el.className=`motion ${moving?'moving':'stopped'}`;$('rideStatus').textContent=moving?(state.demo?'Demo kører':'På farten'):(state.demo?'Demo holder stille':'Holder stille');$('statusDetail').textContent=moving?'Beskeder holdes tilbage, mens du kører.':'Det er sikkert at vise ventende beskeder.';updateReplyAvailability()}
 
 function formatAccelerationResult(sec){return Number.isFinite(sec)?`${sec.toFixed(1).replace('.',',')} sek.`:'–'}
 function formatAccelerationRange(metric){
@@ -841,7 +841,7 @@ async function resumeInterruptedRide(){
   }catch(e){console.warn('Aktiv tur kunne ikke genoptages',e);return false}
   finally{state.resumingRide=false}
 }
-function resetDriverTripDisplay({clearMarker=true}={}){updateTripProgressBadge(false);resetFunFacts();renderFunFacts('driverFunFacts',null,'Start en tur for at måle Fun Facts.');resetAccelerationStats();resetLeanStats();resetElevationState();resetGpsQualityGate();state.rideConsumptionL100=null;state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.pendingUploadDistanceM=0;state.positionQueue=Promise.resolve();state.gpsMode='high';state.lastLowMapPoint=0;state.tripDayNumber=1;state.tripSegmentNumber=1;state.segmentUploadCount=0;state.tripStartLocalDate=null;state.lastAcceptedAt=0;state.lastMovementAt=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.pendingFollowRequests=[];state.replyingMessageId=null;updateFollowerCount(0);hideFollowRequestNotification();closeReplyDialog();clearActivePhotoMarkers();clearActiveRouteLines();if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}renderTripExtraSummary()}
+function resetDriverTripDisplay({clearMarker=true}={}){updateTripProgressBadge(false);resetFunFacts();renderFunFacts('driverFunFacts',null,'Start en tur for at måle Fun Facts.');resetAccelerationStats();resetLeanStats();resetElevationState();resetGpsQualityGate();state.rideConsumptionL100=null;state.currentSpeedMs=0;state.lastPos=null;state.lastUpload=0;state.pendingUploadDistanceM=0;state.positionQueue=Promise.resolve();state.gpsMode='high';state.lastLowMapPoint=0;state.tripDayNumber=1;state.tripSegmentNumber=1;state.segmentUploadCount=0;state.tripStartLocalDate=null;state.lastAcceptedAt=0;state.lastMovementAt=0;state.distanceM=0;state.moving=false;state.stoppedSince=null;state.maxSpeedMs=0;state.movingMs=0;state.stoppedMs=0;state.statsLastT=null;if(state.topSpeedUpdateTimer){clearTimeout(state.topSpeedUpdateTimer);state.topSpeedUpdateTimer=null}state.points=[];state.messagesSeen=new Set();state.lastDriverMessages=[];state.pendingFollowRequests=[];state.replyingMessageId=null;updateFollowerCount(0);closeReplyDialog();clearActivePhotoMarkers();clearActiveRouteLines();if(clearMarker&&state.marker&&state.map){state.map.removeLayer(state.marker);state.marker=null}$('speedValue').textContent='0 km/t';applySpeedColor($('speedValue'),0);$('distanceValue').textContent='0,0 km';if($('topSpeedValue'))$('topSpeedValue').textContent='0 km/t';if($('movingTimeValue'))$('movingTimeValue').textContent='0 sek.';if($('stoppedTimeValue'))$('stoppedTimeValue').textContent='0 sek.';$('messageCount').textContent='0';const el=$('messagesList');if(el){el.className='empty';el.textContent='Ingen beskeder endnu.'}renderTripExtraSummary()}
 function setRideButtons(active){$('startBtn').classList.toggle('hidden',active);$('stopBtn').classList.toggle('hidden',!active);$('shareBtn').classList.toggle('hidden',!active);const photos=$('photoActions');if(photos)photos.classList.toggle('hidden',!active);$('demoBtn').disabled=active&&!state.demo;$('demoType').disabled=active;if(!active){const fb=$('photoFeedback');if(fb)fb.textContent=''}}
 async function createRide(title){
   const v=ensureActiveVehicle();if(!v)throw new Error('Vælg først et køretøj i Indstillinger.');
@@ -1327,7 +1327,7 @@ function initEndRideDialog(){
   dlg.addEventListener('cancel',e=>{e.preventDefault();reset();closeEndRideDialog()});
 }
 function persistentFollowUrl(){return `${location.origin}${location.pathname}?follow=${encodeURIComponent(ensureFollowChannelToken())}`}
-async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:persistentFollowUrl();const w=vehicleWords(currentVehicleType());const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':`Følg min ${w.possessive} live på RIDEZ. Jeg skal godkende dig første gang.`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Dit faste følgelink er kopieret. Det samme link kan bruges på kommende ture.')}
+async function shareRide(){const url=state.demo?`${location.origin}${location.pathname}?demo=${encodeURIComponent(ensureDemoChannelToken())}`:persistentFollowUrl();const w=vehicleWords(currentVehicleType());const text=state.demo?'Følg mine RIDEZ-demoer live på det samme link':`Følg min ${w.possessive} live på RIDEZ. Linket åbner automatisk den aktive tur.`;if(navigator.share){try{await navigator.share({title:'Følg min RIDEZ-tur',text,url});return}catch(e){}}await navigator.clipboard.writeText(url);alert(state.demo?'Fast demo-følgelink kopieret. Det samme link kan bruges til kommende demo-ture.':'Dit faste følgelink er kopieret. Det samme link kan bruges på alle kommende ture.')}
 async function copyPersistentFollowLink(){await preparePersistentFollowChannel();const toggle=$('toggleFollowLinkBtn');if(toggle&&toggle.dataset.enabled==='0'){alert('Aktivér følgelinket først.');return}await navigator.clipboard.writeText(persistentFollowUrl());alert('Dit faste følgelink er kopieret. Det samme link kan bruges på kommende ture.')}
 async function preparePersistentFollowChannel(){
   try{const prepared=await rpc('ridez_prepare_follow_channel_v113',{p_owner_token:ensureOwnerToken(),p_suggested_token:ensureFollowChannelToken(),p_driver_name:state.userName||'Føreren'});if(typeof prepared==='string'&&prepared.length>=32){state.followChannelToken=prepared;localStorage.setItem('ridez_follow_channel_token',prepared)}const result=await rpc('ridez_driver_follow_channel_status_v113',{p_owner_token:state.ownerToken}),row=Array.isArray(result)?result[0]:result,enabled=!row||row.enabled!==false,status=$('followLinkStatus'),button=$('toggleFollowLinkBtn');if(status)status.textContent=enabled?'Aktivt':'Deaktiveret';if(button){button.dataset.enabled=enabled?'1':'0';button.textContent=enabled?'Deaktiver':'Aktiver'}}catch(e){console.debug('Fast følgelink kræver v113-databasen',e)}
@@ -1339,7 +1339,7 @@ async function togglePersistentFollowChannel(){
 }
 async function resetPersistentFollowChannel(){
   if(state.rideId){alert('Afslut turen, før du nulstiller følgelinket.');return}
-  if(!confirm('Nulstil det faste følgelink? Det gamle link stopper med at virke, og alle tidligere godkendelser fjernes.'))return;
+  if(!confirm('Nulstil det faste følgelink? Det gamle link stopper med at virke, og du skal sende det nye link til dine følgere.'))return;
   const next=token();try{const result=await rpc('ridez_rotate_follow_channel_v113',{p_owner_token:ensureOwnerToken(),p_new_channel_token:next,p_driver_name:state.userName||'Føreren'});state.followChannelToken=typeof result==='string'?result:next;localStorage.setItem('ridez_follow_channel_token',state.followChannelToken);const status=$('followLinkStatus');if(status)status.textContent='Nulstillet og aktivt';const button=$('toggleFollowLinkBtn');if(button){button.dataset.enabled='1';button.textContent='Deaktiver'}await navigator.clipboard.writeText(persistentFollowUrl());alert('Et nyt fast følgelink er oprettet og kopieret. Det gamle link virker ikke længere.')}catch(e){alert('Følgelinket kunne ikke nulstilles. Prøv igen.')}
 }
 function requestMessageNotificationPermission(){
@@ -1400,45 +1400,23 @@ async function sendDriverReply(){
   const body=$('replyBody'),fb=$('replyFeedback'),btn=$('replySendBtn');const text=body?body.value.trim():'';if(!text||!state.replyingMessageId)return;
   if(btn){btn.disabled=true;btn.textContent='Sender…'}if(fb)fb.textContent='';
   try{
-    await rpc('ridez_driver_reply_v113',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_sender_name:state.userName,p_body:text});
+    await rpc('ridez_driver_reply_v115',{p_driver_token:state.driverToken,p_message_id:Number(state.replyingMessageId),p_sender_name:state.userName,p_body:text});
     if(fb)fb.textContent='✓ Svar sendt til følgeren.';if(body)body.value='';setTimeout(closeReplyDialog,650);
   }catch(e){console.error(e);if(fb)fb.textContent=(String(e.message||'').toLowerCase().includes('moving'))?`${vehicleWords(currentVehicleType()).definiteCap} skal holde stille, før du kan svare.`:'Svaret kunne ikke sendes. Kontroller at v79 SQL-opdateringen er kørt.'}
   finally{if(btn){btn.textContent='Send svar';btn.disabled=!!state.moving}}
 }
-function hideFollowRequestNotification(){
-  const box=$('followRequestNotification');if(box){box.classList.add('hidden');box.dataset.viewerToken=''}
-}
-function renderFollowRequestNotification(){
-  const box=$('followRequestNotification'),request=state.pendingFollowRequests[0];if(!box)return;
-  if(state.moving||!request){hideFollowRequestNotification();return}
-  box.dataset.viewerToken=request.viewer_token||'';const title=$('followRequestTitle');if(title)title.textContent=`${request.viewer_name||'En person'} vil gerne følge din tur`;
-  box.classList.remove('hidden');
-  if(!state.followRequestNotified.has(request.viewer_token)){
-    state.followRequestNotified.add(request.viewer_token);playMessageChime();if(navigator.vibrate)navigator.vibrate([180,90,180]);
-    try{if(window.RidezAndroid&&typeof window.RidezAndroid.showNotification==='function')window.RidezAndroid.showNotification('Ny følgeranmodning',`${request.viewer_name||'En person'} vil gerne følge din tur`)}catch(e){}
-  }
-}
-async function decideFollowRequest(decision){
-  if(state.moving){hideFollowRequestNotification();return}
-  const box=$('followRequestNotification'),viewerToken=box&&box.dataset.viewerToken;if(!viewerToken||!state.driverToken)return;
-  const approve=$('approveFollowerBtn'),deny=$('denyFollowerBtn');if(approve)approve.disabled=true;if(deny)deny.disabled=true;
-  try{await rpc('ridez_decide_follow_request_v113',{p_driver_token:state.driverToken,p_viewer_token:viewerToken,p_decision:decision});state.pendingFollowRequests=state.pendingFollowRequests.filter(x=>x.viewer_token!==viewerToken);hideFollowRequestNotification();renderFollowRequestNotification()}
-  catch(e){console.error(e);alert('Anmodningen kunne ikke behandles. Prøv igen.')}
-  finally{if(approve)approve.disabled=false;if(deny)deny.disabled=false}
-}
 async function pollMessages(){
   if(!state.driverToken||!state.rideId){updateFollowerCount(0);return}
-  try{const count=await rpc('ridez_driver_viewer_count_v113',{p_driver_token:state.driverToken});updateFollowerCount(count)}catch(countError){console.debug('Følgertal kræver v113-databasen',countError);updateFollowerCount(0)}
+  try{const count=await rpc('ridez_driver_viewer_count_v115',{p_driver_token:state.driverToken});updateFollowerCount(count)}catch(countError){console.debug('Følgertal kræver v115-databasen',countError);updateFollowerCount(0)}
   try{
     if(!state.moving){
-      const requests=await rpc('ridez_driver_follow_requests_v113',{p_driver_token:state.driverToken});state.pendingFollowRequests=Array.isArray(requests)?requests:[];renderFollowRequestNotification();
-      const rowsResult=await rpc('ridez_driver_messages_v113',{p_driver_token:state.driverToken});
+      const rowsResult=await rpc('ridez_driver_messages_v115',{p_driver_token:state.driverToken});
       const rows=Array.isArray(rowsResult)?rowsResult:[];state.lastDriverMessages=rows;
       $('messageCount').textContent=rows.length;
       const unseen=rows.filter(r=>!state.messagesSeen.has(r.id));
       if(unseen.length){unseen.forEach(r=>state.messagesSeen.add(r.id));renderMessages(rows);notifyNewDriverMessages(unseen)}else renderMessages(rows);
     }
-  }catch(e){console.error(e);const el=$('messagesList');if(el){el.className='empty error';el.textContent='Beskeder eller følgeranmodninger kunne ikke hentes. Kontrollér v113-databasen.'}}
+  }catch(e){console.error(e);const el=$('messagesList');if(el){el.className='empty error';el.textContent='Beskeder kunne ikke hentes. Kontrollér v115-databasen.'}}
   if(state.driverToken&&state.rideId)setTimeout(pollMessages,C.MESSAGE_POLL_MS)
 }
 function renderMessages(rows){
@@ -1623,26 +1601,6 @@ function initUsernameSettings(){
   if(edit)edit.onclick=()=>openUsernameDialog(false);if(form)form.addEventListener('submit',saveUsername);if(cancel)cancel.onclick=closeUsernameDialog;
   if(dlg)dlg.addEventListener('cancel',e=>{if(state.usernameRequired&&!setupComplete()){e.preventDefault();return}closeUsernameDialog()});
   if(!setupComplete())setTimeout(()=>openUsernameDialog(true),80);
-}
-function openViewerUsernameDialog(){
-  const dlg=$('viewerUsernameDialog'),input=$('viewerUsernameInput'),fb=$('viewerUsernameFeedback');if(!dlg)return;
-  if(input)input.value=state.viewerUserName||'';if(fb)fb.textContent='';
-  if(typeof dlg.showModal==='function'){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','');
-  setTimeout(()=>{if(input)input.focus()},60);
-}
-function closeViewerUsernameDialog(){
-  if(!state.viewerUserName)return;const dlg=$('viewerUsernameDialog');if(dlg&&typeof dlg.close==='function'&&dlg.open)dlg.close();else if(dlg)dlg.removeAttribute('open');
-}
-let viewerAccessRequestHandler=null;
-async function saveViewerUsername(e){
-  if(e&&e.preventDefault)e.preventDefault();const input=$('viewerUsernameInput'),fb=$('viewerUsernameFeedback');const name=(input?input.value:'').trim();
-  if(name.length<1){if(fb)fb.textContent='Skriv et brugernavn.';return}if(name.length>40){if(fb)fb.textContent='Brugernavnet må højst være 40 tegn.';return}
-  state.viewerUserName=name;localStorage.setItem('ridez_viewer_username',name);if(viewerAccessRequestHandler){if(fb)fb.textContent='Sender anmodning…';try{await viewerAccessRequestHandler(name);closeViewerUsernameDialog()}catch(err){console.error(err);if(fb)fb.textContent='Anmodningen kunne ikke sendes. Prøv igen.'}return}closeViewerUsernameDialog();
-}
-function initViewerUsernameSettings(){
-  const form=$('viewerUsernameForm'),dlg=$('viewerUsernameDialog');if(form)form.addEventListener('submit',saveViewerUsername);
-  if(dlg)dlg.addEventListener('cancel',e=>{if(!state.viewerUserName){e.preventDefault();return}closeViewerUsernameDialog()});
-  if(!state.viewerUserName&&!followChannelToken)setTimeout(openViewerUsernameDialog,180);
 }
 function tripLengthLabel(value){return ({day:'Dagstur',weekend:'Weekendtur','7days':'7-dages tur','14days':'14-dages tur'})[value]||'Dagstur'}
 function updateTripProgressBadge(active=!!state.rideId){const badge=$('tripProgressBadge');if(!badge)return;badge.classList.toggle('hidden',!active);if(active)badge.textContent=`${tripLengthLabel(state.tripLength)} · Dag ${Math.max(1,Number(state.tripDayNumber)||1)}`}
@@ -1987,7 +1945,7 @@ function renderViewerConversation(rows){
 }
 
 async function initViewer(){
-  $('viewerView').classList.remove('hidden');initViewerUsernameSettings();
+  $('viewerView').classList.remove('hidden');
   state.map=initMap('viewerMap');
   let lastTrackPointId=0,lastViewerPhotoId=0,lastViewerGalleryPhotoId=0,viewerSharedPhotoCount=0,lastViewerFactsAt=0,viewerSegmentKey='',viewerSegmentPoints=[],viewerRideToken=publicRideToken||null;const viewerToken=ensureViewerToken(),viewerGalleryPhotos=new Map();
   async function resolveViewerRideToken(){
@@ -2067,36 +2025,26 @@ async function initViewer(){
     lastTrackPointId=0;lastViewerGalleryPhotoId=0;viewerGalleryPhotos.clear();renderViewerPhotoGallery();state.viewerDayNumber=0;clearViewerRouteLines();resetViewerPhotos();
     if(state.marker){state.map.removeLayer(state.marker);state.marker=null}
   }
-  const secureFollow=!!followChannelToken;let followDriverName='føreren',followApproved=false,followActive=false,accessDialogShown=false;
+  const secureFollow=!!followChannelToken;let followDriverName='føreren',followApproved=false,followActive=false;
   function setViewerAccess(status,driverName,active){
-    const gate=$('viewerAccessGate'),content=$('viewerProtectedContent'),title=$('viewerAccessTitle'),text=$('viewerAccessText'),button=$('viewerAccessNameBtn');
+    const gate=$('viewerAccessGate'),content=$('viewerProtectedContent'),title=$('viewerAccessTitle'),text=$('viewerAccessText');
     followDriverName=driverName||followDriverName;followApproved=status==='approved';followActive=!!active;
     if(!secureFollow){if(gate)gate.classList.add('hidden');if(content)content.classList.remove('hidden');return}
-    const allowed=followApproved&&followActive;if(gate)gate.classList.toggle('hidden',allowed);if(content)content.classList.toggle('hidden',!allowed);if(button)button.classList.add('hidden');
+    const allowed=followApproved&&followActive;if(gate)gate.classList.toggle('hidden',allowed);if(content)content.classList.toggle('hidden',!allowed);
     if(allowed){setTimeout(()=>state.map&&state.map.invalidateSize(),30);return}
-    if(status==='new'){
-      if(title)title.textContent='Anmod om adgang til turen';if(text)text.textContent=`Indtast dit brugernavn for at sende en anmodning til ${followDriverName}. ${followDriverName} skal godkende dig, før forbindelsen oprettes, og du kan se turen og den aktuelle position.`;if(button){button.textContent='Indtast brugernavn';button.classList.remove('hidden')}
-    }else if(status==='pending'){
-      if(title)title.textContent=`Din anmodning er sendt til ${followDriverName}`;if(text)text.textContent=`Du får adgang til turen, når ${followDriverName} har godkendt dig.`;
-    }else if(status==='denied'){
-      if(title)title.textContent='Anmodningen blev afvist';if(text)text.textContent=`Du har ikke adgang til ${followDriverName}s tur. Du kan sende en ny anmodning ved at indtaste dit brugernavn igen.`;if(button){button.textContent='Send ny anmodning';button.classList.remove('hidden')}
-    }else if(status==='disabled'){
+    if(status==='disabled'){
       if(title)title.textContent='Følgelinket er deaktiveret';if(text)text.textContent=`${followDriverName} har midlertidigt slået følgelinket fra.`;
     }else if(status==='invalid'){
       if(title)title.textContent='Følgelinket findes ikke';if(text)text.textContent='Kontrollér, at du har åbnet hele linket, eller bed afsenderen om at sende det igen.';
     }else{
-      if(title)title.textContent='Ingen aktiv tur lige nu';if(text)text.textContent=`Du er godkendt. Når ${followDriverName} starter RIDEZ, kan du følge turen på dette samme link.`;
+      if(title)title.textContent='Ingen aktiv tur lige nu';if(text)text.textContent=`Når ${followDriverName} starter en RIDEZ-tur, åbner den automatisk på dette samme link.`;
     }
     $('viewerTitle').textContent=followDriverName==='føreren'?'RIDEZ':followDriverName;$('viewerStatus').textContent=title?title.textContent:'Venter på adgang';
   }
   async function readFollowStatus(){
-    const result=await rpc('ridez_follow_access_status_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken});const row=Array.isArray(result)?result[0]:result;
-    const status=!row?'invalid':(row.enabled===false?'disabled':(row.access_status||'new')),active=!!(row&&row.ride_active);setViewerAccess(status,row&&row.driver_name||'føreren',active);
-    const help=$('viewerUsernameHelp');if(help)help.textContent=`Indtast dit brugernavn for at sende en anmodning til ${followDriverName}. ${followDriverName} skal godkende dig, før forbindelsen oprettes, og du kan se turen og den aktuelle position.`;
-    if(status==='new'&&!accessDialogShown){accessDialogShown=true;setTimeout(openViewerUsernameDialog,180)}return {status,active};
+    const result=await rpc('ridez_follow_access_status_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken});const row=Array.isArray(result)?result[0]:result;
+    const status=!row?'invalid':(row.enabled===false?'disabled':'approved'),active=!!(row&&row.ride_active);setViewerAccess(status,row&&row.driver_name||'føreren',active);return {status,active};
   }
-  viewerAccessRequestHandler=secureFollow?async name=>{const result=await rpc('ridez_request_follow_access_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_viewer_name:name});setViewerAccess(result==='approved'?'approved':'pending',followDriverName,false)}:null;
-  const accessNameButton=$('viewerAccessNameBtn');if(accessNameButton)accessNameButton.onclick=()=>{accessDialogShown=true;openViewerUsernameDialog()};
   async function refresh(){
     try{
       if(secureFollow){const access=await readFollowStatus();if(access.status!=='approved'||!access.active)return}
@@ -2104,18 +2052,18 @@ async function initViewer(){
       const resolvedToken=secureFollow?null:await resolveViewerRideToken();
       if(!secureFollow&&!resolvedToken){$('viewerStatus').textContent=demoChannelToken?'Venter på at en demo bliver startet.':'Turen findes ikke eller er udløbet.';return}
       if(!secureFollow&&viewerRideToken!==resolvedToken){viewerRideToken=resolvedToken;resetViewerForNewRide();const chat=$('viewerConversation');if(chat){chat.className='viewer-conversation empty';chat.textContent='Ingen svar fra føreren endnu.'}}
-      const rideResult=secureFollow?await rpc('ridez_follow_ride_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_ride_v96',{p_public_token:viewerRideToken}).catch(()=>rpc('ridez_public_ride_v80',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v19',{p_public_token:viewerRideToken}));
+      const rideResult=secureFollow?await rpc('ridez_follow_ride_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_ride_v96',{p_public_token:viewerRideToken}).catch(()=>rpc('ridez_public_ride_v80',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v45',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v23',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v21',{p_public_token:viewerRideToken})).catch(()=>rpc('ridez_public_ride_v19',{p_public_token:viewerRideToken}));
       const ride=Array.isArray(rideResult)?rideResult[0]:rideResult;if(!ride){if(secureFollow)setViewerAccess('approved',followDriverName,false);else $('viewerStatus').textContent=demoChannelToken?'Venter på næste demo.':'Turen findes ikke eller er udløbet.';return}
-      if(secureFollow)await rpc('ridez_follow_heartbeat_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken});else try{await rpc('ridez_viewer_heartbeat_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken})}catch(e){}
+      if(secureFollow)await rpc('ridez_follow_heartbeat_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken});else try{await rpc('ridez_viewer_heartbeat_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken})}catch(e){}
       state.viewerVehicleType=normalizeVehicleType(ride.vehicle_type);setViewerVehicleCopy(state.viewerVehicleType);$('viewerTitle').textContent=ride.title||'RIDEZ live-tur';$('viewerSpeed').textContent=fmtSpeed(ride.speed_ms);applySpeedColor($('viewerSpeed'),ride.speed_ms);showViewerTopSpeed(ride);renderViewerDashboard(ride);
-      if(Date.now()-lastViewerFactsAt>15000){lastViewerFactsAt=Date.now();try{const facts=secureFollow?await rpc('ridez_follow_fun_facts_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_fun_facts_v111',{p_public_token:viewerRideToken});renderFunFacts('viewerFunFacts',facts,'Fun Facts kommer frem, når turen har nok målinger.')}catch(e){renderFunFacts('viewerFunFacts',null,'Fun Facts kunne ikke hentes.')}}
+      if(Date.now()-lastViewerFactsAt>15000){lastViewerFactsAt=Date.now();try{const facts=secureFollow?await rpc('ridez_follow_fun_facts_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_fun_facts_v111',{p_public_token:viewerRideToken});renderFunFacts('viewerFunFacts',facts,'Fun Facts kommer frem, når turen har nok målinger.')}catch(e){renderFunFacts('viewerFunFacts',null,'Fun Facts kunne ikke hentes.')}}
       $('viewerUpdated').textContent=ride.updated_at?new Date(ride.updated_at).toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}):'–';{const w=vehicleWords(state.viewerVehicleType);$('viewerStatus').textContent=ride.active?(ride.moving?`${followDriverName} er på farten`:`${w.definiteCap} holder stille`):(demoChannelToken?'Demoen er afsluttet – linket venter på næste demo':'Turen er afsluttet')}
       const mo=$('viewerMotion');mo.textContent=ride.moving?'KØRER':'STILLE';mo.className=`motion ${ride.moving?'moving':'stopped'}`;const viewerMovingNotice=$('viewerChatMovingNotice');if(viewerMovingNotice)viewerMovingNotice.classList.toggle('hidden',!(ride.active&&ride.moving));if(ride.lat!=null)updateMap(ride.lat,ride.lng,true,false);
       const currentDay=Math.max(1,Number(ride.current_day_number)||1);if(state.viewerDayNumber!==currentDay){state.viewerDayNumber=currentDay;lastTrackPointId=0;clearViewerRouteLines();resetViewerPhotos()}
-      let pts;if(secureFollow)pts=await fetchTrackPages('ridez_follow_track_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:currentDay},{pageSize:1000,maxPages:30,afterId:lastTrackPointId});else try{pts=await fetchTrackPages('ridez_public_track_v96',{p_public_token:viewerRideToken,p_day_number:currentDay},{pageSize:1000,maxPages:30,afterId:lastTrackPointId})}catch(e){pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});lastTrackPointId=0;clearViewerRouteLines()}if(Array.isArray(pts)&&pts.length)appendViewerTrack(pts,currentDay);
-      try{const sharedPhotos=secureFollow?await rpc('ridez_follow_camera_photos_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:currentDay,p_after_id:lastViewerPhotoId}):await rpc('ridez_public_camera_photos_v107',{p_public_token:viewerRideToken,p_day_number:currentDay,p_after_id:lastViewerPhotoId});if(Array.isArray(sharedPhotos)&&sharedPhotos.length)appendViewerPhotos(sharedPhotos)}catch(e){}
-      try{const galleryPhotos=secureFollow?await rpc('ridez_follow_camera_photos_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:0,p_after_id:lastViewerGalleryPhotoId}):await rpc('ridez_public_camera_photos_v109',{p_public_token:viewerRideToken,p_after_id:lastViewerGalleryPhotoId});if(Array.isArray(galleryPhotos)&&galleryPhotos.length)appendViewerGalleryPhotos(galleryPhotos)}catch(e){}
-      try{const chatRows=secureFollow?await rpc('ridez_follow_conversation_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_conversation_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
+      let pts;if(secureFollow)pts=await fetchTrackPages('ridez_follow_track_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:currentDay},{pageSize:1000,maxPages:30,afterId:lastTrackPointId});else try{pts=await fetchTrackPages('ridez_public_track_v96',{p_public_token:viewerRideToken,p_day_number:currentDay},{pageSize:1000,maxPages:30,afterId:lastTrackPointId})}catch(e){pts=await rpc('ridez_public_track',{p_public_token:viewerRideToken});lastTrackPointId=0;clearViewerRouteLines()}if(Array.isArray(pts)&&pts.length)appendViewerTrack(pts,currentDay);
+      try{const sharedPhotos=secureFollow?await rpc('ridez_follow_camera_photos_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:currentDay,p_after_id:lastViewerPhotoId}):await rpc('ridez_public_camera_photos_v107',{p_public_token:viewerRideToken,p_day_number:currentDay,p_after_id:lastViewerPhotoId});if(Array.isArray(sharedPhotos)&&sharedPhotos.length)appendViewerPhotos(sharedPhotos)}catch(e){}
+      try{const galleryPhotos=secureFollow?await rpc('ridez_follow_camera_photos_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_day_number:0,p_after_id:lastViewerGalleryPhotoId}):await rpc('ridez_public_camera_photos_v109',{p_public_token:viewerRideToken,p_after_id:lastViewerGalleryPhotoId});if(Array.isArray(galleryPhotos)&&galleryPhotos.length)appendViewerGalleryPhotos(galleryPhotos)}catch(e){}
+      try{const chatRows=secureFollow?await rpc('ridez_follow_conversation_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_conversation_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
     }catch(e){console.error(e);$('viewerStatus').textContent='Kunne ikke hente live-data.'}
     finally{setTimeout(refresh,3000)}
   }
@@ -2124,16 +2072,16 @@ async function initViewer(){
   if(viewerPhotoPanel)viewerPhotoPanel.addEventListener('toggle',()=>{if(viewerPhotoToggleText)viewerPhotoToggleText.textContent=viewerPhotoPanel.open?'Luk billeder':'Vis billeder'});
   refresh();
   $('messageForm').addEventListener('submit',async e=>{
-    e.preventDefault();const name=(state.viewerUserName||'').trim(),body=$('messageBody').value.trim();if(!name){openViewerUsernameDialog();return}if(!body)return;
+    e.preventDefault();const name='Følger',body=$('messageBody').value.trim();if(!body)return;
     $('sendFeedback').textContent='Sender…';
     try{
-      if(secureFollow&&!followApproved){$('sendFeedback').textContent=`Du skal godkendes af ${followDriverName}, før du kan sende beskeder.`;return}
+      if(secureFollow&&!followApproved){$('sendFeedback').textContent='Følgelinket er ikke aktivt lige nu.';return}
       const tokenNow=secureFollow?null:await resolveViewerRideToken();if(!secureFollow&&!tokenNow){$('sendFeedback').textContent='Der er ingen aktiv tur at sende beskeden til endnu.';return}if(tokenNow)viewerRideToken=tokenNow;
-      const result=secureFollow?await rpc('ridez_follow_send_message_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body}):await rpc('ridez_send_message_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?`✓ Beskeden er sat i kø og bliver leveret, så snart ${vehicleWords(state.viewerVehicleType).definite} holder stille.`:'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=secureFollow?await rpc('ridez_follow_conversation_v113',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_conversation_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
+      const result=secureFollow?await rpc('ridez_follow_send_message_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body}):await rpc('ridez_send_message_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken,p_sender_name:name,p_body:body});$('messageBody').value='';$('sendFeedback').textContent=result==='moving'?`✓ Beskeden er sat i kø og bliver leveret, så snart ${vehicleWords(state.viewerVehicleType).definite} holder stille.`:'✓ Beskeden er sendt og kan vises til føreren nu.';try{const chatRows=secureFollow?await rpc('ridez_follow_conversation_v115',{p_channel_token:followChannelToken,p_viewer_token:viewerToken}):await rpc('ridez_public_conversation_v108',{p_public_token:viewerRideToken,p_viewer_token:viewerToken});renderViewerConversation(Array.isArray(chatRows)?chatRows:[])}catch(e){}
     }catch(err){$('sendFeedback').textContent='Beskeden kunne ikke sendes. Prøv igen.'}
   })
 }
-async function initDriver(){stopAndroidTrackingForNavigation();initFunConnectivity();loadFuel95Cache();renderTripExtraSummary();const extraPanel=$('tripExtraPanel');if(extraPanel)extraPanel.addEventListener('toggle',()=>{if(extraPanel.open){renderTripExtraSummary();fetchFuel95Price(false).catch(()=>{});if(state.elevationQueue.length)flushElevationQueue().catch(()=>{})}});$('driverView').classList.remove('hidden');ensureOwnerToken();ensureFollowChannelToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=openEndRideDialog;$('shareBtn').onclick=shareRide;if($('copyFollowLinkBtn'))$('copyFollowLinkBtn').onclick=()=>copyPersistentFollowLink().catch(()=>alert('Følgelinket kunne ikke kopieres. Prøv igen.'));if($('toggleFollowLinkBtn')){$('toggleFollowLinkBtn').dataset.enabled='1';$('toggleFollowLinkBtn').onclick=togglePersistentFollowChannel}if($('resetFollowLinkBtn'))$('resetFollowLinkBtn').onclick=resetPersistentFollowChannel;if($('approveFollowerBtn'))$('approveFollowerBtn').onclick=()=>decideFollowRequest('approved');if($('denyFollowerBtn'))$('denyFollowerBtn').onclick=()=>decideFollowRequest('denied');$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();initVehicleSettings();initTripLengthSettings();initUsernameSettings();initEndRideDialog();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;updateFollowerCount(0);await preparePersistentFollowChannel();await loadHistory();await resumeInterruptedRide();if(ANDROID_NAVIGATION_SAFE_MODE){stopAndroidTrackingForNavigation();if(!state.rideId){$('rideStatus').textContent='Kurviger prioriteret';$('statusDetail').textContent='RIDEZ GPS er midlertidigt slået fra. Kurviger kan bruges normalt.'}}}
+async function initDriver(){stopAndroidTrackingForNavigation();initFunConnectivity();loadFuel95Cache();renderTripExtraSummary();const extraPanel=$('tripExtraPanel');if(extraPanel)extraPanel.addEventListener('toggle',()=>{if(extraPanel.open){renderTripExtraSummary();fetchFuel95Price(false).catch(()=>{});if(state.elevationQueue.length)flushElevationQueue().catch(()=>{})}});$('driverView').classList.remove('hidden');ensureOwnerToken();ensureFollowChannelToken();state.map=initMap('driverMap');initLeanSensor();const settingsPanel=$('settingsPanel');if(settingsPanel)settingsPanel.addEventListener('toggle',async()=>{if(!settingsPanel.open)return;updateCalibrationLive();if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission!=='function')return;});const calibrationPanel=$('calibrationPanel');if(calibrationPanel)calibrationPanel.addEventListener('toggle',()=>{if(calibrationPanel.open)updateCalibrationLive(state.lastRawRoll);});renderAccelerationSummary();document.querySelectorAll('.accel-edit').forEach(btn=>btn.addEventListener('click',()=>openAccelEditor(btn.dataset.accelKind)));if($('accelConfigMode'))$('accelConfigMode').addEventListener('change',renderAccelEditorFields);if($('accelConfigForm'))$('accelConfigForm').addEventListener('submit',saveAccelEditor);if($('accelConfigCancel'))$('accelConfigCancel').addEventListener('click',()=>{const d=$('accelConfigDialog');if(d&&typeof d.close==='function')d.close();else if(d)d.removeAttribute('open')});if($('calibrateBtn'))$('calibrateBtn').onclick=calibratePhone;if($('takePhotoBtn'))$('takePhotoBtn').onclick=()=>$('cameraInput').click();if($('galleryBtn'))$('galleryBtn').onclick=()=>$('galleryInput').click();if($('cameraInput'))$('cameraInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'camera')});if($('galleryInput'))$('galleryInput').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)handleRidePhoto(f,'gallery')});$('startBtn').onclick=()=>startRide().catch(e=>alert('Kunne ikke starte turen: '+e.message));$('stopBtn').onclick=openEndRideDialog;$('shareBtn').onclick=shareRide;if($('copyFollowLinkBtn'))$('copyFollowLinkBtn').onclick=()=>copyPersistentFollowLink().catch(()=>alert('Følgelinket kunne ikke kopieres. Prøv igen.'));if($('toggleFollowLinkBtn')){$('toggleFollowLinkBtn').dataset.enabled='1';$('toggleFollowLinkBtn').onclick=togglePersistentFollowChannel}if($('resetFollowLinkBtn'))$('resetFollowLinkBtn').onclick=resetPersistentFollowChannel;$('demoBtn').onclick=()=>{if(state.demo)stopRide();else startDemo().catch(e=>{console.error(e);alert('Kunne ikke starte demo: '+e.message)})};$('historyCloseBtn').onclick=closeHistoryRide;$('historyDeleteBtn').onclick=deleteHistoryRide;if($('historyReplayStart'))$('historyReplayStart').onclick=startHistoryReplay;if($('historyReplayPause'))$('historyReplayPause').onclick=toggleHistoryReplayPause;if($('historyReplayStop'))$('historyReplayStop').onclick=stopHistoryReplay;document.querySelectorAll('.replay-rate-button').forEach(btn=>btn.addEventListener('click',()=>setReplaySpeedFactor(btn.dataset.replayRate)));syncReplaySpeedButtons();initSoundSettings();initVehicleSettings();initTripLengthSettings();initUsernameSettings();initEndRideDialog();if($('replySendBtn'))$('replySendBtn').onclick=sendDriverReply;if($('replyCancelBtn'))$('replyCancelBtn').onclick=closeReplyDialog;if($('replyDialog'))$('replyDialog').addEventListener('cancel',e=>{e.preventDefault();closeReplyDialog()});if($('messageNotification'))$('messageNotification').onclick=()=>{const p=$('messagesPanel');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});$('messageNotification').classList.add('hidden')};$('historySelectBtn').onclick=toggleHistorySelectMode;$('historyBulkDeleteBtn').onclick=deleteSelectedHistoryRides;updateFollowerCount(0);await preparePersistentFollowChannel();await loadHistory();await resumeInterruptedRide();if(ANDROID_NAVIGATION_SAFE_MODE){stopAndroidTrackingForNavigation();if(!state.rideId){$('rideStatus').textContent='Kurviger prioriteret';$('statusDetail').textContent='RIDEZ GPS er midlertidigt slået fra. Kurviger kan bruges normalt.'}}}
 document.addEventListener('click',e=>{
   const openBtn=e.target.closest&&e.target.closest('.photo-popup-open');
   if(openBtn){e.preventDefault();e.stopPropagation();const img=openBtn.querySelector('img');const popup=openBtn.closest('.photo-popup');const caption=popup&&popup.querySelector('span')?popup.querySelector('span').textContent:'';if(img)openPhotoViewer(img.currentSrc||img.src,caption);return}
@@ -2144,7 +2092,7 @@ document.addEventListener('click',e=>{
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
 {const versionEl=$('appVersion');if(versionEl){versionEl.textContent='v'+APP_VERSION;versionEl.classList.add('runtime-ok');versionEl.title='RIDEZ app.js v'+APP_VERSION+' er indlæst';}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=114').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=115').catch(()=>{}));
 function handleInitFailure(error){
   console.error('RIDEZ kunne ikke starte korrekt',error);
   const versionEl=$('appVersion');
