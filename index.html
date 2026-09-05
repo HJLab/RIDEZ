@@ -8,18 +8,18 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=114">
+  <link rel="stylesheet" href="styles.css?v=115">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><img src="icon-192.png" alt="RIDEZ"><div><strong>RIDEZ</strong><span id="brandTagline">Din motorcykel. Din verden.</span></div></div>
-  <div class="topbar-right"><span id="connectionBadge" class="badge">Klar</span><span id="appVersion" class="app-version" aria-label="RIDEZ version">v114</span></div>
+  <div class="topbar-right"><span id="connectionBadge" class="badge">Klar</span><span id="appVersion" class="app-version" aria-label="RIDEZ version">v115</span></div>
 </header>
 <main>
   <section id="driverView" class="panel hidden">
     <div class="status-row">
       <div><span class="eyebrow">KØRERSTATUS</span><h1 id="rideStatus">Ikke startet</h1><p id="statusDetail">Start en tur for at dele din position.</p></div>
-      <div class="motion-stack"><div id="motionLight" class="motion stopped">STILLE</div><div id="followerCountBadge" class="follower-count" aria-live="polite" title="Godkendte personer, der følger turen lige nu">👁 <span id="followerCountValue">0</span> følger</div></div>
+      <div class="motion-stack"><div id="motionLight" class="motion stopped">STILLE</div><div id="followerCountBadge" class="follower-count" aria-live="polite" title="Personer, der følger turen lige nu">👁 <span id="followerCountValue">0</span> følger</div></div>
     </div>
     <div id="demoBadge" class="demo-badge hidden">DEMO MODE</div>
     <div id="tripProgressBadge" class="trip-progress-badge hidden" aria-live="polite">Dagstur · Dag 1</div>
@@ -205,7 +205,7 @@
         </summary>
         <div class="settings-fold-body">
           <div class="setting-row follow-link-setting-row">
-            <div><strong>Det samme link til alle ture</strong><p>Godkendte følgere kan bruge linket igen på kommende ture. De ser kun en tur, mens RIDEZ registrerer den.</p><span id="followLinkStatus" class="settings-inline-value">Aktivt</span></div>
+            <div><strong>Det samme link til alle ture</strong><p>Alle med linket kan automatisk følge en aktiv tur. Der kræves ingen konto, intet brugernavn og ingen godkendelse.</p><span id="followLinkStatus" class="settings-inline-value">Aktivt</span></div>
             <div class="follow-link-actions"><button id="copyFollowLinkBtn" class="secondary small-button" type="button">Kopiér link</button><button id="toggleFollowLinkBtn" class="secondary small-button" type="button">Deaktiver</button><button id="resetFollowLinkBtn" class="danger small-button" type="button">Nulstil link</button></div>
           </div>
         </div>
@@ -256,12 +256,6 @@
       <div><strong id="messageNotificationTitle">Ny besked</strong><span id="messageNotificationBody"></span></div>
     </div>
 
-    <div id="followRequestNotification" class="follow-request-notification hidden" role="alertdialog" aria-live="assertive" aria-labelledby="followRequestTitle">
-      <div class="follow-request-icon">👁</div>
-      <div class="follow-request-copy"><strong id="followRequestTitle">En person vil gerne følge din tur</strong><span>Forbindelsen oprettes først, når du godkender.</span></div>
-      <div class="follow-request-actions"><button id="approveFollowerBtn" class="primary" type="button">Godkend</button><button id="denyFollowerBtn" class="danger" type="button">Afvis</button></div>
-    </div>
-
     <section id="historyDetail" class="history-detail hidden">
       <div class="history-detail-head">
         <div><span class="eyebrow">TURDETALJER</span><h2 id="historyDetailTitle">Tur</h2><p id="historyDetailMeta">Henter tur…</p></div>
@@ -293,7 +287,6 @@
       <div class="viewer-access-icon">🔒</div>
       <h2 id="viewerAccessTitle">Adgang til turen</h2>
       <p id="viewerAccessText">Kontrollerer din adgang…</p>
-      <button id="viewerAccessNameBtn" class="primary hidden" type="button">Indtast brugernavn</button>
     </section>
     <div id="viewerProtectedContent" class="hidden">
     <div id="viewerMap" class="map"></div>
@@ -351,16 +344,6 @@
     </details>
     </div>
   </section>
-
-  <dialog id="viewerUsernameDialog" class="ridez-dialog username-dialog" aria-label="Anmod om adgang til RIDEZ-tur">
-    <form id="viewerUsernameForm" method="dialog">
-      <div class="dialog-head"><div><span class="eyebrow">ADGANG TIL LIVE-TUR</span><h2>Anmod om adgang til turen</h2></div></div>
-      <p id="viewerUsernameHelp" class="dialog-help">Indtast dit brugernavn for at sende en anmodning til føreren. Føreren skal godkende dig, før forbindelsen oprettes, og du kan se turen og den aktuelle position.</p>
-      <label class="username-label">Brugernavn<input id="viewerUsernameInput" type="text" maxlength="40" autocomplete="name" required placeholder="F.eks. Peter"></label>
-      <p id="viewerUsernameFeedback" class="feedback"></p>
-      <button class="primary dialog-save" type="submit">Send anmodning</button>
-    </form>
-  </dialog>
 
   <dialog id="usernameDialog" class="ridez-dialog username-dialog" aria-label="Brugernavn i RIDEZ">
     <form id="usernameForm">
@@ -448,7 +431,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="ridez-core.js?v=113"></script>
-<script src="app.js?v=113"></script>
+<script src="ridez-core.js?v=115"></script>
+<script src="app.js?v=115"></script>
 </body>
 </html>

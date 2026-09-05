@@ -13,25 +13,33 @@ test('UI always shows follower count including zero', () => {
   assert.doesNotMatch(app, /badge\.classList\.toggle\('hidden',n===0\)/);
 });
 
-test('persistent link and explicit approval copy are present', () => {
+test('persistent link opens without username or approval', () => {
   const html = read('index.html');
   const app = read('app.js');
   assert.match(app, /\?follow=/);
-  assert.match(html, /skal godkende dig, før forbindelsen oprettes/);
-  assert.match(app, /vil gerne følge din tur/);
-  assert.match(html, />Godkend<\/button>/);
-  assert.match(html, />Afvis<\/button>/);
+  assert.match(html, /ingen konto, intet brugernavn og ingen godkendelse/);
+  assert.doesNotMatch(html, /viewerUsernameDialog/);
+  assert.doesNotMatch(html, /approveFollowerBtn/);
+  assert.doesNotMatch(app, /ridez_request_follow_access_v113/);
 });
 
-test('all protected viewer data is fetched through approved v113 RPCs', () => {
+test('all protected viewer data is fetched through link-scoped v115 RPCs', () => {
   const app = read('app.js');
-  const sql = read('supabase-v113.sql');
-  for (const fn of ['ridez_follow_ride_v113','ridez_follow_track_v113','ridez_follow_camera_photos_v113','ridez_follow_fun_facts_v113','ridez_follow_conversation_v113','ridez_follow_send_message_v113']) {
+  const sql = read('supabase-v115.sql');
+  for (const fn of ['ridez_follow_ride_v115','ridez_follow_track_v115','ridez_follow_camera_photos_v115','ridez_follow_fun_facts_v115','ridez_follow_conversation_v115','ridez_follow_send_message_v115']) {
     assert.match(app, new RegExp(fn));
     assert.match(sql, new RegExp(`function public\\.${fn}`));
   }
-  assert.match(sql, /q\.status='approved'/);
+  assert.match(sql, /c\.channel_token=p_channel_token and c\.enabled=true/);
+  assert.doesNotMatch(sql, /q\.status='approved'/);
   assert.match(sql, /ph\.photo_origin='camera'/);
+});
+
+test('Android navigation-safe mode stops RIDEZ native GPS', () => {
+  const app = read('app.js');
+  assert.match(app, /const ANDROID_NAVIGATION_SAFE_MODE=!!window\.RidezAndroid/);
+  assert.match(app, /window\.RidezAndroid\.stopTracking\(\)/);
+  assert.match(app, /RIDEZ GPS er midlertidigt slået fra for at sikre, at Kurviger virker/);
 });
 
 test('one accepted distance feeds track, total, country and fuel', () => {
