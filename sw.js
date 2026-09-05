@@ -1,5 +1,5 @@
-const CACHE='ridez-simple-follow-v115';
-const CORE=['./','./index.html','./styles.css?v=115','./ridez-core.js?v=115','./app.js?v=115','./RIDEZ_Sportsbike_4-8sek.wav?v=115','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='ridez-background-gps-v116';
+const CORE=['./','./index.html','./styles.css?v=116','./ridez-core.js?v=116','./app.js?v=116','./RIDEZ_Sportsbike_4-8sek.wav?v=116','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(url=>c.add(url)))));

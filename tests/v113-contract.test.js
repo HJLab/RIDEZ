@@ -35,11 +35,12 @@ test('all protected viewer data is fetched through link-scoped v115 RPCs', () =>
   assert.match(sql, /ph\.photo_origin='camera'/);
 });
 
-test('Android navigation-safe mode stops RIDEZ native GPS', () => {
+test('Android background GPS is enabled for real trips', () => {
   const app = read('app.js');
-  assert.match(app, /const ANDROID_NAVIGATION_SAFE_MODE=!!window\.RidezAndroid/);
-  assert.match(app, /window\.RidezAndroid\.stopTracking\(\)/);
-  assert.match(app, /RIDEZ GPS er midlertidigt slået fra for at sikre, at Kurviger virker/);
+  assert.doesNotMatch(app, /ANDROID_NAVIGATION_SAFE_MODE/);
+  assert.doesNotMatch(app, /stopAndroidTrackingForNavigation/);
+  assert.match(app, /navigator\.geolocation\.watchPosition\(onPosition,onGeoError,options\)/);
+  assert.match(app, /async function startRide\(\).*createRide\('RIDEZ live-tur'\).*startGpsWatch\('high'\)/s);
 });
 
 test('one accepted distance feeds track, total, country and fuel', () => {
