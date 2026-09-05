@@ -1,4 +1,4 @@
-const CACHE='ridez-background-gps-v116';
+const CACHE='ridez-background-gps-v117';
 const CORE=['./','./index.html','./styles.css?v=116','./ridez-core.js?v=116','./app.js?v=116','./RIDEZ_Sportsbike_4-8sek.wav?v=116','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();

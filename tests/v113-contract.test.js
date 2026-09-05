@@ -57,3 +57,11 @@ test('one accepted distance feeds track, total, country and fuel', () => {
 test('driver chat safety text remains exact', () => {
   assert.match(read('index.html'), /Motorcyklen er i bevægelse\. Chatfunktionen er deaktiveret\./);
 });
+
+
+test('landscape lean calibration does not lock at 90 degrees', () => {
+  const app = read('app.js');
+  assert.match(app, /return normalizeDeg\(roll\)/);
+  assert.doesNotMatch(app, /Math\.max\(-90,Math\.min\(90,roll\)\)/);
+  assert.match(app, /localStorage\.setItem\('ridez_lean_calibration',[\s\S]*?resetLeanStats\(\);persistActiveRideSession\(true\)/);
+});
