@@ -15,8 +15,8 @@ android {
         applicationId "dk.ridez.app.stable"
         minSdk 26
         targetSdk 35
-        versionCode 11801
-        versionName "1.2.1-v118-stable"
+        versionCode 11901
+        versionName "1.3.0-v119"
     }
 
     signingConfigs {

@@ -16,6 +16,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 
 import org.json.JSONObject;
 
@@ -32,7 +33,9 @@ public final class RideLocationService extends Service implements LocationListen
     static final String ACTION_START = "dk.ridez.app.START_TRACKING";
     static final String ACTION_STOP = "dk.ridez.app.STOP_TRACKING";
     private static final String CHANNEL_ID = "ridez_tracking";
-    private static final int NOTIFICATION_ID = 118;
+    private static final int NOTIFICATION_ID = 119;
+    private static final long MAX_LOCATION_AGE_MS = 15000L;
+    private static final long MAX_LOCATION_FUTURE_MS = 5000L;
     private static final String PREFS = "ridez_native";
     private static final String PREF_TRACKING = "tracking";
     private static final String PREF_SUPABASE_URL = "supabase_url";
@@ -101,13 +104,24 @@ public final class RideLocationService extends Service implements LocationListen
 
     @Override
     public void onLocationChanged(Location location) {
-        if (location == null) return;
+        if (location == null || !isFreshLocation(location)) return;
         Double altitude = location.hasAltitude() ? location.getAltitude() : null;
         Float speed = location.hasSpeed() ? location.getSpeed() : null;
         Float bearing = location.hasBearing() ? location.getBearing() : null;
         String driverToken = preferences().getString(PREF_DRIVER_TOKEN, null);
         store.add(driverToken, location.getTime(), location.getLatitude(), location.getLongitude(),
                 location.getAccuracy(), altitude, speed, bearing);
+    }
+
+    private boolean isFreshLocation(Location location) {
+        long elapsedLocationNanos = location.getElapsedRealtimeNanos();
+        if (elapsedLocationNanos > 0L) {
+            long ageNanos = SystemClock.elapsedRealtimeNanos() - elapsedLocationNanos;
+            if (ageNanos < -TimeUnit.SECONDS.toNanos(1L) ||
+                    ageNanos > TimeUnit.MILLISECONDS.toNanos(MAX_LOCATION_AGE_MS)) return false;
+        }
+        long wallAgeMs = System.currentTimeMillis() - location.getTime();
+        return wallAgeMs >= -MAX_LOCATION_FUTURE_MS && wallAgeMs <= MAX_LOCATION_AGE_MS;
     }
 
     private void uploadPendingLocations() {
@@ -118,7 +132,10 @@ public final class RideLocationService extends Service implements LocationListen
 
         try {
             for (int batchNumber = 0; batchNumber < 8; batchNumber++) {
-                LocationStore.Batch batch = store.peekForUpload(250);
+                // Upload altid den aktive tur først. En gammel, afsluttet tur i den
+                // lokale kø må aldrig blokere den aktuelle live-position.
+                LocationStore.Batch batch = store.peekForUpload(
+                        prefs.getString(PREF_DRIVER_TOKEN, null), 250);
                 if (batch.isEmpty()) return;
                 if (!uploadBatch(supabaseUrl, anonKey, batch)) return;
                 store.markUploaded(batch);

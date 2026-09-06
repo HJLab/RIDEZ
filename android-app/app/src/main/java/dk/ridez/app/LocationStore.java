@@ -89,14 +89,7 @@ final class LocationStore extends SQLiteOpenHelper {
         return new Batch(items, lastId, sessionToken);
     }
 
-    synchronized Batch peekForUpload(int limit) throws JSONException {
-        String sessionToken = null;
-        try (Cursor cursor = getReadableDatabase().query(
-                "locations", new String[]{"session_token"},
-                "uploaded=0 AND session_token IS NOT NULL", null,
-                null, null, "id ASC", "1")) {
-            if (cursor.moveToFirst()) sessionToken = cursor.getString(0);
-        }
+    synchronized Batch peekForUpload(String sessionToken, int limit) throws JSONException {
         if (sessionToken == null || sessionToken.isEmpty()) return Batch.empty();
 
         JSONArray items = new JSONArray();

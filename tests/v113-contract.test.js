@@ -65,6 +65,29 @@ test('v118 Android service uploads while the WebView is paused', () => {
   assert.match(sql, /distance_m=greatest\(coalesce\(r\.distance_m,0\),s\.distance_m\)/);
 });
 
+test('v119 rejects stale startup fixes and exposes a safe stationary marker', () => {
+  const app = read('app.js');
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const store = read('android-app/app/src/main/java/dk/ridez/app/LocationStore.java');
+  const activity = read('android-app/app/src/main/java/dk/ridez/app/MainActivity.java');
+  const sql = read('supabase-frisk-position-v119.sql');
+  assert.match(app, /function positionIsFreshForRide/);
+  assert.match(app, /cur\.t>=startedAt-2000/);
+  assert.match(app, /updateMap\(cur\.lat,cur\.lng,true,false\);warmUpGps/);
+  assert.match(service, /MAX_LOCATION_AGE_MS = 15000L/);
+  assert.match(service, /location\.getElapsedRealtimeNanos\(\)/);
+  assert.match(service, /if \(location == null \|\| !isFreshLocation\(location\)\) return/);
+  assert.match(activity, /return 119/);
+  assert.match(sql, /rec<ride_created_at-interval '10 seconds'/);
+  assert.match(sql, /accuracy>250/);
+  assert.match(sql, /lat=presence_lat,lng=presence_lng,speed_ms=0,moving=false/);
+  assert.match(sql, /rec>=now\(\)-interval '30 seconds'/);
+  assert.match(sql, /where r\.id=rid and r\.active=true/);
+  assert.match(store, /peekForUpload\(String sessionToken, int limit\)/);
+  assert.match(service, /peekForUpload\([\s\S]*PREF_DRIVER_TOKEN/);
+  assert.doesNotMatch(app, /const last=list\[list\.length-1\],lastPos=/);
+});
+
 test('one accepted distance feeds track, total, country and fuel', () => {
   const app = read('app.js');
   const sql = read('supabase-v113.sql');

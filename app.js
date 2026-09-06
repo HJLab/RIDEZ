@@ -7,7 +7,7 @@ const params=new URLSearchParams(location.search),publicRideToken=params.get('ri
 if(!configured){$('setupView').classList.remove('hidden');return}
 const db=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
 const Core=window.RIDEZ_CORE||{};
-const APP_VERSION='118';
+const APP_VERSION='119';
 function androidBridgeVersion(){try{return Number(window.RidezAndroid&&typeof window.RidezAndroid.getBridgeVersion==='function'?window.RidezAndroid.getBridgeVersion():0)||0}catch(e){return 0}}
 function nativeBackgroundUploadEnabled(){return androidBridgeVersion()>=118}
 function configureAndroidBackgroundTracking(){
@@ -800,9 +800,9 @@ async function loadExistingActiveTrack(){
       currentPoints.push([Number(row.lat),Number(row.lng)]);currentLine.setLatLngs(currentPoints);
     }
     state.activeSegmentKey=currentKey;state.points=currentPoints;state.line=currentLine;
-    const last=list[list.length-1],lastPos=[Number(last.lat),Number(last.lng)];
-    if(!state.marker)state.marker=L.circleMarker(lastPos,{radius:9,weight:4,color:'#111',fillColor:'#e11d24',fillOpacity:1}).addTo(state.map);else state.marker.setLatLng(lastPos);
-    state.map.setView(lastPos,16,{animate:false});
+    // Ruten må gerne genindlæses, men dens gamle slutpunkt må ikke udgive sig for
+    // at være førerens aktuelle position. Markøren kommer først med en frisk GPS-fix.
+    if(state.marker){state.map.removeLayer(state.marker);state.marker=null}
   }catch(e){console.warn('Eksisterende rute kunne ikke genindlæses',e)}
 }
 async function resumeInterruptedRide(){
@@ -896,11 +896,19 @@ function onGeoError(e){if(state.rideId&&!state.funGpsErrorStartedAt)state.funGps
 const GPS_WARMUP_MS=5000;
 const GPS_WARMUP_MIN_POINTS=3;
 const GPS_WARMUP_ACCURACY_M=35;
+const GPS_PROVISIONAL_ACCURACY_M=250;
+const GPS_FIRST_FIX_MAX_AGE_MS=15000;
+const GPS_FIRST_FIX_FUTURE_MS=5000;
 const GPS_SPEED_ACCURACY_M=50;
 const GPS_HARD_MAX_SPEED_MS=75;
 const GPS_HIGH_SPEED_MS=130/3.6;
 function resetGpsQualityGate(){
   state.gpsReady=false;state.gpsWarmupStartedAt=0;state.gpsWarmupGoodPoints=0;state.gpsWarmupLastPos=null;state.gpsHighSpeedConfirmations=0;
+}
+function positionIsFreshForRide(cur,receivedAt=Date.now()){
+  const startedAt=Number(state.rideStartedAt)||receivedAt,age=receivedAt-Number(cur&&cur.t);
+  return !!cur&&Number.isFinite(cur.lat)&&cur.lat>=-90&&cur.lat<=90&&Number.isFinite(cur.lng)&&cur.lng>=-180&&cur.lng<=180&&
+    Number.isFinite(cur.t)&&cur.t>=startedAt-2000&&age>=-GPS_FIRST_FIX_FUTURE_MS&&age<=GPS_FIRST_FIX_MAX_AGE_MS;
 }
 function warmUpGps(cur,accuracy){
   if(state.demo){state.gpsReady=true;return true}
@@ -961,7 +969,8 @@ async function handlePosition(pos){
   const receivedAt=Date.now(),recordedAt=Number(pos.timestamp),now=Number.isFinite(recordedAt)&&recordedAt>0?recordedAt:receivedAt,cur={lat:Number(pos.coords.latitude),lng:Number(pos.coords.longitude),t:now,accuracy:Number(pos.coords.accuracy),altitude:Number.isFinite(pos.coords.altitude)?Number(pos.coords.altitude):null,altitudeAccuracy:Number.isFinite(pos.coords.altitudeAccuracy)?Number(pos.coords.altitudeAccuracy):null};
   let speed=Number.isFinite(pos.coords.speed)?Math.max(0,pos.coords.speed):null,checked=null;
   if(!state.demo){
-    if(!state.gpsReady){warmUpGps(cur,cur.accuracy);return}
+    if(!positionIsFreshForRide(cur,receivedAt)){$('statusDetail').textContent='Venter på en frisk GPS-position – en gammel systemposition er afvist.';return}
+    if(!state.gpsReady){if(Number.isFinite(cur.accuracy)&&cur.accuracy<=GPS_PROVISIONAL_ACCURACY_M)updateMap(cur.lat,cur.lng,true,false);warmUpGps(cur,cur.accuracy);return}
     if(window.RidezAndroid&&speed===null){state.gpsRejectCount++;return}
     if(state.gpsMode==='low'&&state.lastPos){
       const lowModeDistance=hav(state.lastPos,cur),lowModeMoved=(Number.isFinite(speed)&&speed>=C.MOVING_THRESHOLD_MS)||lowModeDistance>Math.max(30,(Number(cur.accuracy)||0)*1.5);
@@ -2099,8 +2108,8 @@ document.addEventListener('click',e=>{
 },true);
 if($('photoViewerClose'))$('photoViewerClose').addEventListener('click',closePhotoViewer);
 if($('photoViewerDialog'))$('photoViewerDialog').addEventListener('close',()=>{const img=$('photoViewerImage');if(img)img.src=''});
-{const versionEl=$('appVersion');if(versionEl){const bridgeVersion=androidBridgeVersion();if(window.RidezAndroid&&bridgeVersion<118){versionEl.textContent='v'+APP_VERSION+' · OPDATÉR APK';versionEl.classList.add('runtime-error');versionEl.title='Webversionen er opdateret, men Android-GPS-motoren er for gammel.'}else{versionEl.textContent='v'+APP_VERSION+(bridgeVersion>=118?' · GPS ✓':'');versionEl.classList.add('runtime-ok');versionEl.title=bridgeVersion>=118?'RIDEZ web og Android-GPS v118 er aktive':'RIDEZ app.js v'+APP_VERSION+' er indlæst'}}}
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=118').catch(()=>{}));
+{const versionEl=$('appVersion');if(versionEl){const bridgeVersion=androidBridgeVersion();if(window.RidezAndroid&&bridgeVersion<119){versionEl.textContent='v'+APP_VERSION+' · OPDATÉR APK';versionEl.classList.add('runtime-error');versionEl.title='Webversionen er opdateret, men Android-GPS-motoren er for gammel.'}else{versionEl.textContent='v'+APP_VERSION+(bridgeVersion>=119?' · GPS ✓':'');versionEl.classList.add('runtime-ok');versionEl.title=bridgeVersion>=119?'RIDEZ web og Android-GPS v119 er aktive':'RIDEZ app.js v'+APP_VERSION+' er indlæst'}}}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=119').catch(()=>{}));
 function handleInitFailure(error){
   console.error('RIDEZ kunne ikke starte korrekt',error);
   const versionEl=$('appVersion');
