@@ -43,6 +43,28 @@ test('Android background GPS is enabled for real trips', () => {
   assert.match(app, /async function startRide\(\).*createRide\('RIDEZ live-tur'\).*startGpsWatch\('high'\)/s);
 });
 
+test('v118 Android service uploads while the WebView is paused', () => {
+  const app = read('app.js');
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const store = read('android-app/app/src/main/java/dk/ridez/app/LocationStore.java');
+  const activity = read('android-app/app/src/main/java/dk/ridez/app/MainActivity.java');
+  const bridge = read('android-app/app/src/main/assets/native_bridge.js');
+  const sql = read('supabase-baggrunds-gps-v118.sql');
+  assert.match(app, /configureAndroidBackgroundTracking\(\)/);
+  assert.match(app, /getBridgeVersion/);
+  assert.match(app, /OPDATÉR APK/);
+  assert.match(app, /GPS ✓/);
+  assert.match(service, /scheduleWithFixedDelay\(this::uploadPendingLocations/);
+  assert.match(service, /ridez_native_location_batch_v118/);
+  assert.match(store, /uploaded INTEGER NOT NULL DEFAULT 0/);
+  assert.match(store, /web_delivered INTEGER NOT NULL DEFAULT 0/);
+  assert.doesNotMatch(activity, /evaluateJavascript\(javascript, ignored -> locationStore\.deleteThrough/);
+  assert.match(activity, /acknowledgeWebLocations/);
+  assert.match(bridge, /acknowledgeLocations\(String\(lastId\)\)/);
+  assert.match(sql, /function public\.ridez_native_location_batch_v118/);
+  assert.match(sql, /distance_m=greatest\(coalesce\(r\.distance_m,0\),s\.distance_m\)/);
+});
+
 test('one accepted distance feeds track, total, country and fuel', () => {
   const app = read('app.js');
   const sql = read('supabase-v113.sql');
@@ -58,8 +80,7 @@ test('driver chat safety text remains exact', () => {
   assert.match(read('index.html'), /Motorcyklen er i bevægelse\. Chatfunktionen er deaktiveret\./);
 });
 
-
-test('landscape lean calibration does not lock at 90 degrees', () => {
+test('landscape lean calibration fix from v117 is preserved', () => {
   const app = read('app.js');
   assert.match(app, /return normalizeDeg\(roll\)/);
   assert.doesNotMatch(app, /Math\.max\(-90,Math\.min\(90,roll\)\)/);

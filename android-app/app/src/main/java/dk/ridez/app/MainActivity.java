@@ -59,6 +59,8 @@ public final class MainActivity extends Activity {
     private boolean pageReady;
     private boolean webWatchActive;
     private boolean pendingTrackingStart;
+    private String activeDriverToken;
+    private LocationStore.Batch drainInFlightBatch;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri pendingCameraUri;
 
@@ -186,6 +188,18 @@ public final class MainActivity extends Activity {
         drainStoredLocations();
     }
 
+    void configureNativeTracking(String supabaseUrl, String anonKey,
+                                 String driverToken, long rideStartedAt) {
+        activeDriverToken = driverToken;
+        RideLocationService.configure(getApplicationContext(), supabaseUrl, anonKey,
+                driverToken, rideStartedAt);
+        drainStoredLocations();
+    }
+
+    int nativeBridgeVersion() {
+        return 118;
+    }
+
     void stopNativeTracking() {
         webWatchActive = false;
         pendingTrackingStart = false;
@@ -194,17 +208,27 @@ public final class MainActivity extends Activity {
     }
 
     private void drainStoredLocations() {
-        if (!pageReady || !webWatchActive || webView == null) return;
+        if (!pageReady || !webWatchActive || webView == null ||
+                activeDriverToken == null || drainInFlightBatch != null) return;
         try {
-            LocationStore.Batch batch = locationStore.peek(250);
+            LocationStore.Batch batch = locationStore.peekForWeb(activeDriverToken, 250);
             if (batch.isEmpty()) return;
-            long lastId = batch.lastId;
+            drainInFlightBatch = batch;
             String javascript = "window.__ridezNativeDeliverBatch&&window.__ridezNativeDeliverBatch(" +
-                    batch.items.toString() + ");";
-            webView.evaluateJavascript(javascript, ignored -> locationStore.deleteThrough(lastId));
+                    batch.items.toString() + "," + batch.lastId + ");";
+            webView.evaluateJavascript(javascript, ignored -> { });
         } catch (JSONException ignored) {
+            drainInFlightBatch = null;
             sendNativeError(2, "Gemte GPS-punkter kunne ikke læses.");
         }
+    }
+
+    void acknowledgeWebLocations(long lastId) {
+        LocationStore.Batch batch = drainInFlightBatch;
+        if (batch == null || batch.lastId != lastId) return;
+        locationStore.markWebDelivered(batch);
+        drainInFlightBatch = null;
+        drainStoredLocations();
     }
 
     private void sendNativeError(int code, String message) {
@@ -307,6 +331,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(drainTask);
+        drainInFlightBatch = null;
         if (filePathCallback != null) { filePathCallback.onReceiveValue(null); filePathCallback = null; }
         if (webView != null) {
             webView.removeJavascriptInterface("RidezAndroid");

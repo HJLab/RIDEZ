@@ -15,6 +15,26 @@ final class RidezJavascriptBridge {
     }
 
     @JavascriptInterface
+    public void configureTracking(String supabaseUrl, String anonKey,
+                                  String driverToken, double rideStartedAt) {
+        activity.runOnUiThread(() -> activity.configureNativeTracking(
+                supabaseUrl, anonKey, driverToken, Math.max(0L, (long) rideStartedAt)));
+    }
+
+    @JavascriptInterface
+    public void acknowledgeLocations(String lastId) {
+        try {
+            long parsed = Long.parseLong(lastId);
+            activity.runOnUiThread(() -> activity.acknowledgeWebLocations(parsed));
+        } catch (NumberFormatException ignored) { }
+    }
+
+    @JavascriptInterface
+    public int getBridgeVersion() {
+        return activity.nativeBridgeVersion();
+    }
+
+    @JavascriptInterface
     public void stopTracking() {
         activity.runOnUiThread(activity::stopNativeTracking);
     }

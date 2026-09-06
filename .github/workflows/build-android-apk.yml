@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - codex/android-background-gps-v104
-      - codex/fix-camera-chat-followers-v108
+      - main
+      - codex/native-live-background-v118
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -42,3 +42,15 @@ jobs:
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Opret direkte v118-download
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk RIDEZ-v118.apk
+          if gh release view android-v118 >/dev/null 2>&1; then
+            gh release upload android-v118 RIDEZ-v118.apk --clobber
+          else
+            gh release create android-v118 RIDEZ-v118.apk --title "RIDEZ Android v118" --notes "Rigtig live baggrunds-GPS, også mens Kurviger er fremme."
+          fi
