@@ -45,7 +45,6 @@ jobs:
           retention-days: 14
 
       - name: Hent permanent RIDEZ-signatur
-        if: github.ref == 'refs/heads/main'
         env:
           RIDEZ_ANDROID_KEYSTORE_BASE64: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_BASE64 }}
           RIDEZ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_PASSWORD }}
@@ -61,7 +60,6 @@ jobs:
           printf '%s' "$RIDEZ_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ridez-release.p12"
 
       - name: Byg permanent signeret APK
-        if: github.ref == 'refs/heads/main'
         env:
           RIDEZ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_PASSWORD }}
         run: >-
@@ -70,7 +68,6 @@ jobs:
           -PRIDEZ_KEYSTORE_PASSWORD="$RIDEZ_ANDROID_KEYSTORE_PASSWORD"
 
       - name: Gem permanent signeret APK
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: RIDEZ-Android-v118-permanent
