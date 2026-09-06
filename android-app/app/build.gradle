@@ -2,20 +2,37 @@ plugins {
     id "com.android.application"
 }
 
+def ridezKeystoreFile = providers.gradleProperty("RIDEZ_KEYSTORE_FILE").orNull
+def ridezKeystorePassword = providers.gradleProperty("RIDEZ_KEYSTORE_PASSWORD").orNull
+
 android {
     namespace "dk.ridez.app"
     compileSdk 35
 
     defaultConfig {
-        applicationId "dk.ridez.app"
+        // Ny permanent installationslinje. Den kan ligge ved siden af den gamle
+        // debug-signerede app, så brugerdata ikke skal slettes under overgangen.
+        applicationId "dk.ridez.app.stable"
         minSdk 26
         targetSdk 35
-        versionCode 3
-        versionName "1.2.0-v118"
+        versionCode 11801
+        versionName "1.2.1-v118-stable"
+    }
+
+    signingConfigs {
+        release {
+            if (ridezKeystoreFile && ridezKeystorePassword) {
+                storeFile file(ridezKeystoreFile)
+                storePassword ridezKeystorePassword
+                keyAlias "ridez-release"
+                keyPassword ridezKeystorePassword
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }

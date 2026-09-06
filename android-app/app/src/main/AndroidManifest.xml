@@ -17,7 +17,7 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_ridez"
-        android:label="RIDEZ"
+        android:label="RIDEZ GPS"
         android:supportsRtl="true"
         android:theme="@style/Theme.RIDEZ"
         android:usesCleartextTraffic="false">

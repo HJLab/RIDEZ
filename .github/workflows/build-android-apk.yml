@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - codex/native-live-background-v118
+      - codex/permanent-android-signing-v118
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -32,25 +32,57 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Byg debug APK
+      - name: Kontroller Android-koden med debug-bygning
         run: gradle -p android-app --no-daemon assembleDebug
 
-      - name: Gem APK
+      - name: Gem debug-kontrol
+        if: github.ref != 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Android-debug
+          name: RIDEZ-Android-debug-kontrol
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
-      - name: Opret direkte v118-download
+      - name: Hent permanent RIDEZ-signatur
+        env:
+          RIDEZ_ANDROID_KEYSTORE_BASE64: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_BASE64 }}
+          RIDEZ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$RIDEZ_ANDROID_KEYSTORE_BASE64" ]; then
+            echo "GitHub-secret RIDEZ_ANDROID_KEYSTORE_BASE64 mangler."
+            exit 1
+          fi
+          if [ -z "$RIDEZ_ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "GitHub-secret RIDEZ_ANDROID_KEYSTORE_PASSWORD mangler."
+            exit 1
+          fi
+          printf '%s' "$RIDEZ_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ridez-release.p12"
+
+      - name: Byg permanent signeret APK
+        env:
+          RIDEZ_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RIDEZ_ANDROID_KEYSTORE_PASSWORD }}
+        run: >-
+          gradle -p android-app --no-daemon assembleRelease
+          -PRIDEZ_KEYSTORE_FILE="$RUNNER_TEMP/ridez-release.p12"
+          -PRIDEZ_KEYSTORE_PASSWORD="$RIDEZ_ANDROID_KEYSTORE_PASSWORD"
+
+      - name: Gem permanent signeret APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RIDEZ-Android-v118-permanent
+          path: android-app/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Opret direkte permanent v118-download
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk RIDEZ-v118.apk
-          if gh release view android-v118 >/dev/null 2>&1; then
-            gh release upload android-v118 RIDEZ-v118.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-v118-GPS.apk
+          if gh release view android-v118-gps >/dev/null 2>&1; then
+            gh release upload android-v118-gps RIDEZ-v118-GPS.apk --clobber
           else
-            gh release create android-v118 RIDEZ-v118.apk --title "RIDEZ Android v118" --notes "Rigtig live baggrunds-GPS, også mens Kurviger er fremme."
+            gh release create android-v118-gps RIDEZ-v118-GPS.apk --title "RIDEZ GPS v118" --notes "Permanent signeret RIDEZ-app med rigtig live baggrunds-GPS. Kan installeres ved siden af den gamle app uden at slette dens data."
           fi
