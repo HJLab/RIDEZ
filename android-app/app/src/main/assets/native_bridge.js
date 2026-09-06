@@ -40,7 +40,7 @@
   Object.defineProperty(nativeGeo, 'getCurrentPosition', { configurable: true, value: getCurrentPosition });
   Object.defineProperty(nativeGeo, 'clearWatch', { configurable: true, value: clearWatch });
 
-  window.__ridezNativeDeliverBatch = async function (items) {
+  window.__ridezNativeDeliverBatch = async function (items, lastId) {
     if (!Array.isArray(items) || watches.size === 0) return;
     for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
       var item = items[itemIndex];
@@ -65,6 +65,10 @@
       }
     }
     stopIfUnused();
+    if (lastId != null && window.RidezAndroid &&
+        typeof window.RidezAndroid.acknowledgeLocations === 'function') {
+      window.RidezAndroid.acknowledgeLocations(String(lastId));
+    }
   };
 
   window.__ridezNativeGeoError = function (code, message) {
