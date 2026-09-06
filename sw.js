@@ -1,5 +1,5 @@
-const CACHE='ridez-native-live-v118';
-const CORE=['./','./index.html','./styles.css?v=118','./ridez-core.js?v=118','./app.js?v=118','./RIDEZ_Sportsbike_4-8sek.wav?v=118','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='ridez-fresh-first-fix-v119';
+const CORE=['./','./index.html','./styles.css?v=119','./ridez-core.js?v=119','./app.js?v=119','./RIDEZ_Sportsbike_4-8sek.wav?v=119','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(url=>c.add(url)))));

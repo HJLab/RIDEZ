@@ -197,7 +197,7 @@ public final class MainActivity extends Activity {
     }
 
     int nativeBridgeVersion() {
-        return 118;
+        return 119;
     }
 
     void stopNativeTracking() {
