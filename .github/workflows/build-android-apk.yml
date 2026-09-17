@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - codex/ridez-solo-v201
+      - codex/ridez-solo-v202
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -70,7 +71,7 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Solo-v201
+          name: RIDEZ-Solo-v202
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -80,9 +81,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v201.apk
-          if gh release view android-v201-solo >/dev/null 2>&1; then
-            gh release upload android-v201-solo RIDEZ-Solo-v201.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v202.apk
+          if gh release view android-v202-solo >/dev/null 2>&1; then
+            gh release upload android-v202-solo RIDEZ-Solo-v202.apk --clobber
           else
-            gh release create android-v201-solo RIDEZ-Solo-v201.apk --title "RIDEZ Solo v201" --notes "Retter kalibrering på lodret eller vandret monteret telefon. Kalibrering virker nu før og under en tur og nulstiller fejlagtige hældningsmaksima og svingtal."
+            gh release create android-v202-solo RIDEZ-Solo-v202.apk --title "RIDEZ Solo v202" --notes "Start tur ligger øverst. Historikken viser alle lokale turmålinger og understøtter markering og samlet sletning af flere ture, når ingen tur er aktiv. Indeholder også kalibreringsrettelsen fra v201."
           fi

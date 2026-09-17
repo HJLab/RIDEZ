@@ -44,3 +44,31 @@ test('v201 calibration avoids unstable Euler roll and is available before a ride
   assert.match(activity, /implements SensorEventListener/);
   assert.doesNotMatch(app, /calibrate'\)\.disabled/);
 });
+
+test('v202 puts the start control before trip statistics', () => {
+  const html = read('android-app/app/src/main/assets/index.html');
+  assert.ok(html.indexOf('id="start"') < html.indexOf('id="status"'));
+});
+
+test('v202 history exposes all locally recorded trip measurements', () => {
+  const app = read('android-app/app/src/main/assets/app.js');
+  for (const field of ['distanceM','activeMs','maxSpeedMs','maxAccelMs2','maxBrakeMs2',
+    'maxLeftDeg','maxRightDeg','leftTurns','rightTurns','zero50Ms','zero80Ms','zero100Ms']) {
+    assert.match(app, new RegExp('r\\.' + field));
+  }
+  assert.match(app, /hårdeste bremsning/);
+  assert.match(app, /samlet turtid/);
+  assert.match(app, /stilstand/);
+});
+
+test('v202 bulk deletion is blocked during an active ride at UI and native levels', () => {
+  const html = read('android-app/app/src/main/assets/index.html');
+  const app = read('android-app/app/src/main/assets/app.js');
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');
+  assert.match(html, /id="selectRides"/);
+  assert.match(html, /id="deleteRides"/);
+  assert.match(app, /if\(trackingNow\)/);
+  assert.match(service, /if \(wasTracking\(context\)/);
+  assert.match(store, /ended_at IS NOT NULL AND id IN/);
+});

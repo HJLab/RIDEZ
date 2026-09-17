@@ -10,6 +10,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 final class RideStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "ridez_solo.db";
     private static final int DB_VERSION = 1;
@@ -88,6 +91,27 @@ final class RideStore extends SQLiteOpenHelper {
                 null, null, null, "started_at DESC", "1")) {
             return c.moveToFirst() ? fromCursor(c) : null;
         }
+    }
+
+    synchronized int deleteFinishedRides(long[] rideIds) {
+        if (rideIds == null || rideIds.length == 0) return 0;
+        Set<Long> uniqueIds = new LinkedHashSet<>();
+        for (long id : rideIds) {
+            if (id > 0) uniqueIds.add(id);
+            if (uniqueIds.size() >= 200) break;
+        }
+        if (uniqueIds.isEmpty()) return 0;
+
+        StringBuilder where = new StringBuilder("ended_at IS NOT NULL AND id IN (");
+        String[] args = new String[uniqueIds.size()];
+        int index = 0;
+        for (long id : uniqueIds) {
+            if (index > 0) where.append(',');
+            where.append('?');
+            args[index++] = Long.toString(id);
+        }
+        where.append(')');
+        return getWritableDatabase().delete("rides", where.toString(), args);
     }
 
     private Snapshot fromCursor(Cursor c) {

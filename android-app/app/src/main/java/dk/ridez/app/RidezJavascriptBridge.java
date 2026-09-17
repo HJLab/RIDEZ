@@ -33,6 +33,10 @@ final class RidezJavascriptBridge {
         return activity.history();
     }
 
+    @JavascriptInterface public int deleteRides(String rideIdsJson) {
+        return activity.deleteRides(rideIdsJson);
+    }
+
     @JavascriptInterface public boolean isTracking() {
         return activity.isTracking();
     }
@@ -46,6 +50,6 @@ final class RidezJavascriptBridge {
     }
 
     @JavascriptInterface public int getBridgeVersion() {
-        return 201;
+        return 202;
     }
 }

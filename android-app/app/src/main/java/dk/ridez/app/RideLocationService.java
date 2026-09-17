@@ -23,6 +23,8 @@ import android.os.PowerManager;
 
 import org.json.JSONObject;
 
+import org.json.JSONArray;
+
 public final class RideLocationService extends Service implements LocationListener, SensorEventListener {
     static final String ACTION_START = "dk.ridez.app.START_RIDE";
     static final String ACTION_STOP = "dk.ridez.app.STOP_RIDE";
@@ -293,6 +295,21 @@ public final class RideLocationService extends Service implements LocationListen
             return store.history().toString();
         } catch (Exception error) {
             return "{\"rides\":[],\"totalDistanceM\":0,\"totalActiveMs\":0}";
+        }
+    }
+
+    static int deleteHistoryRides(Context context, String rideIdsJson) {
+        if (wasTracking(context) || rideIdsJson == null) return 0;
+        try {
+            JSONArray input = new JSONArray(rideIdsJson);
+            int length = Math.min(input.length(), 200);
+            long[] ids = new long[length];
+            for (int i = 0; i < length; i++) ids[i] = input.optLong(i, 0L);
+            try (RideStore store = new RideStore(context.getApplicationContext())) {
+                return store.deleteFinishedRides(ids);
+            }
+        } catch (Exception error) {
+            return 0;
         }
     }
 

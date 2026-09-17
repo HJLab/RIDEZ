@@ -84,6 +84,9 @@ public final class MainActivity extends Activity implements SensorEventListener 
 
     String snapshot() { return RideLocationService.snapshot(getApplicationContext()); }
     String history() { return RideLocationService.history(getApplicationContext()); }
+    int deleteRides(String rideIdsJson) {
+        return RideLocationService.deleteHistoryRides(getApplicationContext(), rideIdsJson);
+    }
     boolean isTracking() { return RideLocationService.wasTracking(getApplicationContext()); }
     void setSwapSides(boolean swap) { RideLocationService.setSwapSides(getApplicationContext(), swap); }
     boolean getSwapSides() { return RideLocationService.getSwapSides(getApplicationContext()); }

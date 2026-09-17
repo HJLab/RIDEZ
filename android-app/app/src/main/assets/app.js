@@ -3,6 +3,10 @@
   const $=id=>document.getElementById(id);
   const bridge=window.RidezAndroid;
   let lastTracking=false;
+  let trackingNow=false;
+  let historySelectMode=false;
+  let historyRides=[];
+  const selectedRideIds=new Set();
   const kmh=ms=>Math.round((Number(ms)||0)*3.6);
   const one=n=>(Number(n)||0).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
   const time=ms=>{const total=Math.max(0,Math.floor((Number(ms)||0)/60000));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
@@ -12,6 +16,7 @@
 
   function render(s){
     const tracking=!!s.tracking;
+    trackingNow=tracking;
     $('status').textContent=tracking?'Tur i gang':'Ikke startet';
     $('quality').textContent=tracking?(s.gpsReady?('GPS klar · præcision '+Math.round(s.gpsAccuracyM||0)+' m'):'Venter på præcis GPS…'):'Klar til en ny tur';
     $('speed').textContent=kmh(s.currentSpeedMs);
@@ -35,6 +40,7 @@
     $('standstill').textContent=time(Math.max(0,(s.elapsedMs||0)-(s.activeMs||0)));
     $('start').classList.toggle('hidden',tracking);
     $('stop').classList.toggle('hidden',!tracking);
+    updateHistoryActions();
     if(lastTracking&&!tracking) loadHistory();
     lastTracking=tracking;
   }
@@ -47,11 +53,69 @@
   function loadHistory(){
     if(!bridge)return;
     const data=parse(bridge.getHistory()), rides=Array.isArray(data.rides)?data.rides:[];
+    historyRides=rides;
+    const validIds=new Set(rides.map(r=>Number(r.id)));
+    for(const id of selectedRideIds)if(!validIds.has(id))selectedRideIds.delete(id);
+    if(!rides.length){historySelectMode=false;selectedRideIds.clear()}
     $('historyTotal').textContent=one((data.totalDistanceM||0)/1000)+' km i alt';
     $('history').innerHTML=rides.length?rides.map(r=>{
       const avg=r.activeMs>0?Math.round((r.distanceM/1000)/(r.activeMs/3600000)):0;
-      return '<article class="ride"><div class="ride-head"><span>'+date(r.startedAt)+'</span><strong>'+one(r.distanceM/1000)+' km</strong></div><div class="ride-stats"><span><b>'+time(r.activeMs)+'</b>aktiv tid</span><span><b>'+avg+' km/t</b>gennemsnit</span><span><b>'+kmh(r.maxSpeedMs)+' km/t</b>topfart</span><span><b>'+one(r.maxLeftDeg)+'° / '+one(r.maxRightDeg)+'°</b>V / H lean</span><span><b>'+r.leftTurns+' / '+r.rightTurns+'</b>V / H sving</span><span><b>'+seconds(r.zero100Ms)+' s</b>0–100</span></div></article>';
+      const elapsed=Math.max(0,(Number(r.updatedAt)||0)-(Number(r.startedAt)||0));
+      const standstill=Math.max(0,elapsed-(Number(r.activeMs)||0));
+      const checked=selectedRideIds.has(Number(r.id));
+      return '<article class="ride'+(checked?' selected':'')+'" data-ride-id="'+Number(r.id)+'">'
+        +'<label class="ride-select'+(historySelectMode?'':' hidden')+'"><input class="ride-check" type="checkbox" '+(checked?'checked':'')+'><span>Markér tur</span></label>'
+        +'<div class="ride-head"><span>'+date(r.startedAt)+'</span><strong>'+one(r.distanceM/1000)+' km</strong></div>'
+        +'<h3>Fart og tid</h3><div class="ride-stats">'
+        +'<span><b>'+time(elapsed)+'</b>samlet turtid</span><span><b>'+time(r.activeMs)+'</b>aktiv køretid</span><span><b>'+time(standstill)+'</b>stilstand</span>'
+        +'<span><b>'+avg+' km/t</b>gennemsnitsfart</span><span><b>'+kmh(r.maxSpeedMs)+' km/t</b>topfart</span></div>'
+        +'<h3>Acceleration og bremsning</h3><div class="ride-stats">'
+        +'<span><b>'+one(r.maxAccelMs2)+' m/s²</b>bedste acceleration</span><span><b>'+one(r.maxBrakeMs2)+' m/s²</b>hårdeste bremsning</span>'
+        +'<span><b>'+seconds(r.zero50Ms)+' s</b>0–50 km/t</span><span><b>'+seconds(r.zero80Ms)+' s</b>0–80 km/t</span><span><b>'+seconds(r.zero100Ms)+' s</b>0–100 km/t</span></div>'
+        +'<h3>Lean og sving</h3><div class="ride-stats">'
+        +'<span><b>'+one(r.maxLeftDeg)+'°</b>maks venstre</span><span><b>'+one(r.maxRightDeg)+'°</b>maks højre</span><span><b>'+r.leftTurns+'</b>venstresving</span><span><b>'+r.rightTurns+'</b>højresving</span></div></article>';
     }).join(''):'<p class="muted">Ingen gemte ture endnu.</p>';
+    document.querySelectorAll('.ride-check').forEach(input=>input.addEventListener('change',onRideSelection));
+    updateHistoryActions();
+  }
+
+  function onRideSelection(event){
+    const ride=event.target.closest('.ride'),id=Number(ride&&ride.dataset.rideId);
+    if(!id||trackingNow)return;
+    if(event.target.checked)selectedRideIds.add(id);else selectedRideIds.delete(id);
+    ride.classList.toggle('selected',event.target.checked);
+    updateHistoryActions();
+  }
+
+  function updateHistoryActions(){
+    const hasRides=historyRides.length>0;
+    if(trackingNow&&historySelectMode){historySelectMode=false;selectedRideIds.clear();loadHistory();return}
+    $('selectRides').classList.toggle('hidden',trackingNow||!hasRides);
+    $('historyLocked').classList.toggle('hidden',!trackingNow||!hasRides);
+    $('selectRides').textContent=historySelectMode?'ANNULLER':'VÆLG TURE';
+    $('deleteRides').classList.toggle('hidden',!historySelectMode||trackingNow);
+    $('deleteRides').disabled=selectedRideIds.size===0;
+    $('deleteRides').textContent=selectedRideIds.size?'SLET VALGTE ('+selectedRideIds.size+')':'SLET VALGTE';
+  }
+
+  function toggleRideSelection(){
+    if(trackingNow||!historyRides.length)return;
+    historySelectMode=!historySelectMode;
+    selectedRideIds.clear();
+    loadHistory();
+  }
+
+  function deleteSelectedRides(){
+    if(trackingNow){alert('Afslut den aktive tur, før du sletter gemte ture.');return}
+    const ids=Array.from(selectedRideIds);
+    if(!ids.length)return;
+    const word=ids.length===1?'den valgte tur':ids.length+' valgte ture';
+    if(!confirm('Slet '+word+' permanent? Det kan ikke fortrydes.'))return;
+    const deleted=bridge?Number(bridge.deleteRides(JSON.stringify(ids))):0;
+    if(deleted!==ids.length){alert('Ikke alle valgte ture kunne slettes. Historikken opdateres nu.')}
+    historySelectMode=false;
+    selectedRideIds.clear();
+    loadHistory();
   }
 
   $('start').addEventListener('click',()=>bridge&&bridge.startRide());
@@ -66,6 +130,8 @@
       : 'Sensoren er ikke klar endnu – vent et øjeblik og prøv igen.';
   });
   $('swapSides').addEventListener('change',e=>bridge&&bridge.setSwapSides(e.target.checked));
+  $('selectRides').addEventListener('click',toggleRideSelection);
+  $('deleteRides').addEventListener('click',deleteSelectedRides);
   if(bridge)$('swapSides').checked=bridge.getSwapSides();
   loadHistory();
   refresh();

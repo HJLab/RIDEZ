@@ -10,10 +10,16 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="logo">R</span><div><strong>RIDEZ</strong><small>Din motorcykel. Dine tal.</small></div></div>
-    <span class="version">SOLO · v201</span>
+    <span class="version">SOLO · v202</span>
   </header>
 
   <main>
+    <section class="actions card start-actions">
+      <button id="start" class="primary-button">START TUR</button>
+      <button id="stop" class="danger hidden">STOP OG GEM TUR</button>
+      <p>Alle data gemmes kun på telefonen. Ruten og dine koordinater gemmes ikke.</p>
+    </section>
+
     <section class="hero card">
       <div>
         <span class="eyebrow">KØRERSTATUS</span>
@@ -57,12 +63,6 @@
       </div>
     </section>
 
-    <section class="actions card">
-      <button id="start" class="primary-button">START TUR</button>
-      <button id="stop" class="danger hidden">STOP OG GEM TUR</button>
-      <p>Alle data gemmes kun på telefonen. Ruten og dine koordinater gemmes ikke.</p>
-    </section>
-
     <details class="card settings">
       <summary>Indstillinger</summary>
       <label><input type="checkbox" id="swapSides"> Byt venstre og højre</label>
@@ -70,7 +70,12 @@
     </details>
 
     <section class="card">
-      <div class="section-title"><div><span class="eyebrow">HISTORIK</span><h2>Gemte ture</h2></div><span id="historyTotal"></span></div>
+      <div class="section-title history-title"><div><span class="eyebrow">HISTORIK</span><h2>Gemte ture</h2></div><span id="historyTotal"></span></div>
+      <div id="historyActions" class="history-actions">
+        <button id="selectRides" class="secondary compact" type="button">VÆLG TURE</button>
+        <button id="deleteRides" class="danger compact hidden" type="button" disabled>SLET VALGTE</button>
+      </div>
+      <p id="historyLocked" class="history-locked hidden">Afslut den aktive tur, før du kan slette gemte ture.</p>
       <div id="history" class="history"><p class="muted">Ingen gemte ture endnu.</p></div>
     </section>
   </main>

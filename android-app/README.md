@@ -6,7 +6,8 @@ RIDEZ Solo er en lokal Android-app til Hennings egne motorcykelture.
 
 - Aktuel fart, topfart og gennemsnitsfart.
 - Kilometer, samlet tid, aktiv køretid og stilstand.
-- Kraftigste acceleration og bremsning.
+- Kraftigste acceleration og bremsning – både live og på hver gemt tur.
+- Markering og samlet sletning af flere gemte ture, når ingen tur er aktiv.
 - Bedste 0–50, 0–80 og 0–100 km/t.
 - Aktuel hældning, maksimal venstre/højre hældning og antal sving.
 - Lokal historik over afsluttede ture.
