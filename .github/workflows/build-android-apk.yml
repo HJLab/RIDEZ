@@ -85,5 +85,5 @@ jobs:
           if gh release view android-v202-solo >/dev/null 2>&1; then
             gh release upload android-v202-solo RIDEZ-Solo-v202.apk --clobber
           else
-            gh release create android-v202-solo RIDEZ-Solo-v202.apk --title "RIDEZ Solo v202" --notes "Start tur ligger øverst. Historikken viser alle lokale turmålinger og understøtter markering og samlet sletning af flere ture, når ingen tur er aktiv. Indeholder også kalibreringsrettelsen fra v201."
+            gh release create android-v202-solo RIDEZ-Solo-v202.apk --title "RIDEZ Solo v202" --notes "Start tur ligger øverst. Historikken viser alle lokale turmålinger og understøtter markering og samlet sletning. GPS-højde og laveste punkt under havets overflade gemmes, og turen går automatisk i strømbesparende pause efter to minutters stilstand. Indeholder også kalibreringsrettelsen fra v201."
           fi

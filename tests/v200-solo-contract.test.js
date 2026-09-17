@@ -16,14 +16,15 @@ test('Solo UI has no sharing, map, follower, message, Supabase or route features
 test('Solo UI exposes every requested local metric', () => {
   const html = read('android-app/app/src/main/assets/index.html');
   for (const id of ['distance','activeTime','elapsedTime','averageSpeed','maxSpeed','maxLeft','maxRight',
-    'leftTurns','rightTurns','maxAccel','maxBrake','zero50','zero80','zero100','standstill']) {
+    'leftTurns','rightTurns','maxAccel','maxBrake','zero50','zero80','zero100','standstill',
+    'pausedTime','currentAltitude','maxAltitude','minBelowSea']) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
 });
 
 test('coordinates are not persisted in the Solo database', () => {
   const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');
-  assert.doesNotMatch(store, /latitude|longitude|bearing|altitude/i);
+  assert.doesNotMatch(store, /latitude|longitude|bearing/i);
 });
 
 test('turn thresholds remain the agreed values', () => {
@@ -71,4 +72,23 @@ test('v202 bulk deletion is blocked during an active ride at UI and native level
   assert.match(app, /if\(trackingNow\)/);
   assert.match(service, /if \(wasTracking\(context\)/);
   assert.match(store, /ended_at IS NOT NULL AND id IN/);
+});
+
+test('v202 auto-pauses after two minutes and resumes on movement', () => {
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');
+  assert.match(service, /AUTO_PAUSE_AFTER_MS = 120_000L/);
+  assert.match(service, /requestPausedLocationUpdates/);
+  assert.match(service, /resumeFromAutoPause/);
+  assert.match(service, /sensorManager\.unregisterListener/);
+  assert.match(store, /paused_ms/);
+});
+
+test('v202 records altitude but persists no coordinates', () => {
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');
+  assert.match(service, /recordAltitude/);
+  assert.match(store, /max_altitude_m/);
+  assert.match(store, /min_below_sea_m/);
+  assert.doesNotMatch(store, /latitude|longitude/i);
 });

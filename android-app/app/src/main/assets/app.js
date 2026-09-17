@@ -11,20 +11,25 @@
   const one=n=>(Number(n)||0).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
   const time=ms=>{const total=Math.max(0,Math.floor((Number(ms)||0)/60000));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
   const seconds=ms=>ms==null?'—':(Number(ms)/1000).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const meters=value=>value==null?'—':Math.round(Number(value)).toLocaleString('da-DK')+' m';
   const date=ms=>new Intl.DateTimeFormat('da-DK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(ms));
   const parse=value=>{try{return JSON.parse(value)}catch(e){return {}}};
 
   function render(s){
     const tracking=!!s.tracking;
     trackingNow=tracking;
-    $('status').textContent=tracking?'Tur i gang':'Ikke startet';
-    $('quality').textContent=tracking?(s.gpsReady?('GPS klar · præcision '+Math.round(s.gpsAccuracyM||0)+' m'):'Venter på præcis GPS…'):'Klar til en ny tur';
+    $('status').textContent=tracking?(s.autoPaused?'Automatisk pause':'Tur i gang'):'Ikke startet';
+    $('quality').textContent=tracking?(s.autoPaused?'Stille i over 2 minutter · fortsætter automatisk ved bevægelse':(s.gpsReady?('GPS klar · præcision '+Math.round(s.gpsAccuracyM||0)+' m'):'Venter på præcis GPS…')):'Klar til en ny tur';
     $('speed').textContent=kmh(s.currentSpeedMs);
     $('distance').textContent=one((s.distanceM||0)/1000);
     $('activeTime').textContent=time(s.activeMs);
     $('elapsedTime').textContent=time(s.elapsedMs);
     $('averageSpeed').textContent=s.activeMs>0?Math.round((s.distanceM/1000)/(s.activeMs/3600000)):0;
     $('maxSpeed').textContent=kmh(s.maxSpeedMs);
+    $('currentAltitude').textContent=meters(s.currentAltitudeM);
+    $('maxAltitude').textContent=meters(s.maxAltitudeM);
+    $('belowSeaMetric').classList.toggle('hidden',s.minBelowSeaM==null);
+    $('minBelowSea').textContent=meters(s.minBelowSeaM);
     const lean=Number(s.currentLeanDeg)||0;
     $('liveLean').textContent=(lean<0?'V ':'H ')+one(Math.abs(lean))+'°';
     $('leanNeedle').style.transform='rotate('+Math.max(-60,Math.min(60,lean))+'deg)';
@@ -38,6 +43,7 @@
     $('zero80').textContent=seconds(s.zero80Ms);
     $('zero100').textContent=seconds(s.zero100Ms);
     $('standstill').textContent=time(Math.max(0,(s.elapsedMs||0)-(s.activeMs||0)));
+    $('pausedTime').textContent=time(s.pausedMs);
     $('start').classList.toggle('hidden',tracking);
     $('stop').classList.toggle('hidden',!tracking);
     updateHistoryActions();
@@ -60,20 +66,22 @@
     $('historyTotal').textContent=one((data.totalDistanceM||0)/1000)+' km i alt';
     $('history').innerHTML=rides.length?rides.map(r=>{
       const avg=r.activeMs>0?Math.round((r.distanceM/1000)/(r.activeMs/3600000)):0;
-      const elapsed=Math.max(0,(Number(r.updatedAt)||0)-(Number(r.startedAt)||0));
+      const elapsed=Math.max(0,Number(r.elapsedMs)||0);
       const standstill=Math.max(0,elapsed-(Number(r.activeMs)||0));
       const checked=selectedRideIds.has(Number(r.id));
       return '<article class="ride'+(checked?' selected':'')+'" data-ride-id="'+Number(r.id)+'">'
         +'<label class="ride-select'+(historySelectMode?'':' hidden')+'"><input class="ride-check" type="checkbox" '+(checked?'checked':'')+'><span>Markér tur</span></label>'
         +'<div class="ride-head"><span>'+date(r.startedAt)+'</span><strong>'+one(r.distanceM/1000)+' km</strong></div>'
         +'<h3>Fart og tid</h3><div class="ride-stats">'
-        +'<span><b>'+time(elapsed)+'</b>samlet turtid</span><span><b>'+time(r.activeMs)+'</b>aktiv køretid</span><span><b>'+time(standstill)+'</b>stilstand</span>'
+        +'<span><b>'+time(elapsed)+'</b>samlet turtid</span><span><b>'+time(r.activeMs)+'</b>aktiv køretid</span><span><b>'+time(standstill)+'</b>stilstand</span><span><b>'+time(r.pausedMs)+'</b>automatisk pause</span>'
         +'<span><b>'+avg+' km/t</b>gennemsnitsfart</span><span><b>'+kmh(r.maxSpeedMs)+' km/t</b>topfart</span></div>'
         +'<h3>Acceleration og bremsning</h3><div class="ride-stats">'
         +'<span><b>'+one(r.maxAccelMs2)+' m/s²</b>bedste acceleration</span><span><b>'+one(r.maxBrakeMs2)+' m/s²</b>hårdeste bremsning</span>'
         +'<span><b>'+seconds(r.zero50Ms)+' s</b>0–50 km/t</span><span><b>'+seconds(r.zero80Ms)+' s</b>0–80 km/t</span><span><b>'+seconds(r.zero100Ms)+' s</b>0–100 km/t</span></div>'
         +'<h3>Lean og sving</h3><div class="ride-stats">'
-        +'<span><b>'+one(r.maxLeftDeg)+'°</b>maks venstre</span><span><b>'+one(r.maxRightDeg)+'°</b>maks højre</span><span><b>'+r.leftTurns+'</b>venstresving</span><span><b>'+r.rightTurns+'</b>højresving</span></div></article>';
+        +'<span><b>'+one(r.maxLeftDeg)+'°</b>maks venstre</span><span><b>'+one(r.maxRightDeg)+'°</b>maks højre</span><span><b>'+r.leftTurns+'</b>venstresving</span><span><b>'+r.rightTurns+'</b>højresving</span></div>'
+        +'<h3>Højde</h3><div class="ride-stats"><span><b>'+meters(r.maxAltitudeM)+'</b>højeste punkt</span>'
+        +(r.minBelowSeaM==null?'':'<span><b>'+meters(r.minBelowSeaM)+'</b>laveste under havet</span>')+'</div></article>';
     }).join(''):'<p class="muted">Ingen gemte ture endnu.</p>';
     document.querySelectorAll('.ride-check').forEach(input=>input.addEventListener('change',onRideSelection));
     updateHistoryActions();

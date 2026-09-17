@@ -37,6 +37,9 @@ public final class RideLocationService extends Service implements LocationListen
     private static final String PREF_RIDE_ID = "ride_id";
     private static final String PREF_LEAN_ZERO = "lean_reference_v201";
     private static final String PREF_SWAP_SIDES = "swap_sides";
+    private static final long AUTO_PAUSE_AFTER_MS = 120_000L;
+    private static final float STATIONARY_SPEED_MS = 1.5f;
+    private static final float RESUME_SPEED_MS = RideMath.MIN_MOVING_SPEED_MS;
 
     private static volatile String latestSnapshot = "{\"tracking\":false}";
     private LocationManager locationManager;
@@ -50,6 +53,7 @@ public final class RideLocationService extends Service implements LocationListen
     private int acceptedGpsPoints;
     private long lastSaveAt;
     private long launchCandidateAt;
+    private long stationarySince;
     private int turnSide;
     private long turnStartedAt;
     private float turnPeak;
@@ -104,15 +108,31 @@ public final class RideLocationService extends Service implements LocationListen
     private void startSensors() {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         try {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this);
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 0f, this);
-            }
-            if (rotationSensor != null) {
-                sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_GAME);
-                state.sensorReady = true;
-            }
+            requestActiveLocationUpdates();
+            registerLeanSensor();
         } catch (SecurityException ignored) { }
+    }
+
+    private void requestActiveLocationUpdates() {
+        locationManager.removeUpdates(this);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this);
+        if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 0f, this);
+        }
+    }
+
+    private void requestPausedLocationUpdates() {
+        locationManager.removeUpdates(this);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 15_000L, 10f, this);
+        if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 30_000L, 20f, this);
+        }
+    }
+
+    private void registerLeanSensor() {
+        if (rotationSensor == null) return;
+        sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_GAME);
+        state.sensorReady = true;
     }
 
     private void finishRide() {
@@ -121,7 +141,9 @@ public final class RideLocationService extends Service implements LocationListen
         }
         stopSensors();
         if (state != null) {
+            accruePause(System.currentTimeMillis());
             state.tracking = false;
+            state.autoPaused = false;
             state.currentSpeedMs = 0;
             state.updatedAt = System.currentTimeMillis();
             store.save(state.id, state, true);
@@ -144,6 +166,34 @@ public final class RideLocationService extends Service implements LocationListen
         state.gpsReady = true;
         state.gpsAccuracyM = location.getAccuracy();
         state.currentSpeedMs = speed;
+        recordAltitude(location);
+
+        long now = System.currentTimeMillis();
+        if (state.autoPaused) {
+            accruePause(now);
+            boolean movedFarEnough = previousLocation != null &&
+                    location.distanceTo(previousLocation) >= 15f;
+            if (speed >= RESUME_SPEED_MS || movedFarEnough) {
+                resumeFromAutoPause(now, location, speed);
+            } else {
+                state.currentSpeedMs = 0;
+                previousLocation = new Location(location);
+                previousSpeed = 0f;
+                state.updatedAt = now;
+                publish(false);
+            }
+            return;
+        }
+
+        if (speed < STATIONARY_SPEED_MS) {
+            if (stationarySince == 0) stationarySince = now;
+            if (now - stationarySince >= AUTO_PAUSE_AFTER_MS) {
+                enterAutoPause(now, location);
+                return;
+            }
+        } else {
+            stationarySince = 0;
+        }
 
         if (previousLocation != null) {
             RideMath.Segment segment = RideMath.assessSegment(
@@ -167,8 +217,59 @@ public final class RideLocationService extends Service implements LocationListen
 
         previousLocation = new Location(location);
         previousSpeed = speed;
-        state.updatedAt = System.currentTimeMillis();
+        state.updatedAt = now;
         publish(false);
+    }
+
+    private void recordAltitude(Location location) {
+        if (!location.hasAltitude()) return;
+        boolean accurateEnough = location.hasVerticalAccuracy()
+                ? location.getVerticalAccuracyMeters() <= 25f
+                : location.getAccuracy() <= 20f;
+        double altitude = location.getAltitude();
+        if (!accurateEnough || !Double.isFinite(altitude) || altitude < -500 || altitude > 9000) return;
+        state.currentAltitudeM = altitude;
+        state.maxAltitudeM = state.maxAltitudeM == null
+                ? altitude : Math.max(state.maxAltitudeM, altitude);
+        if (altitude < 0) {
+            state.minBelowSeaM = state.minBelowSeaM == null
+                    ? altitude : Math.min(state.minBelowSeaM, altitude);
+        }
+    }
+
+    private void enterAutoPause(long now, Location location) {
+        state.autoPaused = true;
+        state.pauseStartedAt = now;
+        state.currentSpeedMs = 0;
+        state.updatedAt = now;
+        previousLocation = new Location(location);
+        previousSpeed = 0f;
+        resetTurnCandidate();
+        sensorManager.unregisterListener(this);
+        state.sensorReady = false;
+        try { requestPausedLocationUpdates(); } catch (SecurityException ignored) { }
+        updateNotification();
+        publish(true);
+    }
+
+    private void resumeFromAutoPause(long now, Location location, float speed) {
+        state.autoPaused = false;
+        state.pauseStartedAt = 0;
+        stationarySince = 0;
+        previousLocation = new Location(location);
+        previousSpeed = speed;
+        state.currentSpeedMs = speed;
+        state.updatedAt = now;
+        try { requestActiveLocationUpdates(); } catch (SecurityException ignored) { }
+        registerLeanSensor();
+        updateNotification();
+        publish(true);
+    }
+
+    private void accruePause(long now) {
+        if (state == null || !state.autoPaused || state.pauseStartedAt <= 0) return;
+        state.pausedMs += Math.max(0, now - state.pauseStartedAt);
+        state.pauseStartedAt = now;
     }
 
     private void recordAcceleration(float acceleration) {
@@ -196,7 +297,8 @@ public final class RideLocationService extends Service implements LocationListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (state == null || !state.tracking || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
+        if (state == null || !state.tracking || state.autoPaused ||
+                event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
         float[] matrix = new float[9];
         SensorManager.getRotationMatrixFromVector(matrix, event.values);
         float reference = RideMath.leanReferenceDegrees(matrix);
@@ -365,12 +467,19 @@ public final class RideLocationService extends Service implements LocationListen
                 this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_ridez)
-                .setContentTitle("RIDEZ registrerer turen")
-                .setContentText("Afstand, fart og sving gemmes lokalt – også med skærmen slukket.")
+                .setContentTitle(state != null && state.autoPaused
+                        ? "RIDEZ har sat turen på pause" : "RIDEZ registrerer turen")
+                .setContentText(state != null && state.autoPaused
+                        ? "Starter automatisk igen, når motorcyklen bevæger sig."
+                        : "Afstand, fart, højde og sving gemmes lokalt – også med skærmen slukket.")
                 .setContentIntent(pending)
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
+    }
+
+    private void updateNotification() {
+        getSystemService(NotificationManager.class).notify(NOTIFICATION_ID, buildNotification());
     }
 
     private SharedPreferences preferences() {

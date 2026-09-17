@@ -38,6 +38,17 @@
     </section>
 
     <section class="card">
+      <span class="eyebrow">HØJDE</span>
+      <h2>Højde over havet</h2>
+      <div class="grid altitude-grid">
+        <article class="metric"><span>Aktuel højde</span><strong id="currentAltitude">—</strong></article>
+        <article class="metric"><span>Turens højeste punkt</span><strong id="maxAltitude">—</strong></article>
+        <article id="belowSeaMetric" class="metric below-sea hidden"><span>Laveste under havet</span><strong id="minBelowSea">—</strong></article>
+      </div>
+      <p class="altitude-note">Feltet under havets overflade vises kun, hvis en gyldig GPS-højde kommer under 0 meter.</p>
+    </section>
+
+    <section class="card">
       <div class="section-title"><div><span class="eyebrow">LEAN & SVING</span><h2>Hældning</h2></div><strong id="liveLean">0°</strong></div>
       <div class="lean-gauge"><i id="leanNeedle"></i><span class="left">V</span><span class="right">H</span></div>
       <div class="grid">
@@ -60,6 +71,7 @@
         <article class="metric"><span>0–80 km/t</span><strong id="zero80">—</strong><small>sek.</small></article>
         <article class="metric"><span>0–100 km/t</span><strong id="zero100">—</strong><small>sek.</small></article>
         <article class="metric"><span>Stilstand</span><strong id="standstill">00:00</strong><small>timer:min</small></article>
+        <article class="metric"><span>Automatisk pausetid</span><strong id="pausedTime">00:00</strong><small>timer:min</small></article>
       </div>
     </section>
 

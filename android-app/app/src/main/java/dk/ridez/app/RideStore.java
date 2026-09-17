@@ -15,7 +15,7 @@ import java.util.Set;
 
 final class RideStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "ridez_solo.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
 
     RideStore(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -29,6 +29,7 @@ final class RideStore extends SQLiteOpenHelper {
                 "ended_at INTEGER," +
                 "distance_m REAL NOT NULL DEFAULT 0," +
                 "active_ms INTEGER NOT NULL DEFAULT 0," +
+                "paused_ms INTEGER NOT NULL DEFAULT 0," +
                 "max_speed_ms REAL NOT NULL DEFAULT 0," +
                 "max_accel_ms2 REAL NOT NULL DEFAULT 0," +
                 "max_brake_ms2 REAL NOT NULL DEFAULT 0," +
@@ -38,10 +39,18 @@ final class RideStore extends SQLiteOpenHelper {
                 "right_turns INTEGER NOT NULL DEFAULT 0," +
                 "zero_50_ms INTEGER," +
                 "zero_80_ms INTEGER," +
-                "zero_100_ms INTEGER)");
+                "zero_100_ms INTEGER," +
+                "max_altitude_m REAL," +
+                "min_below_sea_m REAL)");
     }
 
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE rides ADD COLUMN paused_ms INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE rides ADD COLUMN max_altitude_m REAL");
+            db.execSQL("ALTER TABLE rides ADD COLUMN min_below_sea_m REAL");
+        }
+    }
 
     synchronized long createRide(long startedAt) {
         ContentValues values = new ContentValues();
@@ -54,6 +63,7 @@ final class RideStore extends SQLiteOpenHelper {
         if (finished) v.put("ended_at", s.updatedAt);
         v.put("distance_m", s.distanceM);
         v.put("active_ms", s.activeMs);
+        v.put("paused_ms", s.pausedMs);
         v.put("max_speed_ms", s.maxSpeedMs);
         v.put("max_accel_ms2", s.maxAccelMs2);
         v.put("max_brake_ms2", s.maxBrakeMs2);
@@ -64,6 +74,8 @@ final class RideStore extends SQLiteOpenHelper {
         putNullable(v, "zero_50_ms", s.zero50Ms);
         putNullable(v, "zero_80_ms", s.zero80Ms);
         putNullable(v, "zero_100_ms", s.zero100Ms);
+        putNullableDouble(v, "max_altitude_m", s.maxAltitudeM);
+        putNullableDouble(v, "min_below_sea_m", s.minBelowSeaM);
         getWritableDatabase().update("rides", v, "id=?", new String[]{Long.toString(rideId)});
     }
 
@@ -121,6 +133,7 @@ final class RideStore extends SQLiteOpenHelper {
         s.updatedAt = nullableLong(c, "ended_at", System.currentTimeMillis());
         s.distanceM = getDouble(c, "distance_m");
         s.activeMs = getLong(c, "active_ms");
+        s.pausedMs = getLong(c, "paused_ms");
         s.maxSpeedMs = getDouble(c, "max_speed_ms");
         s.maxAccelMs2 = getDouble(c, "max_accel_ms2");
         s.maxBrakeMs2 = getDouble(c, "max_brake_ms2");
@@ -131,6 +144,8 @@ final class RideStore extends SQLiteOpenHelper {
         s.zero50Ms = nullableLongObject(c, "zero_50_ms");
         s.zero80Ms = nullableLongObject(c, "zero_80_ms");
         s.zero100Ms = nullableLongObject(c, "zero_100_ms");
+        s.maxAltitudeM = nullableDoubleObject(c, "max_altitude_m");
+        s.minBelowSeaM = nullableDoubleObject(c, "min_below_sea_m");
         return s;
     }
 
@@ -142,7 +157,13 @@ final class RideStore extends SQLiteOpenHelper {
     private static Long nullableLongObject(Cursor c, String name) {
         int i = c.getColumnIndexOrThrow(name); return c.isNull(i) ? null : c.getLong(i);
     }
+    private static Double nullableDoubleObject(Cursor c, String name) {
+        int i = c.getColumnIndexOrThrow(name); return c.isNull(i) ? null : c.getDouble(i);
+    }
     private static void putNullable(ContentValues values, String key, Long value) {
+        if (value == null) values.putNull(key); else values.put(key, value);
+    }
+    private static void putNullableDouble(ContentValues values, String key, Double value) {
         if (value == null) values.putNull(key); else values.put(key, value);
     }
 
@@ -152,6 +173,8 @@ final class RideStore extends SQLiteOpenHelper {
         long updatedAt;
         double distanceM;
         long activeMs;
+        long pausedMs;
+        long pauseStartedAt;
         double currentSpeedMs;
         double maxSpeedMs;
         double maxAccelMs2;
@@ -164,26 +187,37 @@ final class RideStore extends SQLiteOpenHelper {
         Long zero50Ms;
         Long zero80Ms;
         Long zero100Ms;
+        Double currentAltitudeM;
+        Double maxAltitudeM;
+        Double minBelowSeaM;
         boolean tracking;
+        boolean autoPaused;
         boolean gpsReady;
         boolean sensorReady;
         float gpsAccuracyM;
 
         JSONObject toJson() throws JSONException {
+            long currentPauseMs = autoPaused && pauseStartedAt > 0
+                    ? Math.max(0, updatedAt - pauseStartedAt) : 0;
+            long elapsedMs = Math.max(0, updatedAt - startedAt - pausedMs - currentPauseMs);
             JSONObject o = new JSONObject()
                     .put("id", id).put("startedAt", startedAt).put("updatedAt", updatedAt)
                     .put("distanceM", distanceM).put("activeMs", activeMs)
-                    .put("elapsedMs", Math.max(0, updatedAt - startedAt))
+                    .put("elapsedMs", elapsedMs).put("pausedMs", pausedMs + currentPauseMs)
                     .put("currentSpeedMs", currentSpeedMs).put("maxSpeedMs", maxSpeedMs)
                     .put("maxAccelMs2", maxAccelMs2).put("maxBrakeMs2", maxBrakeMs2)
                     .put("currentLeanDeg", currentLeanDeg)
                     .put("maxLeftDeg", maxLeftDeg).put("maxRightDeg", maxRightDeg)
                     .put("leftTurns", leftTurns).put("rightTurns", rightTurns)
-                    .put("tracking", tracking).put("gpsReady", gpsReady)
+                    .put("tracking", tracking).put("autoPaused", autoPaused)
+                    .put("gpsReady", gpsReady)
                     .put("sensorReady", sensorReady).put("gpsAccuracyM", gpsAccuracyM);
             o.put("zero50Ms", zero50Ms == null ? JSONObject.NULL : zero50Ms);
             o.put("zero80Ms", zero80Ms == null ? JSONObject.NULL : zero80Ms);
             o.put("zero100Ms", zero100Ms == null ? JSONObject.NULL : zero100Ms);
+            o.put("currentAltitudeM", currentAltitudeM == null ? JSONObject.NULL : currentAltitudeM);
+            o.put("maxAltitudeM", maxAltitudeM == null ? JSONObject.NULL : maxAltitudeM);
+            o.put("minBelowSeaM", minBelowSeaM == null ? JSONObject.NULL : minBelowSeaM);
             return o;
         }
     }
