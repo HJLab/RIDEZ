@@ -50,6 +50,6 @@ final class RidezJavascriptBridge {
     }
 
     @JavascriptInterface public int getBridgeVersion() {
-        return 204;
+        return 205;
     }
 }

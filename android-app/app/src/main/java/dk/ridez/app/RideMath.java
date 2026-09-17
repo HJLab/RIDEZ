@@ -27,6 +27,12 @@ final class RideMath {
         return degrees;
     }
 
+    static float leanDegrees(float reference, float zero, boolean swapSides) {
+        // RIDEZ uses negative values for left and positive values for right.
+        float lean = -normalizeDegrees(reference - zero);
+        return swapSides ? -lean : lean;
+    }
+
     static Segment assessSegment(
             long previousTime, float previousSpeed,
             long currentTime, float currentSpeed,

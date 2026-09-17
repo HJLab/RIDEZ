@@ -166,7 +166,11 @@
       ? 'Kalibreret til 0°. Maksima og svingtal er nulstillet.'
       : 'Sensoren er ikke klar endnu – vent et øjeblik og prøv igen.';
   });
-  $('swapSides').addEventListener('change',e=>bridge&&bridge.setSwapSides(e.target.checked));
+  $('swapSides').addEventListener('change',e=>{
+    if(!bridge)return;
+    bridge.setSwapSides(e.target.checked);
+    $('calibrationStatus').textContent=(e.target.checked?'Siderne er byttet.':'Standardretning er valgt.')+' Maksima og svingtal er nulstillet.';
+  });
   $('selectRides').addEventListener('click',toggleRideSelection);
   $('deleteRides').addEventListener('click',deleteSelectedRides);
   $('cancelDelete').addEventListener('click',()=>$('confirmDelete').classList.add('hidden'));

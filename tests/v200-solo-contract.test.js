@@ -46,6 +46,17 @@ test('v201 calibration avoids unstable Euler roll and is available before a ride
   assert.doesNotMatch(app, /calibrate'\)\.disabled/);
 });
 
+test('v205 maps left and right consistently and applies side swapping immediately', () => {
+  const math = read('android-app/app/src/main/java/dk/ridez/app/RideMath.java');
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const app = read('android-app/app/src/main/assets/app.js');
+  assert.match(math, /float lean = -normalizeDegrees/);
+  assert.match(service, /ACTION_SET_SWAP_SIDES/);
+  assert.match(service, /applySwapSides/);
+  assert.match(service, /swap_sides_v205/);
+  assert.match(app, /Maksima og svingtal er nulstillet/);
+});
+
 test('v202 puts the start control before trip statistics', () => {
   const html = read('android-app/app/src/main/assets/index.html');
   assert.ok(html.indexOf('id="start"') < html.indexOf('id="status"'));

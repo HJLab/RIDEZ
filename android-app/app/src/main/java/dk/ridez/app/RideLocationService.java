@@ -40,14 +40,16 @@ public final class RideLocationService extends Service implements LocationListen
     static final String ACTION_START = "dk.ridez.app.START_RIDE";
     static final String ACTION_STOP = "dk.ridez.app.STOP_RIDE";
     static final String ACTION_CALIBRATE = "dk.ridez.app.CALIBRATE_LEAN";
+    static final String ACTION_SET_SWAP_SIDES = "dk.ridez.app.SET_SWAP_SIDES";
     static final String EXTRA_LEAN_REFERENCE = "lean_reference";
+    static final String EXTRA_SWAP_SIDES = "swap_sides";
     private static final String CHANNEL_ID = "ridez_solo_tracking";
     private static final int NOTIFICATION_ID = 200;
     private static final String PREFS = "ridez_solo";
     private static final String PREF_TRACKING = "tracking";
     private static final String PREF_RIDE_ID = "ride_id";
     private static final String PREF_LEAN_ZERO = "lean_reference_v201";
-    private static final String PREF_SWAP_SIDES = "swap_sides";
+    private static final String PREF_SWAP_SIDES = "swap_sides_v205";
     private static final long AUTO_PAUSE_AFTER_MS = 120_000L;
     private static final float STATIONARY_SPEED_MS = 1.5f;
     private static final float RESUME_SPEED_MS = RideMath.MIN_MOVING_SPEED_MS;
@@ -95,6 +97,11 @@ public final class RideLocationService extends Service implements LocationListen
             float reference = intent == null ? Float.NaN :
                     intent.getFloatExtra(EXTRA_LEAN_REFERENCE, Float.NaN);
             if (Float.isFinite(reference)) applyCalibration(reference);
+            return state != null && state.tracking ? START_STICKY : START_NOT_STICKY;
+        }
+        if (ACTION_SET_SWAP_SIDES.equals(action)) {
+            boolean swap = intent != null && intent.getBooleanExtra(EXTRA_SWAP_SIDES, false);
+            applySwapSides(swap);
             return state != null && state.tracking ? START_STICKY : START_NOT_STICKY;
         }
         startForeground(NOTIFICATION_ID, buildNotification());
@@ -382,8 +389,8 @@ public final class RideLocationService extends Service implements LocationListen
         if (!preferences().contains(PREF_LEAN_ZERO)) {
             preferences().edit().putFloat(PREF_LEAN_ZERO, reference).apply();
         }
-        float lean = RideMath.normalizeDegrees(reference - zero);
-        if (preferences().getBoolean(PREF_SWAP_SIDES, false)) lean = -lean;
+        float lean = RideMath.leanDegrees(reference, zero,
+                preferences().getBoolean(PREF_SWAP_SIDES, false));
         if (!Float.isFinite(lean) || Math.abs(lean) > 75f) return;
 
         state.sensorReady = true;
@@ -445,6 +452,20 @@ public final class RideLocationService extends Service implements LocationListen
         }
     }
 
+    private void applySwapSides(boolean swap) {
+        preferences().edit().putBoolean(PREF_SWAP_SIDES, swap).apply();
+        resetTurnCandidate();
+        if (state != null) {
+            state.currentLeanDeg = 0;
+            state.maxLeftDeg = 0;
+            state.maxRightDeg = 0;
+            state.leftTurns = 0;
+            state.rightTurns = 0;
+            state.updatedAt = System.currentTimeMillis();
+            publish(true);
+        }
+    }
+
     private void publish(boolean forceSave) {
         updateSnapshot();
         long now = System.currentTimeMillis();
@@ -492,7 +513,14 @@ public final class RideLocationService extends Service implements LocationListen
     }
 
     static void setSwapSides(Context context, boolean swap) {
-        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(PREF_SWAP_SIDES, swap).apply();
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, MODE_PRIVATE);
+        prefs.edit().putBoolean(PREF_SWAP_SIDES, swap).apply();
+        if (prefs.getBoolean(PREF_TRACKING, false)) {
+            Intent intent = new Intent(context, RideLocationService.class)
+                    .setAction(ACTION_SET_SWAP_SIDES)
+                    .putExtra(EXTRA_SWAP_SIDES, swap);
+            context.startService(intent);
+        }
     }
 
     static boolean getSwapSides(Context context) {

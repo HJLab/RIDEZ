@@ -27,7 +27,12 @@ public final class RideMathTest {
                 1, 0, 0, 0, 1, 0, 1, 0, 0}) - 90f) < 0.01f,
                 "quarter-turn reference must remain measurable");
 
-        System.out.println("RideMathTest: 6 checks passed");
+        require(RideMath.leanDegrees(20f, 0f, false) < 0f,
+                "default left lean must be negative");
+        require(RideMath.leanDegrees(20f, 0f, true) > 0f,
+                "side swap must reverse the lean direction");
+
+        System.out.println("RideMathTest: 8 checks passed");
     }
 
     private static void require(boolean condition, String message) {

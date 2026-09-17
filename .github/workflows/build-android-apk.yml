@@ -9,6 +9,7 @@ on:
       - codex/ridez-solo-v202
       - codex/ridez-solo-v203
       - codex/ridez-solo-v204
+      - codex/ridez-solo-v205
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -73,7 +74,7 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Solo-v204
+          name: RIDEZ-Solo-v205
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -83,9 +84,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v204.apk
-          if gh release view android-v204-solo >/dev/null 2>&1; then
-            gh release upload android-v204-solo RIDEZ-Solo-v204.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v205.apk
+          if gh release view android-v205-solo >/dev/null 2>&1; then
+            gh release upload android-v205-solo RIDEZ-Solo-v205.apk --clobber
           else
-            gh release create android-v204-solo RIDEZ-Solo-v204.apk --title "RIDEZ Solo v204" --notes "Højden kommer nu fra Copernicus' digitale terrænmodel via Open-Meteo i stedet for telefonens upræcise GPS-højde. Koordinatet bruges kun til højdesopslaget og gemmes ikke. Uden internet vises ingen ny højde; alle øvrige turfunktioner virker fortsat offline. Indeholder også den fungerende sletning fra v203."
+            gh release create android-v205-solo RIDEZ-Solo-v205.apk --title "RIDEZ Solo v205" --notes "Retter venstre og højre ved vandret telefonmontering. Standardretningen er vendt korrekt, og indstillingen Byt venstre og højre reagerer straks samt nulstiller hældningsmaksima og svingtal. Alle rettelser fra v204 er bevaret."
           fi
