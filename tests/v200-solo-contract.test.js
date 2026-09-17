@@ -92,3 +92,13 @@ test('v202 records altitude but persists no coordinates', () => {
   assert.match(store, /min_below_sea_m/);
   assert.doesNotMatch(store, /latitude|longitude/i);
 });
+
+test('v202 explains acceleration and braking in relatable units', () => {
+  const html = read('android-app/app/src/main/assets/index.html');
+  const app = read('android-app/app/src/main/assets/app.js');
+  assert.match(html, /maxAccelExplain/);
+  assert.match(html, /maxBrakeExplain/);
+  assert.match(app, /\*3\.6/);
+  assert.match(app, /km\/t pr\. sekund/);
+  assert.match(app, /Meget kraftig/);
+});

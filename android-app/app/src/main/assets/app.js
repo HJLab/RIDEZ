@@ -12,6 +12,8 @@
   const time=ms=>{const total=Math.max(0,Math.floor((Number(ms)||0)/60000));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
   const seconds=ms=>ms==null?'—':(Number(ms)/1000).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
   const meters=value=>value==null?'—':Math.round(Number(value)).toLocaleString('da-DK')+' m';
+  const forceLevel=value=>{const v=Math.abs(Number(value)||0);if(v<0.5)return'Ingen tydelig måling';if(v<1.5)return'Let';if(v<3)return'Moderat';if(v<4.5)return'Kraftig';return'Meget kraftig'};
+  const forceExplanation=value=>one((Number(value)||0)*3.6)+' km/t pr. sekund · '+forceLevel(value);
   const date=ms=>new Intl.DateTimeFormat('da-DK',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(ms));
   const parse=value=>{try{return JSON.parse(value)}catch(e){return {}}};
 
@@ -39,6 +41,8 @@
     $('rightTurns').textContent=s.rightTurns||0;
     $('maxAccel').textContent=one(s.maxAccelMs2);
     $('maxBrake').textContent=one(s.maxBrakeMs2);
+    $('maxAccelExplain').textContent=forceExplanation(s.maxAccelMs2);
+    $('maxBrakeExplain').textContent=forceExplanation(s.maxBrakeMs2);
     $('zero50').textContent=seconds(s.zero50Ms);
     $('zero80').textContent=seconds(s.zero80Ms);
     $('zero100').textContent=seconds(s.zero100Ms);
@@ -76,7 +80,7 @@
         +'<span><b>'+time(elapsed)+'</b>samlet turtid</span><span><b>'+time(r.activeMs)+'</b>aktiv køretid</span><span><b>'+time(standstill)+'</b>stilstand</span><span><b>'+time(r.pausedMs)+'</b>automatisk pause</span>'
         +'<span><b>'+avg+' km/t</b>gennemsnitsfart</span><span><b>'+kmh(r.maxSpeedMs)+' km/t</b>topfart</span></div>'
         +'<h3>Acceleration og bremsning</h3><div class="ride-stats">'
-        +'<span><b>'+one(r.maxAccelMs2)+' m/s²</b>bedste acceleration</span><span><b>'+one(r.maxBrakeMs2)+' m/s²</b>hårdeste bremsning</span>'
+        +'<span><b>'+one(r.maxAccelMs2)+' m/s²</b><i class="rate-note">'+forceExplanation(r.maxAccelMs2)+'</i>bedste acceleration</span><span><b>'+one(r.maxBrakeMs2)+' m/s²</b><i class="rate-note">'+forceExplanation(r.maxBrakeMs2)+'</i>hårdeste bremsning</span>'
         +'<span><b>'+seconds(r.zero50Ms)+' s</b>0–50 km/t</span><span><b>'+seconds(r.zero80Ms)+' s</b>0–80 km/t</span><span><b>'+seconds(r.zero100Ms)+' s</b>0–100 km/t</span></div>'
         +'<h3>Lean og sving</h3><div class="ride-stats">'
         +'<span><b>'+one(r.maxLeftDeg)+'°</b>maks venstre</span><span><b>'+one(r.maxRightDeg)+'°</b>maks højre</span><span><b>'+r.leftTurns+'</b>venstresving</span><span><b>'+r.rightTurns+'</b>højresving</span></div>'
