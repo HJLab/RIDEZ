@@ -102,3 +102,13 @@ test('v202 explains acceleration and braking in relatable units', () => {
   assert.match(app, /km\/t pr\. sekund/);
   assert.match(app, /Meget kraftig/);
 });
+
+test('v202 color-codes force levels and safely pulses the extreme level', () => {
+  const app = read('android-app/app/src/main/assets/app.js');
+  const css = read('android-app/app/src/main/assets/styles.css');
+  for (const className of ['force-light','force-moderate','force-strong','force-extreme']) {
+    assert.match(app + css, new RegExp(className));
+  }
+  assert.match(css, /animation:force-alert/);
+  assert.match(css, /prefers-reduced-motion:reduce/);
+});
