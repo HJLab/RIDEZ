@@ -10,6 +10,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -19,40 +23,44 @@ import android.os.PowerManager;
 
 import org.json.JSONObject;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-public final class RideLocationService extends Service implements LocationListener {
-    static final String ACTION_START = "dk.ridez.app.START_TRACKING";
-    static final String ACTION_STOP = "dk.ridez.app.STOP_TRACKING";
-    private static final String CHANNEL_ID = "ridez_tracking";
-    private static final int NOTIFICATION_ID = 118;
-    private static final String PREFS = "ridez_native";
+public final class RideLocationService extends Service implements LocationListener, SensorEventListener {
+    static final String ACTION_START = "dk.ridez.app.START_RIDE";
+    static final String ACTION_STOP = "dk.ridez.app.STOP_RIDE";
+    static final String ACTION_CALIBRATE = "dk.ridez.app.CALIBRATE_LEAN";
+    private static final String CHANNEL_ID = "ridez_solo_tracking";
+    private static final int NOTIFICATION_ID = 200;
+    private static final String PREFS = "ridez_solo";
     private static final String PREF_TRACKING = "tracking";
-    private static final String PREF_SUPABASE_URL = "supabase_url";
-    private static final String PREF_SUPABASE_KEY = "supabase_key";
-    private static final String PREF_DRIVER_TOKEN = "driver_token";
+    private static final String PREF_RIDE_ID = "ride_id";
+    private static final String PREF_LEAN_ZERO = "lean_zero";
+    private static final String PREF_SWAP_SIDES = "swap_sides";
+
+    private static volatile String latestSnapshot = "{\"tracking\":false}";
+    private static volatile float latestRawRoll;
+    private static volatile boolean rawRollReady;
 
     private LocationManager locationManager;
-    private LocationStore store;
+    private SensorManager sensorManager;
+    private Sensor rotationSensor;
+    private RideStore store;
     private PowerManager.WakeLock wakeLock;
-    private ScheduledExecutorService uploadExecutor;
-    private boolean listening;
+    private RideStore.Snapshot state;
+    private Location previousLocation;
+    private float previousSpeed;
+    private int acceptedGpsPoints;
+    private long lastSaveAt;
+    private long launchCandidateAt;
+    private int turnSide;
+    private long turnStartedAt;
+    private float turnPeak;
 
     @Override
     public void onCreate() {
         super.onCreate();
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        store = new LocationStore(getApplicationContext());
-        uploadExecutor = Executors.newSingleThreadScheduledExecutor();
-        uploadExecutor.scheduleWithFixedDelay(this::uploadPendingLocations,
-                1L, 5L, TimeUnit.SECONDS);
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        store = new RideStore(getApplicationContext());
         createNotificationChannel();
     }
 
@@ -60,169 +68,268 @@ public final class RideLocationService extends Service implements LocationListen
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
-            setTrackingPreference(false);
-            stopTracking();
-            uploadExecutor.execute(() -> {
-                uploadPendingLocations();
-                stopForeground(STOP_FOREGROUND_REMOVE);
-                stopSelfResult(startId);
-            });
+            finishRide();
             return START_NOT_STICKY;
         }
-
-        setTrackingPreference(true);
+        if (ACTION_CALIBRATE.equals(action)) {
+            if (rawRollReady) preferences().edit().putFloat(PREF_LEAN_ZERO, latestRawRoll).apply();
+            return START_STICKY;
+        }
         startForeground(NOTIFICATION_ID, buildNotification());
-        startTracking();
+        startOrResumeRide();
         return START_STICKY;
     }
 
-    private void startTracking() {
-        if (listening || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
+    private void startOrResumeRide() {
+        if (state != null && state.tracking) return;
+        SharedPreferences prefs = preferences();
+        long rideId = prefs.getLong(PREF_RIDE_ID, 0L);
+        state = rideId > 0 ? store.latestActive() : null;
+        if (state == null || state.id != rideId) {
+            state = new RideStore.Snapshot();
+            state.startedAt = System.currentTimeMillis();
+            state.updatedAt = state.startedAt;
+            state.id = store.createRide(state.startedAt);
+            prefs.edit().putLong(PREF_RIDE_ID, state.id).apply();
         }
+        state.tracking = true;
+        prefs.edit().putBoolean(PREF_TRACKING, true).apply();
         acquireWakeLock();
+        startSensors();
+        publish(true);
+    }
+
+    private void startSensors() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         try {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this);
             if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 0f, this);
             }
-            listening = true;
-        } catch (SecurityException ignored) {
-            stopSelf();
-        }
+            if (rotationSensor != null) {
+                sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_GAME);
+                state.sensorReady = true;
+            }
+        } catch (SecurityException ignored) { }
     }
 
-    private void stopTracking() {
-        if (locationManager != null && listening) locationManager.removeUpdates(this);
-        listening = false;
-        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-        wakeLock = null;
+    private void finishRide() {
+        if (state == null) {
+            state = store.latestActive();
+        }
+        stopSensors();
+        if (state != null) {
+            state.tracking = false;
+            state.currentSpeedMs = 0;
+            state.updatedAt = System.currentTimeMillis();
+            store.save(state.id, state, true);
+            updateSnapshot();
+        }
+        preferences().edit().putBoolean(PREF_TRACKING, false).remove(PREF_RIDE_ID).apply();
+        stopForeground(STOP_FOREGROUND_REMOVE);
+        stopSelf();
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        if (location == null) return;
-        Double altitude = location.hasAltitude() ? location.getAltitude() : null;
-        Float speed = location.hasSpeed() ? location.getSpeed() : null;
-        Float bearing = location.hasBearing() ? location.getBearing() : null;
-        String driverToken = preferences().getString(PREF_DRIVER_TOKEN, null);
-        store.add(driverToken, location.getTime(), location.getLatitude(), location.getLongitude(),
-                location.getAccuracy(), altitude, speed, bearing);
-    }
+        if (state == null || location == null || !state.tracking) return;
+        if (location.getAccuracy() <= 0f || location.getAccuracy() > RideMath.MAX_ACCURACY_M) return;
+        if (previousLocation != null && location.getTime() <= previousLocation.getTime()) return;
 
-    private void uploadPendingLocations() {
-        SharedPreferences prefs = preferences();
-        String supabaseUrl = prefs.getString(PREF_SUPABASE_URL, null);
-        String anonKey = prefs.getString(PREF_SUPABASE_KEY, null);
-        if (!validConfiguration(supabaseUrl, anonKey)) return;
+        float speed = location.hasSpeed() ? Math.max(0f, location.getSpeed()) :
+                (previousLocation == null ? 0f : location.distanceTo(previousLocation) /
+                        Math.max(0.4f, (location.getTime() - previousLocation.getTime()) / 1000f));
+        state.gpsReady = true;
+        state.gpsAccuracyM = location.getAccuracy();
+        state.currentSpeedMs = speed;
 
-        try {
-            for (int batchNumber = 0; batchNumber < 8; batchNumber++) {
-                LocationStore.Batch batch = store.peekForUpload(250);
-                if (batch.isEmpty()) return;
-                if (!uploadBatch(supabaseUrl, anonKey, batch)) return;
-                store.markUploaded(batch);
-            }
-        } catch (Exception ignored) {
-            // Køen beholdes urørt og forsøges automatisk igen fem sekunder senere.
-        }
-    }
-
-    private boolean uploadBatch(String supabaseUrl, String anonKey, LocationStore.Batch batch) {
-        HttpURLConnection connection = null;
-        try {
-            URL endpoint = new URL(supabaseUrl.replaceAll("/+$", "") +
-                    "/rest/v1/rpc/ridez_native_location_batch_v118");
-            connection = (HttpURLConnection) endpoint.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(20000);
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("apikey", anonKey);
-            connection.setRequestProperty("Authorization", "Bearer " + anonKey);
-
-            JSONObject payload = new JSONObject();
-            payload.put("p_driver_token", batch.sessionToken);
-            payload.put("p_points", batch.items);
-            byte[] bytes = payload.toString().getBytes(StandardCharsets.UTF_8);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            try (OutputStream output = connection.getOutputStream()) {
-                output.write(bytes);
-            }
-
-            int status = connection.getResponseCode();
-            InputStream response = status >= 200 && status < 300
-                    ? connection.getInputStream() : connection.getErrorStream();
-            if (response != null) {
-                try (InputStream input = response) {
-                    byte[] buffer = new byte[1024];
-                    while (input.read(buffer) != -1) { }
+        if (previousLocation != null) {
+            RideMath.Segment segment = RideMath.assessSegment(
+                    previousLocation.getTime(), previousSpeed, location.getTime(), speed,
+                    location.getAccuracy(), location.distanceTo(previousLocation));
+            if (segment.accepted) {
+                acceptedGpsPoints++;
+                if (segment.moving) {
+                    state.distanceM += segment.distanceM;
+                    state.activeMs += segment.durationMs;
+                }
+                recordAcceleration(segment.accelerationMs2);
+                recordLaunches(location.getTime(), speed);
+                if (acceptedGpsPoints >= 3 && System.currentTimeMillis() - state.startedAt >= 5000L) {
+                    state.maxSpeedMs = Math.max(state.maxSpeedMs, speed);
                 }
             }
-            return status >= 200 && status < 300;
-        } catch (Exception ignored) {
-            return false;
-        } finally {
-            if (connection != null) connection.disconnect();
+        } else if (speed < 0.85f) {
+            launchCandidateAt = location.getTime();
+        }
+
+        previousLocation = new Location(location);
+        previousSpeed = speed;
+        state.updatedAt = System.currentTimeMillis();
+        publish(false);
+    }
+
+    private void recordAcceleration(float acceleration) {
+        if (state.currentSpeedMs < RideMath.MIN_MOVING_SPEED_MS) return;
+        if (acceleration > 0) state.maxAccelMs2 = Math.max(state.maxAccelMs2, acceleration);
+        else state.maxBrakeMs2 = Math.max(state.maxBrakeMs2, -acceleration);
+    }
+
+    private void recordLaunches(long time, float speed) {
+        if (speed < 0.85f) {
+            launchCandidateAt = time;
+            return;
+        }
+        if (launchCandidateAt <= 0 || time - launchCandidateAt > 30_000L) return;
+        long duration = time - launchCandidateAt;
+        if (speed >= 13.89f) state.zero50Ms = bestTime(state.zero50Ms, duration);
+        if (speed >= 22.22f) state.zero80Ms = bestTime(state.zero80Ms, duration);
+        if (speed >= 27.78f) state.zero100Ms = bestTime(state.zero100Ms, duration);
+        if (speed >= 30f) launchCandidateAt = 0;
+    }
+
+    private static Long bestTime(Long previous, long candidate) {
+        return previous == null || candidate < previous ? candidate : previous;
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (state == null || !state.tracking || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
+        float[] matrix = new float[9];
+        float[] orientation = new float[3];
+        SensorManager.getRotationMatrixFromVector(matrix, event.values);
+        SensorManager.getOrientation(matrix, orientation);
+        float rawRoll = (float) Math.toDegrees(orientation[2]);
+        latestRawRoll = rawRoll;
+        rawRollReady = true;
+        float zero = preferences().getFloat(PREF_LEAN_ZERO, rawRoll);
+        if (!preferences().contains(PREF_LEAN_ZERO)) {
+            preferences().edit().putFloat(PREF_LEAN_ZERO, rawRoll).apply();
+        }
+        float lean = normalizeDegrees(rawRoll - zero);
+        if (preferences().getBoolean(PREF_SWAP_SIDES, false)) lean = -lean;
+        if (!Float.isFinite(lean) || Math.abs(lean) > 75f) return;
+
+        state.sensorReady = true;
+        state.currentLeanDeg = lean;
+        if (state.currentSpeedMs >= 2.78f) {
+            if (lean < 0) state.maxLeftDeg = Math.max(state.maxLeftDeg, -lean);
+            else state.maxRightDeg = Math.max(state.maxRightDeg, lean);
+            updateTurnCounter(lean, event.timestamp / 1_000_000L);
+        } else {
+            resetTurnCandidate();
+        }
+        state.updatedAt = System.currentTimeMillis();
+        publish(false);
+    }
+
+    private void updateTurnCounter(float lean, long nowMs) {
+        float absolute = Math.abs(lean);
+        int side = lean < 0 ? -1 : 1;
+        if (turnSide == 0) {
+            if (absolute >= 14f) {
+                turnSide = side;
+                turnStartedAt = nowMs;
+                turnPeak = absolute;
+            }
+            return;
+        }
+        if (side == turnSide) turnPeak = Math.max(turnPeak, absolute);
+        if (absolute < 8f || side != turnSide) {
+            if (nowMs - turnStartedAt >= 650L && turnPeak >= 17f) {
+                if (turnSide < 0) state.leftTurns++; else state.rightTurns++;
+            }
+            resetTurnCandidate();
+            if (absolute >= 14f) {
+                turnSide = side;
+                turnStartedAt = nowMs;
+                turnPeak = absolute;
+            }
         }
     }
 
-    private boolean validConfiguration(String supabaseUrl, String anonKey) {
-        if (supabaseUrl == null || anonKey == null || anonKey.length() < 32) return false;
-        try {
-            URL url = new URL(supabaseUrl);
-            String host = url.getHost();
-            return "https".equalsIgnoreCase(url.getProtocol()) && host != null &&
-                    (host.endsWith(".supabase.co") || host.endsWith(".supabase.in"));
-        } catch (Exception ignored) {
-            return false;
+    private void resetTurnCandidate() {
+        turnSide = 0;
+        turnStartedAt = 0;
+        turnPeak = 0;
+    }
+
+    private static float normalizeDegrees(float degrees) {
+        while (degrees > 180f) degrees -= 360f;
+        while (degrees < -180f) degrees += 360f;
+        return degrees;
+    }
+
+    private void publish(boolean forceSave) {
+        updateSnapshot();
+        long now = System.currentTimeMillis();
+        if (forceSave || now - lastSaveAt >= 5000L) {
+            store.save(state.id, state, false);
+            lastSaveAt = now;
         }
     }
 
-    @Override public void onProviderEnabled(String provider) { }
-    @Override public void onProviderDisabled(String provider) { }
-    @Override public void onStatusChanged(String provider, int status, Bundle extras) { }
-
-    @Override
-    public void onDestroy() {
-        stopTracking();
-        if (uploadExecutor != null) uploadExecutor.shutdownNow();
-        if (store != null) store.close();
-        super.onDestroy();
+    private void updateSnapshot() {
+        try { latestSnapshot = state == null ? "{\"tracking\":false}" : state.toJson().toString(); }
+        catch (Exception ignored) { }
     }
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    static String snapshot(Context context) {
+        if (wasTracking(context)) return latestSnapshot;
+        return "{\"tracking\":false}";
+    }
+
+    static String history(Context context) {
+        try (RideStore store = new RideStore(context.getApplicationContext())) {
+            return store.history().toString();
+        } catch (Exception error) {
+            return "{\"rides\":[],\"totalDistanceM\":0,\"totalActiveMs\":0}";
+        }
+    }
+
+    static boolean wasTracking(Context context) {
+        return context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_TRACKING, false);
+    }
+
+    static void setSwapSides(Context context, boolean swap) {
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(PREF_SWAP_SIDES, swap).apply();
+    }
+
+    static boolean getSwapSides(Context context) {
+        return context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_SWAP_SIDES, false);
+    }
+
+    private void stopSensors() {
+        if (locationManager != null) locationManager.removeUpdates(this);
+        if (sensorManager != null) sensorManager.unregisterListener(this);
+        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        wakeLock = null;
     }
 
     private void acquireWakeLock() {
-        if (wakeLock != null && wakeLock.isHeld()) return;
-        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RIDEZ:TripTracking");
+        PowerManager manager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RIDEZ:SoloRide");
         wakeLock.setReferenceCounted(false);
         wakeLock.acquire();
     }
 
     private void createNotificationChannel() {
-        NotificationManager manager = getSystemService(NotificationManager.class);
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID, "Aktiv tur", NotificationManager.IMPORTANCE_LOW);
-        channel.setDescription("Vises mens RIDEZ registrerer turen og deler positionen i baggrunden");
-        manager.createNotificationChannel(channel);
+        channel.setDescription("Vises mens RIDEZ måler turen lokalt på telefonen");
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 
     private Notification buildNotification() {
-        Intent openIntent = new Intent(this, MainActivity.class)
+        Intent open = new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pending = PendingIntent.getActivity(
+                this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_ridez)
-                .setContentTitle("RIDEZ registrerer og deler turen")
-                .setContentText("GPS fortsætter, mens Kurviger er fremme eller skærmen er slukket.")
-                .setContentIntent(pendingIntent)
+                .setContentTitle("RIDEZ registrerer turen")
+                .setContentText("Afstand, fart og sving gemmes lokalt – også med skærmen slukket.")
+                .setContentIntent(pending)
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
@@ -232,25 +339,20 @@ public final class RideLocationService extends Service implements LocationListen
         return getSharedPreferences(PREFS, MODE_PRIVATE);
     }
 
-    private void setTrackingPreference(boolean tracking) {
-        preferences().edit().putBoolean(PREF_TRACKING, tracking).apply();
-    }
+    @Override public void onProviderEnabled(String provider) { }
+    @Override public void onProviderDisabled(String provider) { }
+    @Override public void onStatusChanged(String provider, int status, Bundle extras) { }
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { }
+    @Override public IBinder onBind(Intent intent) { return null; }
 
-    static void configure(Context context, String supabaseUrl, String anonKey,
-                          String driverToken, long rideStartedAt) {
-        if (driverToken == null || driverToken.length() < 32) return;
-        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-                .putString(PREF_SUPABASE_URL, supabaseUrl)
-                .putString(PREF_SUPABASE_KEY, anonKey)
-                .putString(PREF_DRIVER_TOKEN, driverToken)
-                .apply();
-        try (LocationStore store = new LocationStore(context.getApplicationContext())) {
-            store.adoptUnassigned(driverToken, rideStartedAt);
+    @Override
+    public void onDestroy() {
+        if (state != null && state.tracking) {
+            state.updatedAt = System.currentTimeMillis();
+            store.save(state.id, state, false);
         }
-    }
-
-    static boolean wasTracking(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS, MODE_PRIVATE);
-        return prefs.getBoolean(PREF_TRACKING, false);
+        stopSensors();
+        if (store != null) store.close();
+        super.onDestroy();
     }
 }

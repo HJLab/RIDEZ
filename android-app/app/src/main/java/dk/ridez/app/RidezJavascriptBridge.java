@@ -9,43 +9,39 @@ final class RidezJavascriptBridge {
         this.activity = activity;
     }
 
-    @JavascriptInterface
-    public void startTracking(String mode) {
-        activity.runOnUiThread(() -> activity.startNativeTracking(mode));
+    @JavascriptInterface public void startRide() {
+        activity.runOnUiThread(activity::startRide);
     }
 
-    @JavascriptInterface
-    public void configureTracking(String supabaseUrl, String anonKey,
-                                  String driverToken, double rideStartedAt) {
-        activity.runOnUiThread(() -> activity.configureNativeTracking(
-                supabaseUrl, anonKey, driverToken, Math.max(0L, (long) rideStartedAt)));
+    @JavascriptInterface public void stopRide() {
+        activity.runOnUiThread(activity::stopRide);
     }
 
-    @JavascriptInterface
-    public void acknowledgeLocations(String lastId) {
-        try {
-            long parsed = Long.parseLong(lastId);
-            activity.runOnUiThread(() -> activity.acknowledgeWebLocations(parsed));
-        } catch (NumberFormatException ignored) { }
+    @JavascriptInterface public void calibrateLean() {
+        activity.runOnUiThread(activity::calibrateLean);
     }
 
-    @JavascriptInterface
-    public int getBridgeVersion() {
-        return activity.nativeBridgeVersion();
+    @JavascriptInterface public String getSnapshot() {
+        return activity.snapshot();
     }
 
-    @JavascriptInterface
-    public void stopTracking() {
-        activity.runOnUiThread(activity::stopNativeTracking);
+    @JavascriptInterface public String getHistory() {
+        return activity.history();
     }
 
-    @JavascriptInterface
-    public void showNotification(String title, String body) {
-        activity.runOnUiThread(() -> activity.showNativeMessageNotification(title, body));
+    @JavascriptInterface public boolean isTracking() {
+        return activity.isTracking();
     }
 
-    @JavascriptInterface
-    public boolean isTracking() {
-        return RideLocationService.wasTracking(activity.getApplicationContext());
+    @JavascriptInterface public void setSwapSides(boolean swap) {
+        activity.setSwapSides(swap);
+    }
+
+    @JavascriptInterface public boolean getSwapSides() {
+        return activity.getSwapSides();
+    }
+
+    @JavascriptInterface public int getBridgeVersion() {
+        return 200;
     }
 }

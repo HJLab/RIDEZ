@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - codex/permanent-android-signing-v118
+      - codex/ridez-solo-v200
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -70,19 +70,19 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Android-v118-permanent
+          name: RIDEZ-Solo-v200
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Opret direkte permanent v118-download
+      - name: Opret direkte RIDEZ Solo-download
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-v118-GPS.apk
-          if gh release view android-v118-gps >/dev/null 2>&1; then
-            gh release upload android-v118-gps RIDEZ-v118-GPS.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v200.apk
+          if gh release view android-v200-solo >/dev/null 2>&1; then
+            gh release upload android-v200-solo RIDEZ-Solo-v200.apk --clobber
           else
-            gh release create android-v118-gps RIDEZ-v118-GPS.apk --title "RIDEZ GPS v118" --notes "Permanent signeret RIDEZ-app med rigtig live baggrunds-GPS. Kan installeres ved siden af den gamle app uden at slette dens data."
+            gh release create android-v200-solo RIDEZ-Solo-v200.apk --title "RIDEZ Solo v200" --notes "Ny lokal udgave uden deling, følgere, beskeder eller rutekort. Afstand, fart, aktiv køretid, acceleration, bremsning, hældning og sving gemmes direkte på telefonen."
           fi

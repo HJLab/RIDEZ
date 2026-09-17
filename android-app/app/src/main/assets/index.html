@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#e9b000">
+  <title>RIDEZ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">R</span><div><strong>RIDEZ</strong><small>Din motorcykel. Dine tal.</small></div></div>
+    <span class="version">SOLO · v200</span>
+  </header>
+
+  <main>
+    <section class="hero card">
+      <div>
+        <span class="eyebrow">KØRERSTATUS</span>
+        <h1 id="status">Ikke startet</h1>
+        <p id="quality">Klar til en ny tur</p>
+      </div>
+      <div class="speed"><strong id="speed">0</strong><span>km/t</span></div>
+    </section>
+
+    <section class="grid primary">
+      <article class="metric"><span>Distance</span><strong id="distance">0,0</strong><small>km</small></article>
+      <article class="metric"><span>Aktiv køretid</span><strong id="activeTime">00:00</strong><small>timer:min</small></article>
+      <article class="metric"><span>Samlet turtid</span><strong id="elapsedTime">00:00</strong><small>timer:min</small></article>
+      <article class="metric"><span>Gennemsnitsfart</span><strong id="averageSpeed">0</strong><small>km/t</small></article>
+      <article class="metric"><span>Topfart</span><strong id="maxSpeed">0</strong><small>km/t</small></article>
+    </section>
+
+    <section class="card">
+      <div class="section-title"><div><span class="eyebrow">LEAN & SVING</span><h2>Hældning</h2></div><strong id="liveLean">0°</strong></div>
+      <div class="lean-gauge"><i id="leanNeedle"></i><span class="left">V</span><span class="right">H</span></div>
+      <div class="grid">
+        <article class="metric accent-left"><span>Maks venstre</span><strong id="maxLeft">0°</strong></article>
+        <article class="metric accent-right"><span>Maks højre</span><strong id="maxRight">0°</strong></article>
+        <article class="metric"><span>Venstresving</span><strong id="leftTurns">0</strong></article>
+        <article class="metric"><span>Højresving</span><strong id="rightTurns">0</strong></article>
+      </div>
+      <button id="calibrate" class="secondary">Kalibrér med motorcyklen oprejst</button>
+    </section>
+
+    <section class="card">
+      <span class="eyebrow">ACCELERATION & BREMSNING</span>
+      <h2>Køredata</h2>
+      <div class="grid">
+        <article class="metric"><span>Bedste acceleration</span><strong id="maxAccel">0,0</strong><small>m/s²</small></article>
+        <article class="metric"><span>Hårdeste bremsning</span><strong id="maxBrake">0,0</strong><small>m/s²</small></article>
+        <article class="metric"><span>0–50 km/t</span><strong id="zero50">—</strong><small>sek.</small></article>
+        <article class="metric"><span>0–80 km/t</span><strong id="zero80">—</strong><small>sek.</small></article>
+        <article class="metric"><span>0–100 km/t</span><strong id="zero100">—</strong><small>sek.</small></article>
+        <article class="metric"><span>Stilstand</span><strong id="standstill">00:00</strong><small>timer:min</small></article>
+      </div>
+    </section>
+
+    <section class="actions card">
+      <button id="start" class="primary-button">START TUR</button>
+      <button id="stop" class="danger hidden">STOP OG GEM TUR</button>
+      <p>Alle data gemmes kun på telefonen. Ruten og dine koordinater gemmes ikke.</p>
+    </section>
+
+    <details class="card settings">
+      <summary>Indstillinger</summary>
+      <label><input type="checkbox" id="swapSides"> Byt venstre og højre</label>
+      <p>Brug kun denne, hvis telefonens montering får siderne til at vises omvendt.</p>
+    </details>
+
+    <section class="card">
+      <div class="section-title"><div><span class="eyebrow">HISTORIK</span><h2>Gemte ture</h2></div><span id="historyTotal"></span></div>
+      <div id="history" class="history"><p class="muted">Ingen gemte ture endnu.</p></div>
+    </section>
+  </main>
+
+  <div id="confirmStop" class="dialog hidden" role="dialog" aria-modal="true">
+    <div class="dialog-box">
+      <h2>Stop turen?</h2>
+      <p>Turen afsluttes og gemmes i historikken.</p>
+      <div><button id="cancelStop" class="secondary">Fortsæt tur</button><button id="confirmStopButton" class="danger">Stop tur</button></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
