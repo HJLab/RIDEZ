@@ -85,6 +85,13 @@ test('v202 bulk deletion is blocked during an active ride at UI and native level
   assert.match(store, /ended_at IS NOT NULL AND id IN/);
 });
 
+test('v206 deletion ignores stale tracking preferences after restart', () => {
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  assert.match(service, /serviceActivelyTracking/);
+  assert.match(service, /static boolean wasTracking\(Context context\) \{\s*return serviceActivelyTracking;/);
+  assert.doesNotMatch(service, /static boolean wasTracking\(Context context\) \{\s*return context\.getSharedPreferences/);
+});
+
 test('v202 auto-pauses after two minutes and resumes on movement', () => {
   const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
   const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');

@@ -10,6 +10,7 @@ on:
       - codex/ridez-solo-v203
       - codex/ridez-solo-v204
       - codex/ridez-solo-v205
+      - codex/ridez-solo-v206
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -74,7 +75,7 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Solo-v205
+          name: RIDEZ-Solo-v206
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -84,9 +85,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v205.apk
-          if gh release view android-v205-solo >/dev/null 2>&1; then
-            gh release upload android-v205-solo RIDEZ-Solo-v205.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v206.apk
+          if gh release view android-v206-solo >/dev/null 2>&1; then
+            gh release upload android-v206-solo RIDEZ-Solo-v206.apk --clobber
           else
-            gh release create android-v205-solo RIDEZ-Solo-v205.apk --title "RIDEZ Solo v205" --notes "Retter venstre og højre ved vandret telefonmontering. Standardretningen er vendt korrekt, og indstillingen Byt venstre og højre reagerer straks samt nulstiller hældningsmaksima og svingtal. Alle rettelser fra v204 er bevaret."
+            gh release create android-v206-solo RIDEZ-Solo-v206.apk --title "RIDEZ Solo v206" --notes "Retter sletning af gemte ture efter appopdatering eller genstart. Sletningen kontrollerer nu den faktisk kørende registreringstjeneste i stedet for en forældet gemt turmarkering. Alle rettelser fra v205 er bevaret."
           fi

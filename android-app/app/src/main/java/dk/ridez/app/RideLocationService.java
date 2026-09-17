@@ -55,6 +55,7 @@ public final class RideLocationService extends Service implements LocationListen
     private static final float RESUME_SPEED_MS = RideMath.MIN_MOVING_SPEED_MS;
 
     private static volatile String latestSnapshot = "{\"tracking\":false}";
+    private static volatile boolean serviceActivelyTracking;
     private LocationManager locationManager;
     private SensorManager sensorManager;
     private Sensor rotationSensor;
@@ -122,6 +123,7 @@ public final class RideLocationService extends Service implements LocationListen
             prefs.edit().putLong(PREF_RIDE_ID, state.id).apply();
         }
         state.tracking = true;
+        serviceActivelyTracking = true;
         prefs.edit().putBoolean(PREF_TRACKING, true).apply();
         acquireWakeLock();
         startSensors();
@@ -173,6 +175,7 @@ public final class RideLocationService extends Service implements LocationListen
             updateSnapshot();
         }
         preferences().edit().putBoolean(PREF_TRACKING, false).remove(PREF_RIDE_ID).apply();
+        serviceActivelyTracking = false;
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -509,7 +512,7 @@ public final class RideLocationService extends Service implements LocationListen
     }
 
     static boolean wasTracking(Context context) {
-        return context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_TRACKING, false);
+        return serviceActivelyTracking;
     }
 
     static void setSwapSides(Context context, boolean swap) {
@@ -599,6 +602,7 @@ public final class RideLocationService extends Service implements LocationListen
             store.save(state.id, state, false);
         }
         stopSensors();
+        serviceActivelyTracking = false;
         terrainExecutor.shutdownNow();
         if (store != null) store.close();
         super.onDestroy();

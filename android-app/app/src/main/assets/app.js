@@ -149,7 +149,7 @@
     $('confirmDelete').classList.add('hidden');
     $('historyFeedback').textContent=deleted===ids.length
       ? (deleted===1?'Turen er slettet.':deleted+' ture er slettet.')
-      : 'Turene kunne ikke slettes. Afslut en eventuel aktiv tur og prøv igen.';
+      : 'Sletningen mislykkedes. Ingen ture er fjernet.';
     historySelectMode=false;
     selectedRideIds.clear();
     loadHistory();
