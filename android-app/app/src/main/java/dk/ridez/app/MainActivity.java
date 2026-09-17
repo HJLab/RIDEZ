@@ -4,6 +4,10 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebSettings;
@@ -11,15 +15,21 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends Activity implements SensorEventListener {
     private static final int LOCATION_PERMISSION_REQUEST = 4201;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 4202;
     private WebView webView;
     private boolean pendingStart;
+    private SensorManager sensorManager;
+    private Sensor rotationSensor;
+    private volatile float calibrationReference;
+    private volatile boolean calibrationSensorReady;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         webView = new WebView(this);
         setContentView(webView);
 
@@ -58,15 +68,18 @@ public final class MainActivity extends Activity {
         startService(intent);
     }
 
-    void calibrateLean() {
-        if (!RideLocationService.wasTracking(this)) {
-            Toast.makeText(this, "Start turen før kalibrering.", Toast.LENGTH_SHORT).show();
-            return;
+    boolean calibrateLean() {
+        if (!calibrationSensorReady) {
+            runOnUiThread(() -> Toast.makeText(this,
+                    "Sensoren er ikke klar endnu. Vent et øjeblik og prøv igen.",
+                    Toast.LENGTH_SHORT).show());
+            return false;
         }
-        Intent intent = new Intent(this, RideLocationService.class)
-                .setAction(RideLocationService.ACTION_CALIBRATE);
-        startService(intent);
-        Toast.makeText(this, "Hældning nulstillet med motorcyklen oprejst.", Toast.LENGTH_SHORT).show();
+        RideLocationService.calibrate(getApplicationContext(), calibrationReference);
+        runOnUiThread(() -> Toast.makeText(this,
+                "Kalibreret: motorcyklen er nu 0°.",
+                Toast.LENGTH_SHORT).show());
+        return true;
     }
 
     String snapshot() { return RideLocationService.snapshot(getApplicationContext()); }
@@ -74,6 +87,21 @@ public final class MainActivity extends Activity {
     boolean isTracking() { return RideLocationService.wasTracking(getApplicationContext()); }
     void setSwapSides(boolean swap) { RideLocationService.setSwapSides(getApplicationContext(), swap); }
     boolean getSwapSides() { return RideLocationService.getSwapSides(getApplicationContext()); }
+    boolean isLeanSensorReady() { return calibrationSensorReady; }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
+        float[] matrix = new float[9];
+        SensorManager.getRotationMatrixFromVector(matrix, event.values);
+        float reference = RideMath.leanReferenceDegrees(matrix);
+        if (Float.isFinite(reference)) {
+            calibrationReference = reference;
+            calibrationSensorReady = true;
+        }
+    }
+
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -97,6 +125,20 @@ public final class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
                     NOTIFICATION_PERMISSION_REQUEST);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (rotationSensor != null) {
+            sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (sensorManager != null) sensorManager.unregisterListener(this);
+        super.onPause();
     }
 
     @Override

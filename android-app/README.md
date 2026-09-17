@@ -1,4 +1,4 @@
-# RIDEZ Solo v200
+# RIDEZ Solo v201
 
 RIDEZ Solo er en lokal Android-app til Hennings egne motorcykelture.
 
@@ -26,6 +26,10 @@ De gemmes ikke i databasen. Alle resultater gemmes lokalt på telefonen.
 - Starter omkring 14°.
 - Skal nå mindst cirka 17° og vare mindst 0,65 sekund.
 - Motorcyklen skal tilbage under cirka 8°, før et nyt sving kan tælle.
+
+Hældningen beregnes ud fra tyngderetningen i telefonens skærmplan. Derfor virker
+kalibreringen også, når telefonen er monteret næsten lodret. Kalibrering kan
+foretages før eller under en tur og nulstiller turens lean-maksima og svingtal.
 
 ## Byg
 

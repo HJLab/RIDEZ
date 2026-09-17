@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - codex/ridez-solo-v200
+      - codex/ridez-solo-v201
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -70,7 +70,7 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Solo-v200
+          name: RIDEZ-Solo-v201
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -80,9 +80,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v200.apk
-          if gh release view android-v200-solo >/dev/null 2>&1; then
-            gh release upload android-v200-solo RIDEZ-Solo-v200.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v201.apk
+          if gh release view android-v201-solo >/dev/null 2>&1; then
+            gh release upload android-v201-solo RIDEZ-Solo-v201.apk --clobber
           else
-            gh release create android-v200-solo RIDEZ-Solo-v200.apk --title "RIDEZ Solo v200" --notes "Ny lokal udgave uden deling, følgere, beskeder eller rutekort. Afstand, fart, aktiv køretid, acceleration, bremsning, hældning og sving gemmes direkte på telefonen."
+            gh release create android-v201-solo RIDEZ-Solo-v201.apk --title "RIDEZ Solo v201" --notes "Retter kalibrering på lodret eller vandret monteret telefon. Kalibrering virker nu før og under en tur og nulstiller fejlagtige hældningsmaksima og svingtal."
           fi

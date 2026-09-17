@@ -17,8 +17,12 @@ final class RidezJavascriptBridge {
         activity.runOnUiThread(activity::stopRide);
     }
 
-    @JavascriptInterface public void calibrateLean() {
-        activity.runOnUiThread(activity::calibrateLean);
+    @JavascriptInterface public boolean calibrateLean() {
+        return activity.calibrateLean();
+    }
+
+    @JavascriptInterface public boolean isLeanSensorReady() {
+        return activity.isLeanSensorReady();
     }
 
     @JavascriptInterface public String getSnapshot() {
@@ -42,6 +46,6 @@ final class RidezJavascriptBridge {
     }
 
     @JavascriptInterface public int getBridgeVersion() {
-        return 200;
+        return 201;
     }
 }

@@ -27,18 +27,16 @@ public final class RideLocationService extends Service implements LocationListen
     static final String ACTION_START = "dk.ridez.app.START_RIDE";
     static final String ACTION_STOP = "dk.ridez.app.STOP_RIDE";
     static final String ACTION_CALIBRATE = "dk.ridez.app.CALIBRATE_LEAN";
+    static final String EXTRA_LEAN_REFERENCE = "lean_reference";
     private static final String CHANNEL_ID = "ridez_solo_tracking";
     private static final int NOTIFICATION_ID = 200;
     private static final String PREFS = "ridez_solo";
     private static final String PREF_TRACKING = "tracking";
     private static final String PREF_RIDE_ID = "ride_id";
-    private static final String PREF_LEAN_ZERO = "lean_zero";
+    private static final String PREF_LEAN_ZERO = "lean_reference_v201";
     private static final String PREF_SWAP_SIDES = "swap_sides";
 
     private static volatile String latestSnapshot = "{\"tracking\":false}";
-    private static volatile float latestRawRoll;
-    private static volatile boolean rawRollReady;
-
     private LocationManager locationManager;
     private SensorManager sensorManager;
     private Sensor rotationSensor;
@@ -72,8 +70,10 @@ public final class RideLocationService extends Service implements LocationListen
             return START_NOT_STICKY;
         }
         if (ACTION_CALIBRATE.equals(action)) {
-            if (rawRollReady) preferences().edit().putFloat(PREF_LEAN_ZERO, latestRawRoll).apply();
-            return START_STICKY;
+            float reference = intent == null ? Float.NaN :
+                    intent.getFloatExtra(EXTRA_LEAN_REFERENCE, Float.NaN);
+            if (Float.isFinite(reference)) applyCalibration(reference);
+            return state != null && state.tracking ? START_STICKY : START_NOT_STICKY;
         }
         startForeground(NOTIFICATION_ID, buildNotification());
         startOrResumeRide();
@@ -196,17 +196,17 @@ public final class RideLocationService extends Service implements LocationListen
     public void onSensorChanged(SensorEvent event) {
         if (state == null || !state.tracking || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
         float[] matrix = new float[9];
-        float[] orientation = new float[3];
         SensorManager.getRotationMatrixFromVector(matrix, event.values);
-        SensorManager.getOrientation(matrix, orientation);
-        float rawRoll = (float) Math.toDegrees(orientation[2]);
-        latestRawRoll = rawRoll;
-        rawRollReady = true;
-        float zero = preferences().getFloat(PREF_LEAN_ZERO, rawRoll);
-        if (!preferences().contains(PREF_LEAN_ZERO)) {
-            preferences().edit().putFloat(PREF_LEAN_ZERO, rawRoll).apply();
+        float reference = RideMath.leanReferenceDegrees(matrix);
+        if (!Float.isFinite(reference)) {
+            state.sensorReady = false;
+            return;
         }
-        float lean = normalizeDegrees(rawRoll - zero);
+        float zero = preferences().getFloat(PREF_LEAN_ZERO, reference);
+        if (!preferences().contains(PREF_LEAN_ZERO)) {
+            preferences().edit().putFloat(PREF_LEAN_ZERO, reference).apply();
+        }
+        float lean = RideMath.normalizeDegrees(reference - zero);
         if (preferences().getBoolean(PREF_SWAP_SIDES, false)) lean = -lean;
         if (!Float.isFinite(lean) || Math.abs(lean) > 75f) return;
 
@@ -254,10 +254,19 @@ public final class RideLocationService extends Service implements LocationListen
         turnPeak = 0;
     }
 
-    private static float normalizeDegrees(float degrees) {
-        while (degrees > 180f) degrees -= 360f;
-        while (degrees < -180f) degrees += 360f;
-        return degrees;
+    private void applyCalibration(float reference) {
+        preferences().edit().putFloat(PREF_LEAN_ZERO, reference).apply();
+        resetTurnCandidate();
+        if (state != null) {
+            state.currentLeanDeg = 0;
+            state.maxLeftDeg = 0;
+            state.maxRightDeg = 0;
+            state.leftTurns = 0;
+            state.rightTurns = 0;
+            state.sensorReady = true;
+            state.updatedAt = System.currentTimeMillis();
+            publish(true);
+        }
     }
 
     private void publish(boolean forceSave) {
@@ -297,6 +306,18 @@ public final class RideLocationService extends Service implements LocationListen
 
     static boolean getSwapSides(Context context) {
         return context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_SWAP_SIDES, false);
+    }
+
+    static void calibrate(Context context, float reference) {
+        if (!Float.isFinite(reference)) return;
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, MODE_PRIVATE);
+        prefs.edit().putFloat(PREF_LEAN_ZERO, reference).apply();
+        if (prefs.getBoolean(PREF_TRACKING, false)) {
+            Intent intent = new Intent(context, RideLocationService.class)
+                    .setAction(ACTION_CALIBRATE)
+                    .putExtra(EXTRA_LEAN_REFERENCE, reference);
+            context.startService(intent);
+        }
     }
 
     private void stopSensors() {

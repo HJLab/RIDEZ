@@ -9,6 +9,24 @@ final class RideMath {
 
     private RideMath() { }
 
+    static float leanReferenceDegrees(float[] rotationMatrix) {
+        if (rotationMatrix == null || rotationMatrix.length < 9) return Float.NaN;
+        // SensorManager's third row is the earth-gravity axis expressed in the
+        // phone's coordinates. Its angle in the screen plane stays stable when
+        // the mounted phone is close to vertical, unlike Euler "roll".
+        float gravityX = rotationMatrix[6];
+        float gravityY = rotationMatrix[7];
+        float projection = (float) Math.hypot(gravityX, gravityY);
+        if (!Float.isFinite(projection) || projection < 0.25f) return Float.NaN;
+        return (float) Math.toDegrees(Math.atan2(gravityX, -gravityY));
+    }
+
+    static float normalizeDegrees(float degrees) {
+        while (degrees > 180f) degrees -= 360f;
+        while (degrees < -180f) degrees += 360f;
+        return degrees;
+    }
+
     static Segment assessSegment(
             long previousTime, float previousSpeed,
             long currentTime, float currentSpeed,

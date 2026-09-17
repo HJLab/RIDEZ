@@ -35,7 +35,6 @@
     $('standstill').textContent=time(Math.max(0,(s.elapsedMs||0)-(s.activeMs||0)));
     $('start').classList.toggle('hidden',tracking);
     $('stop').classList.toggle('hidden',!tracking);
-    $('calibrate').disabled=!tracking;
     if(lastTracking&&!tracking) loadHistory();
     lastTracking=tracking;
   }
@@ -59,7 +58,13 @@
   $('stop').addEventListener('click',()=>$('confirmStop').classList.remove('hidden'));
   $('cancelStop').addEventListener('click',()=>$('confirmStop').classList.add('hidden'));
   $('confirmStopButton').addEventListener('click',()=>{bridge&&bridge.stopRide();$('confirmStop').classList.add('hidden')});
-  $('calibrate').addEventListener('click',()=>bridge&&bridge.calibrateLean());
+  $('calibrate').addEventListener('click',()=>{
+    if(!bridge)return;
+    const ok=bridge.calibrateLean();
+    $('calibrationStatus').textContent=ok
+      ? 'Kalibreret til 0°. Maksima og svingtal er nulstillet.'
+      : 'Sensoren er ikke klar endnu – vent et øjeblik og prøv igen.';
+  });
   $('swapSides').addEventListener('change',e=>bridge&&bridge.setSwapSides(e.target.checked));
   if(bridge)$('swapSides').checked=bridge.getSwapSides();
   loadHistory();

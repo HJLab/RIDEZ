@@ -34,3 +34,13 @@ test('turn thresholds remain the agreed values', () => {
   assert.match(service, /absolute < 8f/);
   assert.match(service, /currentSpeedMs >= 2\.78f/);
 });
+
+test('v201 calibration avoids unstable Euler roll and is available before a ride', () => {
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  const activity = read('android-app/app/src/main/java/dk/ridez/app/MainActivity.java');
+  const app = read('android-app/app/src/main/assets/app.js');
+  assert.match(service, /leanReferenceDegrees/);
+  assert.doesNotMatch(service, /getOrientation/);
+  assert.match(activity, /implements SensorEventListener/);
+  assert.doesNotMatch(app, /calibrate'\)\.disabled/);
+});

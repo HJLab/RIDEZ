@@ -20,7 +20,14 @@ public final class RideMathTest {
                 1_000L, 10f, 2_000L, 10f, 80f, 10f);
         require(!inaccurate.accepted, "inaccurate GPS must be rejected");
 
-        System.out.println("RideMathTest: 4 checks passed");
+        require(Math.abs(RideMath.leanReferenceDegrees(new float[]{
+                1, 0, 0, 0, 1, 0, 0, -1, 0})) < 0.01f,
+                "upright portrait reference must be zero");
+        require(Math.abs(RideMath.leanReferenceDegrees(new float[]{
+                1, 0, 0, 0, 1, 0, 1, 0, 0}) - 90f) < 0.01f,
+                "quarter-turn reference must remain measurable");
+
+        System.out.println("RideMathTest: 6 checks passed");
     }
 
     private static void require(boolean condition, String message) {
