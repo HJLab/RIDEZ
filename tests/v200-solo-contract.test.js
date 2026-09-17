@@ -93,6 +93,26 @@ test('v202 records altitude but persists no coordinates', () => {
   assert.doesNotMatch(store, /latitude|longitude/i);
 });
 
+test('v203 converts altitude to mean sea level and never stores raw ellipsoid altitude', () => {
+  const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
+  assert.match(service, /addMslAltitudeToLocation/);
+  assert.match(service, /getMslAltitudeMeters/);
+  assert.match(service, /Build\.VERSION_CODES\.UPSIDE_DOWN_CAKE/);
+  assert.doesNotMatch(service, /double altitude = location\.getAltitude\(\)/);
+});
+
+test('v203 uses an in-app confirmation dialog and reports bulk deletion result', () => {
+  const html = read('android-app/app/src/main/assets/index.html');
+  const app = read('android-app/app/src/main/assets/app.js');
+  assert.match(html, /id="confirmDelete"/);
+  assert.match(html, /id="confirmDeleteButton"/);
+  assert.match(html, /id="historyFeedback"/);
+  assert.match(app, /confirmDeleteSelectedRides/);
+  assert.match(app, /bridge\.deleteRides\(JSON\.stringify\(ids\)\)/);
+  assert.doesNotMatch(app, /\bconfirm\(/);
+  assert.doesNotMatch(app, /\balert\(/);
+});
+
 test('v202 explains acceleration and braking in relatable units', () => {
   const html = read('android-app/app/src/main/assets/index.html');
   const app = read('android-app/app/src/main/assets/app.js');

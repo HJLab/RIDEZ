@@ -124,13 +124,27 @@
   }
 
   function deleteSelectedRides(){
-    if(trackingNow){alert('Afslut den aktive tur, før du sletter gemte ture.');return}
+    if(trackingNow){$('historyFeedback').textContent='Afslut den aktive tur, før du sletter gemte ture.';return}
     const ids=Array.from(selectedRideIds);
     if(!ids.length)return;
     const word=ids.length===1?'den valgte tur':ids.length+' valgte ture';
-    if(!confirm('Slet '+word+' permanent? Det kan ikke fortrydes.'))return;
+    $('deleteConfirmText').textContent='Slet '+word+' permanent? Det kan ikke fortrydes.';
+    $('confirmDelete').classList.remove('hidden');
+  }
+
+  function confirmDeleteSelectedRides(){
+    if(trackingNow){
+      $('confirmDelete').classList.add('hidden');
+      $('historyFeedback').textContent='Afslut den aktive tur, før du sletter gemte ture.';
+      return;
+    }
+    const ids=Array.from(selectedRideIds);
+    if(!ids.length){$('confirmDelete').classList.add('hidden');return}
     const deleted=bridge?Number(bridge.deleteRides(JSON.stringify(ids))):0;
-    if(deleted!==ids.length){alert('Ikke alle valgte ture kunne slettes. Historikken opdateres nu.')}
+    $('confirmDelete').classList.add('hidden');
+    $('historyFeedback').textContent=deleted===ids.length
+      ? (deleted===1?'Turen er slettet.':deleted+' ture er slettet.')
+      : 'Turene kunne ikke slettes. Afslut en eventuel aktiv tur og prøv igen.';
     historySelectMode=false;
     selectedRideIds.clear();
     loadHistory();
@@ -150,6 +164,8 @@
   $('swapSides').addEventListener('change',e=>bridge&&bridge.setSwapSides(e.target.checked));
   $('selectRides').addEventListener('click',toggleRideSelection);
   $('deleteRides').addEventListener('click',deleteSelectedRides);
+  $('cancelDelete').addEventListener('click',()=>$('confirmDelete').classList.add('hidden'));
+  $('confirmDeleteButton').addEventListener('click',confirmDeleteSelectedRides);
   if(bridge)$('swapSides').checked=bridge.getSwapSides();
   loadHistory();
   refresh();

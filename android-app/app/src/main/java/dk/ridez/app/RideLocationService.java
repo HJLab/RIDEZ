@@ -1,6 +1,7 @@
 package dk.ridez.app;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,12 +19,21 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
+
+import android.location.altitude.AltitudeConverter;
 
 import org.json.JSONObject;
 
 import org.json.JSONArray;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class RideLocationService extends Service implements LocationListener, SensorEventListener {
     static final String ACTION_START = "dk.ridez.app.START_RIDE";
@@ -48,6 +58,10 @@ public final class RideLocationService extends Service implements LocationListen
     private RideStore store;
     private PowerManager.WakeLock wakeLock;
     private RideStore.Snapshot state;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService altitudeExecutor = Executors.newSingleThreadExecutor();
+    private Api34AltitudeConverter altitudeConverter;
+    private boolean altitudeConversionInFlight;
     private Location previousLocation;
     private float previousSpeed;
     private int acceptedGpsPoints;
@@ -65,6 +79,9 @@ public final class RideLocationService extends Service implements LocationListen
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         store = new RideStore(getApplicationContext());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            altitudeConverter = new Api34AltitudeConverter();
+        }
         createNotificationChannel();
     }
 
@@ -223,17 +240,65 @@ public final class RideLocationService extends Service implements LocationListen
 
     private void recordAltitude(Location location) {
         if (!location.hasAltitude()) return;
-        boolean accurateEnough = location.hasVerticalAccuracy()
-                ? location.getVerticalAccuracyMeters() <= 25f
-                : location.getAccuracy() <= 20f;
-        double altitude = location.getAltitude();
-        if (!accurateEnough || !Double.isFinite(altitude) || altitude < -500 || altitude > 9000) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return;
+
+        if (location.hasMslAltitude()) {
+            float accuracy = location.hasMslAltitudeAccuracy()
+                    ? location.getMslAltitudeAccuracyMeters()
+                    : verticalAccuracy(location);
+            recordMslAltitude(location.getMslAltitudeMeters(), accuracy);
+            return;
+        }
+
+        if (altitudeConversionInFlight || altitudeConverter == null || altitudeExecutor.isShutdown()) return;
+        altitudeConversionInFlight = true;
+        Location copy = new Location(location);
+        long rideId = state.id;
+        altitudeExecutor.execute(() -> {
+            boolean converted = altitudeConverter.addMeanSeaLevelAltitude(this, copy);
+            mainHandler.post(() -> {
+                altitudeConversionInFlight = false;
+                if (!converted || state == null || !state.tracking || state.id != rideId ||
+                        !copy.hasMslAltitude()) return;
+                float accuracy = copy.hasMslAltitudeAccuracy()
+                        ? copy.getMslAltitudeAccuracyMeters()
+                        : verticalAccuracy(copy);
+                recordMslAltitude(copy.getMslAltitudeMeters(), accuracy);
+                state.updatedAt = System.currentTimeMillis();
+                publish(false);
+            });
+        });
+    }
+
+    private static float verticalAccuracy(Location location) {
+        return location.hasVerticalAccuracy()
+                ? location.getVerticalAccuracyMeters()
+                : location.getAccuracy();
+    }
+
+    private void recordMslAltitude(double altitude, float accuracyM) {
+        if (!Float.isFinite(accuracyM) || accuracyM > 25f || !Double.isFinite(altitude) ||
+                altitude < -500 || altitude > 9000) return;
         state.currentAltitudeM = altitude;
         state.maxAltitudeM = state.maxAltitudeM == null
                 ? altitude : Math.max(state.maxAltitudeM, altitude);
         if (altitude < 0) {
             state.minBelowSeaM = state.minBelowSeaM == null
                     ? altitude : Math.min(state.minBelowSeaM, altitude);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private static final class Api34AltitudeConverter {
+        private final AltitudeConverter converter = new AltitudeConverter();
+
+        boolean addMeanSeaLevelAltitude(Context context, Location location) {
+            try {
+                converter.addMslAltitudeToLocation(context, location);
+                return location.hasMslAltitude();
+            } catch (IOException | IllegalArgumentException error) {
+                return false;
+            }
         }
     }
 
@@ -499,6 +564,7 @@ public final class RideLocationService extends Service implements LocationListen
             store.save(state.id, state, false);
         }
         stopSensors();
+        altitudeExecutor.shutdownNow();
         if (store != null) store.close();
         super.onDestroy();
     }

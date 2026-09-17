@@ -10,7 +10,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="logo">R</span><div><strong>RIDEZ</strong><small>Din motorcykel. Dine tal.</small></div></div>
-    <span class="version">SOLO · v202</span>
+    <span class="version">SOLO · v203</span>
   </header>
 
   <main>
@@ -88,6 +88,7 @@
         <button id="deleteRides" class="danger compact hidden" type="button" disabled>SLET VALGTE</button>
       </div>
       <p id="historyLocked" class="history-locked hidden">Afslut den aktive tur, før du kan slette gemte ture.</p>
+      <p id="historyFeedback" class="history-feedback" aria-live="polite"></p>
       <div id="history" class="history"><p class="muted">Ingen gemte ture endnu.</p></div>
     </section>
   </main>
@@ -97,6 +98,13 @@
       <h2>Stop turen?</h2>
       <p>Turen afsluttes og gemmes i historikken.</p>
       <div><button id="cancelStop" class="secondary">Fortsæt tur</button><button id="confirmStopButton" class="danger">Stop tur</button></div>
+    </div>
+  </div>
+  <div id="confirmDelete" class="dialog hidden" role="dialog" aria-modal="true">
+    <div class="dialog-box">
+      <h2>Slet gemte ture?</h2>
+      <p id="deleteConfirmText">De valgte ture slettes permanent.</p>
+      <div><button id="cancelDelete" class="secondary" type="button">Annuller</button><button id="confirmDeleteButton" class="danger" type="button">Slet permanent</button></div>
     </div>
   </div>
   <script src="app.js"></script>
