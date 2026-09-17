@@ -31,6 +31,11 @@
     $('averageSpeed').textContent=s.activeMs>0?Math.round((s.distanceM/1000)/(s.activeMs/3600000)):0;
     $('maxSpeed').textContent=kmh(s.maxSpeedMs);
     $('currentAltitude').textContent=meters(s.currentAltitudeM);
+    $('altitudeStatus').textContent=!tracking
+      ? 'Vises under en tur, når der er internet.'
+      : (s.currentAltitudeM==null
+          ? 'Venter på internet og præcis placering…'
+          : 'Terrænhøjde fra seneste opslag · koordinatet gemmes ikke.');
     $('maxAltitude').textContent=meters(s.maxAltitudeM);
     $('belowSeaMetric').classList.toggle('hidden',s.minBelowSeaM==null);
     $('minBelowSea').textContent=meters(s.minBelowSeaM);

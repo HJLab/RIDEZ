@@ -15,7 +15,7 @@ import java.util.Set;
 
 final class RideStore extends SQLiteOpenHelper {
     private static final String DB_NAME = "ridez_solo.db";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 3;
 
     RideStore(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -41,7 +41,8 @@ final class RideStore extends SQLiteOpenHelper {
                 "zero_80_ms INTEGER," +
                 "zero_100_ms INTEGER," +
                 "max_altitude_m REAL," +
-                "min_below_sea_m REAL)");
+                "min_below_sea_m REAL," +
+                "altitude_source INTEGER NOT NULL DEFAULT 204)");
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -49,6 +50,10 @@ final class RideStore extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE rides ADD COLUMN paused_ms INTEGER NOT NULL DEFAULT 0");
             db.execSQL("ALTER TABLE rides ADD COLUMN max_altitude_m REAL");
             db.execSQL("ALTER TABLE rides ADD COLUMN min_below_sea_m REAL");
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE rides ADD COLUMN altitude_source INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("UPDATE rides SET max_altitude_m=NULL, min_below_sea_m=NULL, altitude_source=0");
         }
     }
 
@@ -76,6 +81,7 @@ final class RideStore extends SQLiteOpenHelper {
         putNullable(v, "zero_100_ms", s.zero100Ms);
         putNullableDouble(v, "max_altitude_m", s.maxAltitudeM);
         putNullableDouble(v, "min_below_sea_m", s.minBelowSeaM);
+        v.put("altitude_source", s.altitudeSource);
         getWritableDatabase().update("rides", v, "id=?", new String[]{Long.toString(rideId)});
     }
 
@@ -146,6 +152,7 @@ final class RideStore extends SQLiteOpenHelper {
         s.zero100Ms = nullableLongObject(c, "zero_100_ms");
         s.maxAltitudeM = nullableDoubleObject(c, "max_altitude_m");
         s.minBelowSeaM = nullableDoubleObject(c, "min_below_sea_m");
+        s.altitudeSource = (int) getLong(c, "altitude_source");
         return s;
     }
 
@@ -188,6 +195,8 @@ final class RideStore extends SQLiteOpenHelper {
         Long zero80Ms;
         Long zero100Ms;
         Double currentAltitudeM;
+        long terrainAltitudeUpdatedAt;
+        int altitudeSource;
         Double maxAltitudeM;
         Double minBelowSeaM;
         boolean tracking;
@@ -216,6 +225,8 @@ final class RideStore extends SQLiteOpenHelper {
             o.put("zero80Ms", zero80Ms == null ? JSONObject.NULL : zero80Ms);
             o.put("zero100Ms", zero100Ms == null ? JSONObject.NULL : zero100Ms);
             o.put("currentAltitudeM", currentAltitudeM == null ? JSONObject.NULL : currentAltitudeM);
+            o.put("terrainAltitudeUpdatedAt", terrainAltitudeUpdatedAt);
+            o.put("altitudeSource", altitudeSource);
             o.put("maxAltitudeM", maxAltitudeM == null ? JSONObject.NULL : maxAltitudeM);
             o.put("minBelowSeaM", minBelowSeaM == null ? JSONObject.NULL : minBelowSeaM);
             return o;

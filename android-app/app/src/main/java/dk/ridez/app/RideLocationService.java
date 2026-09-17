@@ -1,7 +1,6 @@
 package dk.ridez.app;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -19,19 +18,21 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 
-import android.location.altitude.AltitudeConverter;
-
 import org.json.JSONObject;
 
 import org.json.JSONArray;
 
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,9 +60,10 @@ public final class RideLocationService extends Service implements LocationListen
     private PowerManager.WakeLock wakeLock;
     private RideStore.Snapshot state;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final ExecutorService altitudeExecutor = Executors.newSingleThreadExecutor();
-    private Api34AltitudeConverter altitudeConverter;
-    private boolean altitudeConversionInFlight;
+    private final ExecutorService terrainExecutor = Executors.newSingleThreadExecutor();
+    private boolean terrainRequestInFlight;
+    private long lastTerrainRequestAt;
+    private Location lastTerrainRequestLocation;
     private Location previousLocation;
     private float previousSpeed;
     private int acceptedGpsPoints;
@@ -79,9 +81,6 @@ public final class RideLocationService extends Service implements LocationListen
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         store = new RideStore(getApplicationContext());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            altitudeConverter = new Api34AltitudeConverter();
-        }
         createNotificationChannel();
     }
 
@@ -183,7 +182,7 @@ public final class RideLocationService extends Service implements LocationListen
         state.gpsReady = true;
         state.gpsAccuracyM = location.getAccuracy();
         state.currentSpeedMs = speed;
-        recordAltitude(location);
+        requestTerrainAltitude(location);
 
         long now = System.currentTimeMillis();
         if (state.autoPaused) {
@@ -238,67 +237,75 @@ public final class RideLocationService extends Service implements LocationListen
         publish(false);
     }
 
-    private void recordAltitude(Location location) {
-        if (!location.hasAltitude()) return;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return;
+    private void requestTerrainAltitude(Location location) {
+        if (location.getAccuracy() > 20f || terrainRequestInFlight || terrainExecutor.isShutdown()) return;
+        long now = System.currentTimeMillis();
+        boolean movedEnough = lastTerrainRequestLocation == null ||
+                location.distanceTo(lastTerrainRequestLocation) >= 200f;
+        if (now - lastTerrainRequestAt < 15_000L ||
+                (!movedEnough && now - lastTerrainRequestAt < 300_000L)) return;
 
-        if (location.hasMslAltitude()) {
-            float accuracy = location.hasMslAltitudeAccuracy()
-                    ? location.getMslAltitudeAccuracyMeters()
-                    : verticalAccuracy(location);
-            recordMslAltitude(location.getMslAltitudeMeters(), accuracy);
-            return;
-        }
-
-        if (altitudeConversionInFlight || altitudeConverter == null || altitudeExecutor.isShutdown()) return;
-        altitudeConversionInFlight = true;
+        terrainRequestInFlight = true;
+        lastTerrainRequestAt = now;
+        lastTerrainRequestLocation = new Location(location);
         Location copy = new Location(location);
         long rideId = state.id;
-        altitudeExecutor.execute(() -> {
-            boolean converted = altitudeConverter.addMeanSeaLevelAltitude(this, copy);
+        terrainExecutor.execute(() -> {
+            Double altitude = fetchTerrainAltitude(copy.getLatitude(), copy.getLongitude());
             mainHandler.post(() -> {
-                altitudeConversionInFlight = false;
-                if (!converted || state == null || !state.tracking || state.id != rideId ||
-                        !copy.hasMslAltitude()) return;
-                float accuracy = copy.hasMslAltitudeAccuracy()
-                        ? copy.getMslAltitudeAccuracyMeters()
-                        : verticalAccuracy(copy);
-                recordMslAltitude(copy.getMslAltitudeMeters(), accuracy);
+                terrainRequestInFlight = false;
+                if (altitude == null || state == null || !state.tracking || state.id != rideId) return;
+                recordTerrainAltitude(altitude);
                 state.updatedAt = System.currentTimeMillis();
                 publish(false);
             });
         });
     }
 
-    private static float verticalAccuracy(Location location) {
-        return location.hasVerticalAccuracy()
-                ? location.getVerticalAccuracyMeters()
-                : location.getAccuracy();
+    private static Double fetchTerrainAltitude(double latitude, double longitude) {
+        HttpURLConnection connection = null;
+        try {
+            String endpoint = String.format(Locale.US,
+                    "https://api.open-meteo.com/v1/elevation?latitude=%.6f&longitude=%.6f",
+                    latitude, longitude);
+            connection = (HttpURLConnection) new URL(endpoint).openConnection();
+            connection.setConnectTimeout(8_000);
+            connection.setReadTimeout(8_000);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
+            StringBuilder body = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null && body.length() < 4096) body.append(line);
+            }
+            JSONArray elevations = new JSONObject(body.toString()).optJSONArray("elevation");
+            if (elevations == null || elevations.length() == 0 || elevations.isNull(0)) return null;
+            double altitude = elevations.optDouble(0, Double.NaN);
+            return Double.isFinite(altitude) && altitude >= -500 && altitude <= 9000
+                    ? altitude : null;
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
-    private void recordMslAltitude(double altitude, float accuracyM) {
-        if (!Float.isFinite(accuracyM) || accuracyM > 25f || !Double.isFinite(altitude) ||
-                altitude < -500 || altitude > 9000) return;
+    private void recordTerrainAltitude(double altitude) {
+        if (state.altitudeSource != 204) {
+            state.currentAltitudeM = null;
+            state.maxAltitudeM = null;
+            state.minBelowSeaM = null;
+            state.altitudeSource = 204;
+        }
         state.currentAltitudeM = altitude;
+        state.terrainAltitudeUpdatedAt = System.currentTimeMillis();
         state.maxAltitudeM = state.maxAltitudeM == null
                 ? altitude : Math.max(state.maxAltitudeM, altitude);
         if (altitude < 0) {
             state.minBelowSeaM = state.minBelowSeaM == null
                     ? altitude : Math.min(state.minBelowSeaM, altitude);
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private static final class Api34AltitudeConverter {
-        private final AltitudeConverter converter = new AltitudeConverter();
-
-        boolean addMeanSeaLevelAltitude(Context context, Location location) {
-            try {
-                converter.addMslAltitudeToLocation(context, location);
-                return location.hasMslAltitude();
-            } catch (IOException | IllegalArgumentException error) {
-                return false;
-            }
         }
     }
 
@@ -564,7 +571,7 @@ public final class RideLocationService extends Service implements LocationListen
             store.save(state.id, state, false);
         }
         stopSensors();
-        altitudeExecutor.shutdownNow();
+        terrainExecutor.shutdownNow();
         if (store != null) store.close();
         super.onDestroy();
     }

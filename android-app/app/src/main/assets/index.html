@@ -10,7 +10,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="logo">R</span><div><strong>RIDEZ</strong><small>Din motorcykel. Dine tal.</small></div></div>
-    <span class="version">SOLO · v203</span>
+    <span class="version">SOLO · v204</span>
   </header>
 
   <main>
@@ -45,7 +45,8 @@
         <article class="metric"><span>Turens højeste punkt</span><strong id="maxAltitude">—</strong></article>
         <article id="belowSeaMetric" class="metric below-sea hidden"><span>Laveste under havet</span><strong id="minBelowSea">—</strong></article>
       </div>
-      <p class="altitude-note">Feltet under havets overflade vises kun, hvis en gyldig GPS-højde kommer under 0 meter.</p>
+      <p id="altitudeStatus" class="altitude-note">Vises under en tur, når der er internet.</p>
+      <p class="altitude-note">Terrænhøjde: Copernicus DEM via Open-Meteo. Koordinatet bruges kun til opslaget og gemmes ikke. Feltet under havets overflade vises kun under 0 meter.</p>
     </section>
 
     <section class="card">

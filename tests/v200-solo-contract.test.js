@@ -9,8 +9,8 @@ test('Solo UI has no sharing, map, follower, message, Supabase or route features
   const html = read('android-app/app/src/main/assets/index.html');
   const js = read('android-app/app/src/main/assets/app.js');
   const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
-  const combined = html + js + service;
-  assert.doesNotMatch(combined, /supabase|follower|leaflet|mapbox|\?follow=|shareRide|routePoints|latitude|longitude/i);
+  assert.doesNotMatch(html + js, /supabase|follower|leaflet|mapbox|\?follow=|shareRide|routePoints|latitude|longitude/i);
+  assert.doesNotMatch(service, /supabase|follower|leaflet|mapbox|\?follow=|shareRide|routePoints/i);
 });
 
 test('Solo UI exposes every requested local metric', () => {
@@ -84,21 +84,27 @@ test('v202 auto-pauses after two minutes and resumes on movement', () => {
   assert.match(store, /paused_ms/);
 });
 
-test('v202 records altitude but persists no coordinates', () => {
+test('altitude aggregates are persisted without coordinates', () => {
   const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
   const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');
-  assert.match(service, /recordAltitude/);
+  assert.match(service, /recordTerrainAltitude/);
   assert.match(store, /max_altitude_m/);
   assert.match(store, /min_below_sea_m/);
+  assert.match(store, /altitude_source/);
   assert.doesNotMatch(store, /latitude|longitude/i);
 });
 
-test('v203 converts altitude to mean sea level and never stores raw ellipsoid altitude', () => {
+test('v204 uses online terrain elevation and never stores raw GPS altitude', () => {
   const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
-  assert.match(service, /addMslAltitudeToLocation/);
-  assert.match(service, /getMslAltitudeMeters/);
-  assert.match(service, /Build\.VERSION_CODES\.UPSIDE_DOWN_CAKE/);
-  assert.doesNotMatch(service, /double altitude = location\.getAltitude\(\)/);
+  const manifest = read('android-app/app/src/main/AndroidManifest.xml');
+  const html = read('android-app/app/src/main/assets/index.html');
+  assert.match(service, /api\.open-meteo\.com\/v1\/elevation/);
+  assert.match(service, /recordTerrainAltitude/);
+  assert.match(manifest, /android\.permission\.INTERNET/);
+  assert.match(html, /Copernicus DEM via Open-Meteo/);
+  assert.doesNotMatch(service, /getAltitude\(|getMslAltitudeMeters|addMslAltitudeToLocation/);
+  assert.match(service, /state\.altitudeSource != 204/);
+  assert.match(read('android-app/app/src/main/java/dk/ridez/app/RideStore.java'), /UPDATE rides SET max_altitude_m=NULL/);
 });
 
 test('v203 uses an in-app confirmation dialog and reports bulk deletion result', () => {
