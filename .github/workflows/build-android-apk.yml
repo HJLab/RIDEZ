@@ -11,6 +11,7 @@ on:
       - codex/ridez-solo-v204
       - codex/ridez-solo-v205
       - codex/ridez-solo-v206
+      - codex/ridez-solo-v207
     paths:
       - "android-app/**"
       - ".github/workflows/build-android-apk.yml"
@@ -75,7 +76,7 @@ jobs:
       - name: Gem permanent signeret APK
         uses: actions/upload-artifact@v4
         with:
-          name: RIDEZ-Solo-v206
+          name: RIDEZ-Solo-v207
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -85,9 +86,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v206.apk
-          if gh release view android-v206-solo >/dev/null 2>&1; then
-            gh release upload android-v206-solo RIDEZ-Solo-v206.apk --clobber
+          cp android-app/app/build/outputs/apk/release/app-release.apk RIDEZ-Solo-v207.apk
+          if gh release view android-v207-solo >/dev/null 2>&1; then
+            gh release upload android-v207-solo RIDEZ-Solo-v207.apk --clobber
           else
-            gh release create android-v206-solo RIDEZ-Solo-v206.apk --title "RIDEZ Solo v206" --notes "Retter sletning af gemte ture efter appopdatering eller genstart. Sletningen kontrollerer nu den faktisk kørende registreringstjeneste i stedet for en forældet gemt turmarkering. Alle rettelser fra v205 er bevaret."
+            gh release create android-v207-solo RIDEZ-Solo-v207.apk --title "RIDEZ Solo v207" --notes "Gør livevisningen under en aktiv tur tydelig og løbende: distance vises med 10 meters opløsning, aktiv og samlet tid tæller i sekunder, og gennemsnits- og topfart vises med én decimal. De gemte beregninger og alle rettelser fra v206 er bevaret."
           fi

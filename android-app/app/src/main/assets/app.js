@@ -9,7 +9,10 @@
   const selectedRideIds=new Set();
   const kmh=ms=>Math.round((Number(ms)||0)*3.6);
   const one=n=>(Number(n)||0).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const two=n=>(Number(n)||0).toLocaleString('da-DK',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const liveKmh=ms=>one((Number(ms)||0)*3.6);
   const time=ms=>{const total=Math.max(0,Math.floor((Number(ms)||0)/60000));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
+  const liveTime=ms=>{const total=Math.max(0,Math.floor((Number(ms)||0)/1000));return String(Math.floor(total/3600)).padStart(2,'0')+':'+String(Math.floor((total%3600)/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')};
   const seconds=ms=>ms==null?'—':(Number(ms)/1000).toLocaleString('da-DK',{minimumFractionDigits:1,maximumFractionDigits:1});
   const meters=value=>value==null?'—':Math.round(Number(value)).toLocaleString('da-DK')+' m';
   const forceLevel=value=>{const v=Math.abs(Number(value)||0);if(v<0.5)return'Ingen tydelig måling';if(v<1.5)return'Let';if(v<3)return'Moderat';if(v<4.5)return'Kraftig';return'Meget kraftig'};
@@ -25,11 +28,11 @@
     $('status').textContent=tracking?(s.autoPaused?'Automatisk pause':'Tur i gang'):'Ikke startet';
     $('quality').textContent=tracking?(s.autoPaused?'Stille i over 2 minutter · fortsætter automatisk ved bevægelse':(s.gpsReady?('GPS klar · præcision '+Math.round(s.gpsAccuracyM||0)+' m'):'Venter på præcis GPS…')):'Klar til en ny tur';
     $('speed').textContent=kmh(s.currentSpeedMs);
-    $('distance').textContent=one((s.distanceM||0)/1000);
-    $('activeTime').textContent=time(s.activeMs);
-    $('elapsedTime').textContent=time(s.elapsedMs);
-    $('averageSpeed').textContent=s.activeMs>0?Math.round((s.distanceM/1000)/(s.activeMs/3600000)):0;
-    $('maxSpeed').textContent=kmh(s.maxSpeedMs);
+    $('distance').textContent=two((s.distanceM||0)/1000);
+    $('activeTime').textContent=liveTime(s.activeMs);
+    $('elapsedTime').textContent=liveTime(s.elapsedMs);
+    $('averageSpeed').textContent=liveKmh(s.averageSpeedMs);
+    $('maxSpeed').textContent=liveKmh(s.maxSpeedMs);
     $('currentAltitude').textContent=meters(s.currentAltitudeM);
     $('altitudeStatus').textContent=!tracking
       ? 'Vises under en tur, når der er internet.'

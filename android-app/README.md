@@ -1,6 +1,8 @@
-# RIDEZ Solo v201
+# RIDEZ Solo v207
 
 RIDEZ Solo er en lokal Android-app til Hennings egne motorcykelture.
+
+v207 gør distance, aktiv køretid, samlet turtid, gennemsnitsfart og topfart tydeligt levende under en aktiv tur. Tid vises i sekunder, distance med 10 meters opløsning og hastigheder med én decimal. Beregningerne og historikken er uændrede.
 
 ## Registrering
 

@@ -92,6 +92,19 @@ test('v206 deletion ignores stale tracking preferences after restart', () => {
   assert.doesNotMatch(service, /static boolean wasTracking\(Context context\) \{\s*return context\.getSharedPreferences/);
 });
 
+test('v207 active ride metrics visibly update at live precision', () => {
+  const html = read('android-app/app/src/main/assets/index.html');
+  const app = read('android-app/app/src/main/assets/app.js');
+  assert.match(html, /id="activeTime">00:00:00/);
+  assert.match(html, /timer:min:sek · live/);
+  assert.match(app, /const liveTime=/);
+  assert.match(app, /'distance'\)\.textContent=two/);
+  assert.match(app, /'activeTime'\)\.textContent=liveTime/);
+  assert.match(app, /'averageSpeed'\)\.textContent=liveKmh\(s\.averageSpeedMs\)/);
+  assert.match(app, /'maxSpeed'\)\.textContent=liveKmh/);
+  assert.match(read('android-app/app/src/main/java/dk/ridez/app/RideStore.java'), /averageSpeedMs/);
+});
+
 test('v202 auto-pauses after two minutes and resumes on movement', () => {
   const service = read('android-app/app/src/main/java/dk/ridez/app/RideLocationService.java');
   const store = read('android-app/app/src/main/java/dk/ridez/app/RideStore.java');

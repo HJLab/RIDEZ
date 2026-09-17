@@ -214,6 +214,7 @@ final class RideStore extends SQLiteOpenHelper {
                     .put("distanceM", distanceM).put("activeMs", activeMs)
                     .put("elapsedMs", elapsedMs).put("pausedMs", pausedMs + currentPauseMs)
                     .put("currentSpeedMs", currentSpeedMs).put("maxSpeedMs", maxSpeedMs)
+                    .put("averageSpeedMs", RideMath.averageSpeedMs(distanceM, activeMs))
                     .put("maxAccelMs2", maxAccelMs2).put("maxBrakeMs2", maxBrakeMs2)
                     .put("currentLeanDeg", currentLeanDeg)
                     .put("maxLeftDeg", maxLeftDeg).put("maxRightDeg", maxRightDeg)

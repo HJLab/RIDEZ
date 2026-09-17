@@ -13,8 +13,8 @@ android {
         applicationId "dk.ridez.app.stable"
         minSdk 26
         targetSdk 35
-        versionCode 20600
-        versionName "2.0.6-solo"
+        versionCode 20700
+        versionName "2.0.7-solo"
     }
 
     signingConfigs {

@@ -32,7 +32,12 @@ public final class RideMathTest {
         require(RideMath.leanDegrees(20f, 0f, true) > 0f,
                 "side swap must reverse the lean direction");
 
-        System.out.println("RideMathTest: 8 checks passed");
+        require(Math.abs(RideMath.averageSpeedMs(1_000, 60_000) - (1000d / 60d)) < 0.001,
+                "one kilometre in one minute must average 60 km/h");
+        require(RideMath.averageSpeedMs(0, 0) == 0,
+                "an unstarted ride must have zero average speed");
+
+        System.out.println("RideMathTest: 10 checks passed");
     }
 
     private static void require(boolean condition, String message) {

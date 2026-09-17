@@ -33,6 +33,11 @@ final class RideMath {
         return swapSides ? -lean : lean;
     }
 
+    static double averageSpeedMs(double distanceM, long activeMs) {
+        if (!Double.isFinite(distanceM) || distanceM <= 0 || activeMs <= 0) return 0;
+        return distanceM / (activeMs / 1000d);
+    }
+
     static Segment assessSegment(
             long previousTime, float previousSpeed,
             long currentTime, float currentSpeed,
